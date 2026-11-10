@@ -1,14 +1,16 @@
 import React, { useContext } from 'react';
 import { Select, FormatMessage } from 'components';
-import { langType } from '../../../lib/variable';
+import { langType, langAuto, getSystemLang } from '../../../lib/variable';
 import { ConfigContent } from '../../../lib/context';
 import {getPrefix} from '../../../lib/prefixUtil';
 
 export default React.memo(({prefix, dataChange}) => {
-  const { lang } = useContext(ConfigContent);
+  const { lang, langSetting } = useContext(ConfigContent);
   const Option = Select.Option;
   const onChange = (e) => {
-    dataChange && dataChange(e.target.value, 'lang');
+    const value = e.target.value;
+    dataChange && dataChange(value === langAuto ? getSystemLang() : value, 'lang');
+    dataChange && dataChange(value, 'langSetting');
   };
   const currentPrefix = getPrefix(prefix);
   return <div className={`${currentPrefix}-setting-language`}>
@@ -20,8 +22,8 @@ export default React.memo(({prefix, dataChange}) => {
         <FormatMessage id='config.language.label'/>
       </span>
       <span className={`${currentPrefix}-form-item-component`}>
-        <Select allowClear={false} notAllowEmpty defaultValue={lang} onChange={onChange} >
-          {(langType || [])
+        <Select allowClear={false} notAllowEmpty defaultValue={langSetting || lang} onChange={onChange} >
+          {[langAuto].concat(langType)
               .map(l => (<Option
                   key={l}
                   value={l}

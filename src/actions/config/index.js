@@ -69,7 +69,8 @@ export const saveUserConfigData = (data, title, cb) => {
       .then(() => {
         setMemoryCache(CONFIG, {
           ...data,
-          lang: data[0]?.lang
+          lang: data[0]?.lang,
+          langSetting: data[0]?.langSetting
         });
         dispatch(saveUserConfigSuccess(data));
         dispatch(closeLoading(STATUS[1], null));

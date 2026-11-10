@@ -1,7 +1,7 @@
 {
-  "name": "PDManer",
+  "name": "MyPD",
   "version": "4.9.3",
-  "description": "PDManer",
+  "description": "MyPD",
   "scripts": {
     "test": "jest",
     "lang:zhTW": "node bin/gen-lang-zhtw.js",
@@ -109,8 +109,8 @@
       "provider": "generic",
       "url": "http://chiner-release.httpchk.com"
     },
-    "appId": "PDManer",
-    "productName": "PDManer",
+    "appId": "MyPD",
+    "productName": "MyPD",
     "artifactName": "${productName}-${os}_v${version}.${ext}",
     "directories": {
       "buildResources": "app/build",

@@ -2,7 +2,7 @@
 /* eslint-disable */
 export default {
   "system": {
-    "title": "PDManer",
+    "title": "MyPD",
     "template": "當前專案為模板專案",
     "err": "出錯了",
     "errorMessage": "程式出現異常，請前往日誌檔案檢視出錯日誌：",
@@ -849,6 +849,7 @@ export default {
     "DocSave": "確定設定",
     "language": {
       "label": "語言",
+      "auto": "跟隨系統",
       "zh": "簡體中文",
       "zhTW": "繁體中文",
       "en": "English"

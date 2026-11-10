@@ -1,6 +1,6 @@
 export default {
     system: {
-        title: 'PDManer',
+        title: 'MyPD',
         template: '当前项目为模板项目',
         err: '出错了',
         errorMessage: '程序出现异常，请前往日志文件查看出错日志：',
@@ -847,6 +847,7 @@ export default {
         DocSave: '确定设置',
         language: {
             label: '语言',
+            auto: '跟随系统',
             zh: '简体中文',
             zhTW: '繁體中文',
             en: 'English',

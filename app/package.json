@@ -1,7 +1,7 @@
 {
-  "name": "PDManer",
+  "name": "MyPD",
   "version": "4.9.3",
-  "description": "PDManer-元数建模",
+  "description": "MyPD",
   "main": "./build/main.js",
   "repository": {
     "type": "git",

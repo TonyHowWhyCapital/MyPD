@@ -1,5 +1,6 @@
 import langs from '../src/lang';
 import LABELS from '../src/lib/report/labels';
+import {resolveLang, langAuto} from '../src/lib/variable';
 
 const keyPaths = (o, pre = '') => Object.keys(o).reduce((p, k) => {
   const v = o[k];
@@ -25,4 +26,17 @@ test('every extension feature string exists in English as well', () => {
   ['impact', 'modelCompare', 'dbObject', 'report', 'entityTemplate'].forEach((ns) => {
     expect(keyPaths(langs.en[ns])).toEqual(keyPaths(langs.zh[ns]));
   });
+});
+
+test('the default language setting follows the system locale', () => {
+  expect(resolveLang(langAuto, 'zh-TW')).toBe('zhTW');
+  expect(resolveLang(langAuto, 'zh-Hant-HK')).toBe('zhTW');
+  expect(resolveLang(langAuto, 'zh-CN')).toBe('zh');
+  expect(resolveLang(langAuto, 'en-US')).toBe('en');
+  expect(resolveLang(undefined, 'ja-JP')).toBe('en');
+});
+
+test('an explicitly chosen language wins over the system locale', () => {
+  expect(resolveLang('zh', 'en-US')).toBe('zh');
+  expect(resolveLang('en', 'zh-TW')).toBe('en');
 });

@@ -1,6 +1,6 @@
 export default {
     system: {
-        title: 'PDManer',
+        title: 'MyPD',
         template: 'The current project is a template project',
         err: 'Error',
         errorMessage: 'The program is abnormal. Please go to the log file to check the error log',
@@ -845,6 +845,7 @@ export default {
         DocSave: 'Confirm Settings',
         language: {
             label: 'language',
+            auto: 'Follow system',
             zh: '简体中文',
             zhTW: '繁體中文',
             en: 'English',

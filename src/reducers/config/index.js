@@ -13,6 +13,7 @@ const config = (state = { lang: langType[0] }, action) => {
         data: action.data,
         javaHome: action.data[0]?.javaHome || '',
         lang: action.data[0]?.lang || langType[0],
+        langSetting: action.data[0]?.langSetting,
         autoSave: action.data[0]?.autoSave || 0,
         autoBackup: _.get(action.data[0], 'autoBackup', 3),
         jvm: action.data[0]?.jvm || defaultJVM,

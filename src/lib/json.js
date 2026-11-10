@@ -5,6 +5,7 @@ import path from 'path';
 import moment from 'moment';
 import * as _ from 'lodash/object';
 import { projectSuffix } from '../../profile';
+import { langAuto, resolveLang } from './variable';
 import {defaultJVM, transform} from './datasource_util';
 import { FormatMessage } from 'components';
 import {postWorkerFuc} from './event_tool';
@@ -167,7 +168,7 @@ export const getUserConfig = () => {
     // 获取用户的配置信息
     const defaultUserConfigData = {
       projectHistories: [], // 历史项目记录
-      lang: /^zh-(TW|HK|MO|Hant)/i.test(app.getLocale()) ? 'zhTW' : 'zh', // 当前应用使用的语言
+      lang: langAuto, // 当前应用使用的语言，默认跟随系统
     };
     const defaultProjectConfigData = {
       commonFields: [], // 通用字段信息 多个项目可通用
@@ -195,7 +196,13 @@ export const getUserConfig = () => {
       })
     };
     Promise.all([getData(userConfigPath, defaultUserConfigData),
-      getData(projectConfigPath, defaultProjectConfigData)]).then(result => {
+      getData(projectConfigPath, defaultProjectConfigData)]).then(([user, project]) => {
+        // 文件中保存的是语言设置（可为 auto），运行时使用解析后的实际语言
+        const result = [{
+          ...user,
+          langSetting: user.lang,
+          lang: resolveLang(user.lang, app.getLocale()),
+        }, project];
         setTimeout(() => {
           res(result);
         }, 1000);
@@ -207,7 +214,11 @@ export const getUserConfig = () => {
 
 export const saveUserConfig = (data = []) => {
   return new Promise((res, rej) => {
-    Promise.all([saveJsonPromise(userConfigPath, data[0] || {}, true),
+    const user = data[0] || {};
+    Promise.all([saveJsonPromise(userConfigPath, {
+      ..._.omit(user, ['langSetting']),
+      lang: user.langSetting || user.lang,
+    }, true),
       saveJsonPromise(projectConfigPath, data[1] || {}, true)]).then((result) => {
       setTimeout(() => {
         res(result);

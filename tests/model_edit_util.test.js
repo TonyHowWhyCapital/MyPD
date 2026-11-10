@@ -217,3 +217,34 @@ describe('new domain from a column', () => {
     expect(addDomainFromColumn(ds, 'e1', 'nope').next).toBe(ds);
   });
 });
+
+describe('new domain dialog helpers', () => {
+  const { draftDomainFromColumn, commitDomain, domainKeyProblem } = require('../src/lib/model_edit_util');
+
+  test('the draft reuses a matching type mapping and proposes one otherwise', () => {
+    const ds = build();
+    const known = draftDomainFromColumn(ds, ds.entities[0].fields[0]);
+    expect(known.mapping).toBeNull();
+    expect(known.domain).toMatchObject({ defKey: 'id', applyFor: 'm-int' });
+    const unknown = draftDomainFromColumn(ds, { defKey: 'shape', type: 'GEOMETRY' });
+    expect(unknown.mapping).toMatchObject({ defKey: 'GEOMETRY', [mysql]: 'GEOMETRY' });
+    expect(unknown.domain.applyFor).toBe(unknown.mapping.id);
+    expect(draftDomainFromColumn(ds, { defKey: 'x' })).toMatchObject({ mapping: null, domain: { applyFor: '' } });
+  });
+
+  test('the proposed mapping is only saved when the domain still uses it', () => {
+    const ds = build();
+    const { domain, mapping } = draftDomainFromColumn(ds, { defKey: 'shape', type: 'GEOMETRY' });
+    expect(commitDomain(ds, domain, mapping).dataTypeMapping.mappings).toHaveLength(3);
+    const changed = commitDomain(ds, { ...domain, applyFor: 'm-str' }, mapping);
+    expect(changed.dataTypeMapping.mappings).toHaveLength(2);
+    expect(changed.domains).toHaveLength(2);
+  });
+
+  test('domain codes must be present and unique regardless of case', () => {
+    const ds = build();
+    expect(domainKeyProblem(ds, '  ')).toBe('required');
+    expect(domainKeyProblem(ds, 'code')).toBe('duplicate');
+    expect(domainKeyProblem(ds, 'Money')).toBe('');
+  });
+});

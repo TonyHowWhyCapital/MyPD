@@ -1534,8 +1534,11 @@ export default {
     "addColumn": "新增欄位",
     "addDomain": "新增資料域",
     "added": "已新增",
-    "newDomain": "＋ 以此欄位型別新增資料域",
-    "domainCreated": "已新增資料域 {name}，可在資料域頁籤調整",
+    "newDomainOption": "＋ 新增資料域…",
+    "domainKey": {
+      "required": "請填寫資料域程式碼。",
+      "duplicate": "資料域程式碼已存在，請換一個。"
+    },
     "sortHint": "點選表頭排序，可依次點選多個表頭做多欄排序",
     "clearSort": "清除排序",
     "tab": {

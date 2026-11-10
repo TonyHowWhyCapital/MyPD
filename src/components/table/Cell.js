@@ -6,6 +6,7 @@ import {subscribeEvent, unSubscribeEvent} from '../../lib/subscribe';
 import {attNames, emptyDict, getColumnWidth, validateDictBase} from '../../lib/datasource_util';
 import DictBase from '../../app/container/dict/DictBase';
 import EntityBasePropertiesList from '../../app/container/entity/EntityBasePropertiesList';
+import { NEW_DOMAIN, openNewDomain } from './newDomain';
 
 
 export default React.memo(({f, name, remarkChange, onKeyDown, currentPrefix,
@@ -218,14 +219,30 @@ export default React.memo(({f, name, remarkChange, onKeyDown, currentPrefix,
       >{label}</span>
     </Component.Tooltip>;
   } else if (name === 'domain') {
-    return <Component.Select value={f[name]} onChange={onChange}>
+    const pickDomain = (e) => {
+      if (e.target.value !== NEW_DOMAIN) {
+        onChange && onChange(e);
+        return;
+      }
+      openNewDomain({
+        field: f,
+        getDataSource,
+        updateDataSource,
+        onCreated: domain => onChange && onChange({ target: { value: domain.id, data: domain } }),
+      });
+    };
+    // Select flattens only one level of children, so pass a single flat array.
+    return <Component.Select value={f[name]} onChange={pickDomain}>
       {domains.map(d =>
         (<Component.Select.Option
           key={d.id}
           value={d.id}
         >
           {d.defName || d.defKey}
-        </Component.Select.Option>))}
+        </Component.Select.Option>)).concat(getDataSource && updateDataSource
+          ? <Component.Select.Option key={NEW_DOMAIN} value={NEW_DOMAIN}>
+            {Component.FormatMessage.string({id: 'modelEdit.newDomainOption'})}
+          </Component.Select.Option> : [])}
     </Component.Select>;
   } else if(name === 'uiHint') {
     return <Component.Select value={f[name]} onChange={onChange}>

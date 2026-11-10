@@ -3,15 +3,15 @@ import { FormatMessage, Input, Select, Checkbox, Button, Message, Modal } from '
 
 import './style/index.less';
 import { getPrefix } from '../../../../lib/prefixUtil';
+import { NEW_DOMAIN, openNewDomain } from '../../../../components/table/newDomain';
 import {
   getTableRows, getColumnRows, getDomainRows, getTypeOptions,
   updateTable, updateColumn, addColumn, removeTables, removeColumns,
-  updateDomain, addDomain, removeDomains, toggleSort, sortRows, addDomainFromColumn,
+  updateDomain, addDomain, removeDomains, toggleSort, sortRows,
 } from '../../../../lib/model_edit_util';
 
 const Option = Select.Option;
 const TABS = ['entity', 'field', 'domain'];
-const NEW_DOMAIN = '__new_domain__';
 
 const textCell = (value, onChange, disabled) => (
   <Input
@@ -150,10 +150,16 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
         change(r, { domain: value });
         return;
       }
-      const result = addDomainFromColumn(ds, r.entityId, r.id);
-      persist(result.next);
-      Message.success({
-        title: FormatMessage.string({ id: 'modelEdit.domainCreated', data: { name: result.defKey } }),
+      const field = (ds.entities || []).find(e => e.id === r.entityId)?.fields
+        .find(f => f.id === r.id);
+      let latest = ds;
+      openNewDomain({
+        field,
+        getDataSource: () => latest,
+        updateDataSource: (next) => {
+          latest = next;
+        },
+        onCreated: domain => persist(updateColumn(latest, r.entityId, r.id, { domain: domain.id })),
       });
     };
     const cols = [
@@ -171,7 +177,7 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
             {[<Option key='' value=''>{FormatMessage.string({ id: 'modelEdit.noDomain' })}</Option>]
               .concat(domainOptions.map(o => <Option key={o.id} value={o.id}>{o.label}</Option>))
               .concat(<Option key={NEW_DOMAIN} value={NEW_DOMAIN}>
-                {FormatMessage.string({ id: 'modelEdit.newDomain' })}
+                {FormatMessage.string({ id: 'modelEdit.newDomainOption' })}
               </Option>)}
           </Select>),
       },

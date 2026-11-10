@@ -249,42 +249,66 @@ const uniqueKey = (base, taken) => {
   return key;
 };
 
+// A domain proposal taken from a column's current type. The type mapping is
+// reused when one already produces that type for the current database;
+// otherwise a new mapping is proposed alongside.
+export const draftDomainFromColumn = (ds, field) => {
+  const dbId = defaultDb(ds);
+  const resolved = resolveColumnType(ds, field);
+  const sameType = m => !!resolved.type
+    && `${m[dbId] || ''}`.toLowerCase() === resolved.type.toLowerCase();
+  const existing = mappingsOf(ds).find(m => m.id === field.baseType && sameType(m))
+    || mappingsOf(ds).find(sameType);
+  const mapping = existing || (resolved.type
+    ? { id: Math.uuid(), defKey: resolved.type, defName: resolved.type, [dbId]: resolved.type }
+    : null);
+  return {
+    domain: {
+      id: Math.uuid(),
+      defKey: uniqueKey(field.defKey || 'domain',
+        domainsOf(ds).map(d => `${d.defKey || ''}`.toLowerCase())),
+      defName: field.defName || '',
+      applyFor: mapping ? mapping.id : '',
+      len: resolved.len,
+      scale: resolved.scale,
+      uiHint: '',
+    },
+    mapping: existing ? null : mapping,
+  };
+};
+
+// 'required' or 'duplicate' when the domain code cannot be used, otherwise ''.
+export const domainKeyProblem = (ds, defKey) => {
+  const key = `${defKey || ''}`.trim().toLowerCase();
+  if (!key) {
+    return 'required';
+  }
+  return domainsOf(ds).some(d => `${d.defKey || ''}`.toLowerCase() === key) ? 'duplicate' : '';
+};
+
+// Adds the domain, and the proposed mapping only when the domain still uses it.
+export const commitDomain = (ds, domain, mapping) => ({
+  ...ds,
+  dataTypeMapping: {
+    ...ds.dataTypeMapping,
+    mappings: mapping && domain.applyFor === mapping.id
+      ? mappingsOf(ds).concat(mapping) : mappingsOf(ds),
+  },
+  domains: domainsOf(ds).concat(domain),
+});
+
 // Turns a column's current type into a new domain and links the column to it,
-// so other columns can then share the same definition. The type mapping is
-// reused when one already produces that type for the current database.
+// so other columns can then share the same definition.
 export const addDomainFromColumn = (ds, entityId, fieldId) => {
   const field = (entitiesOf(ds).find(e => e.id === entityId)?.fields || [])
     .find(f => f.id === fieldId);
   if (!field) {
     return { next: ds, id: '' };
   }
-  const dbId = defaultDb(ds);
-  const resolved = resolveColumnType(ds, field);
-  const sameType = m => `${m[dbId] || ''}`.toLowerCase() === resolved.type.toLowerCase();
-  const existing = mappingsOf(ds).find(m => m.id === field.baseType && sameType(m))
-    || mappingsOf(ds).find(sameType);
-  const mapping = existing
-    || { id: Math.uuid(), defKey: resolved.type, defName: resolved.type, [dbId]: resolved.type };
-  const id = Math.uuid();
-  const defKey = uniqueKey(field.defKey || 'domain',
-    domainsOf(ds).map(d => `${d.defKey || ''}`.toLowerCase()));
-  const withDomain = {
-    ...ds,
-    dataTypeMapping: {
-      ...ds.dataTypeMapping,
-      mappings: existing ? mappingsOf(ds) : mappingsOf(ds).concat(mapping),
-    },
-    domains: domainsOf(ds).concat({
-      id,
-      defKey,
-      defName: field.defName || '',
-      applyFor: mapping.id,
-      len: resolved.len,
-      scale: resolved.scale,
-      uiHint: '',
-    }),
-  };
-  return { next: updateColumn(withDomain, entityId, fieldId, { domain: id }), id, defKey };
+  const { domain, mapping } = draftDomainFromColumn(ds, field);
+  const next = updateColumn(commitDomain(ds, domain, mapping), entityId, fieldId,
+    { domain: domain.id });
+  return { next, id: domain.id, defKey: domain.defKey };
 };
 
 // A domain in use cannot be removed, since columns would lose their type source.

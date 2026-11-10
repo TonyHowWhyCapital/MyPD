@@ -259,3 +259,48 @@ export const getTypeOptions = ds => mappingsOf(ds).map(m => ({
   id: m.id,
   label: `${m.defKey}${m.defName ? `(${m.defName})` : ''}`,
 }));
+
+// Header click cycle for one column: unsorted -> ascending -> descending -> unsorted.
+// Columns keep the order they were added in, which is their sort priority.
+export const toggleSort = (sorts, key) => {
+  const current = sorts.find(s => s.key === key);
+  if (!current) {
+    return sorts.concat({ key, dir: 'asc' });
+  }
+  return current.dir === 'asc'
+    ? sorts.map(s => (s.key === key ? { key, dir: 'desc' } : s))
+    : sorts.filter(s => s.key !== key);
+};
+
+const isBlank = v => v === '' || v === undefined || v === null;
+const compareValues = (a, b) => {
+  if (isBlank(a) || isBlank(b)) {
+    // Blank values stay together at the top when ascending.
+    return (isBlank(a) ? 0 : 1) - (isBlank(b) ? 0 : 1);
+  }
+  if (typeof a === 'number' && typeof b === 'number') {
+    return a - b;
+  }
+  if (typeof a === 'boolean' && typeof b === 'boolean') {
+    return (a ? 1 : 0) - (b ? 1 : 0);
+  }
+  return `${a}`.localeCompare(`${b}`, undefined, { numeric: true, sensitivity: 'base' });
+};
+
+// Stable multi-column sort. `getters` maps a sort key to the value shown in that column.
+export const sortRows = (rows, sorts, getters = {}) => {
+  if (sorts.length === 0) {
+    return rows;
+  }
+  const valueOf = (row, key) => (getters[key] ? getters[key](row) : row[key]);
+  return rows.map((row, index) => ({ row, index })).sort((x, y) => {
+    for (let i = 0; i < sorts.length; i += 1) {
+      const { key, dir } = sorts[i];
+      const result = compareValues(valueOf(x.row, key), valueOf(y.row, key));
+      if (result !== 0) {
+        return dir === 'desc' ? -result : result;
+      }
+    }
+    return x.index - y.index;
+  }).map(item => item.row);
+};

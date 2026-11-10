@@ -12,6 +12,8 @@ export default {
       addColumn: '新增字段',
       addDomain: '新增数据域',
       added: '已新增',
+      sortHint: '点击表头排序，可依次点击多个表头做多栏排序',
+      clearSort: '清除排序',
       tab: { entity: '数据表', field: '字段', domain: '数据域' },
       col: {
         table: '所属表',
@@ -43,6 +45,8 @@ export default {
       addColumn: 'Add column',
       addDomain: 'Add domain',
       added: 'Added',
+      sortHint: 'Click column headers to sort; click several for multi-column sort',
+      clearSort: 'Clear sort',
       tab: { entity: 'Tables', field: 'Columns', domain: 'Domains' },
       col: {
         table: 'Table',

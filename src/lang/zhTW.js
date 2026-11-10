@@ -1534,6 +1534,8 @@ export default {
     "addColumn": "新增欄位",
     "addDomain": "新增資料域",
     "added": "已新增",
+    "sortHint": "點選表頭排序，可依次點選多個表頭做多欄排序",
+    "clearSort": "清除排序",
     "tab": {
       "entity": "資料表",
       "field": "欄位",

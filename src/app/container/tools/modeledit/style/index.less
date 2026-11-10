@@ -56,7 +56,21 @@
       top: 0;
       background: #F7F7F7;
       z-index: 1;
+      &.sortable {
+        cursor: pointer;
+        user-select: none;
+      }
     }
+  }
+  &-sort {
+    margin-left: 4px;
+    color: @primary-color;
+    font-size: 12px;
+  }
+  &-hint {
+    color: #999999;
+    font-size: 12px;
+    a { margin-left: 8px; }
   }
   &-empty {
     padding: 24px;

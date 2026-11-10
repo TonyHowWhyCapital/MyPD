@@ -135,3 +135,40 @@ test('a legacy project without diagrams, groups or indexes still edits cleanly',
   expect(removeTables(ds, ['e1']).entities).toEqual([]);
   expect(getColumnRows(ds)).toHaveLength(1);
 });
+
+describe('multi-column sort', () => {
+  const { toggleSort, sortRows } = require('../src/lib/model_edit_util');
+  const rows = [
+    { id: 1, table: 'b', type: 'INT', len: 10 },
+    { id: 2, table: 'a', type: 'VARCHAR', len: 2 },
+    { id: 3, table: 'b', type: 'CHAR', len: '' },
+    { id: 4, table: 'a', type: 'CHAR', len: 100 },
+  ];
+  const ids = list => list.map(r => r.id);
+
+  test('header click cycles ascending, descending, off and keeps priority order', () => {
+    let sorts = toggleSort([], 'table');
+    sorts = toggleSort(sorts, 'type');
+    expect(sorts).toEqual([{ key: 'table', dir: 'asc' }, { key: 'type', dir: 'asc' }]);
+    sorts = toggleSort(sorts, 'table');
+    expect(sorts).toEqual([{ key: 'table', dir: 'desc' }, { key: 'type', dir: 'asc' }]);
+    expect(toggleSort(sorts, 'table')).toEqual([{ key: 'type', dir: 'asc' }]);
+  });
+
+  test('later columns break ties of earlier ones', () => {
+    expect(ids(sortRows(rows, [{ key: 'table', dir: 'asc' }, { key: 'type', dir: 'asc' }])))
+      .toEqual([4, 2, 3, 1]);
+    expect(ids(sortRows(rows, [{ key: 'table', dir: 'desc' }, { key: 'type', dir: 'desc' }])))
+      .toEqual([1, 3, 2, 4]);
+  });
+
+  test('numbers sort numerically, blanks first, and no sort keeps the original order', () => {
+    expect(ids(sortRows(rows, [{ key: 'len', dir: 'asc' }]))).toEqual([3, 2, 1, 4]);
+    expect(sortRows(rows, [])).toBe(rows);
+  });
+
+  test('a getter supplies the displayed value', () => {
+    const getters = { label: r => (r.id % 2 ? 'odd' : 'even') };
+    expect(ids(sortRows(rows, [{ key: 'label', dir: 'asc' }], getters))).toEqual([2, 4, 1, 3]);
+  });
+});

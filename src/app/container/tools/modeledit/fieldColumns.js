@@ -22,6 +22,22 @@ export const saveHiddenColumns = (hidden) => {
   localStorage.setItem(STORE_KEY, JSON.stringify(hidden));
 };
 
+const ORDER_KEY = 'mypd.modelEdit.columnOrder';
+
+// Column order per tab: { entity: [...keys], field: [...], domain: [...] }.
+export const loadColumnOrders = () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ORDER_KEY));
+    return saved && typeof saved === 'object' && !Array.isArray(saved) ? saved : {};
+  } catch (e) {
+    return {};
+  }
+};
+
+export const saveColumnOrders = (orders) => {
+  localStorage.setItem(ORDER_KEY, JSON.stringify(orders));
+};
+
 export const isFixedColumn = key => FIXED.includes(key);
 
 const title = id => <span>{FormatMessage.string({ id })}</span>;

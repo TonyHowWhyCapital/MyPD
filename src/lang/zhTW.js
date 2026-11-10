@@ -1540,8 +1540,9 @@ export default {
       "required": "請填寫資料域程式碼。",
       "duplicate": "資料域程式碼已存在，請換一個。"
     },
-    "sortHint": "點選表頭排序，可依次點選多個表頭做多欄排序",
+    "sortHint": "點選表頭排序，可依次點選多個表頭做多欄排序；拖動表頭可調整欄位順序",
     "clearSort": "清除排序",
+    "resetOrder": "還原欄位順序",
     "tab": {
       "entity": "資料表",
       "field": "欄位",

@@ -384,3 +384,23 @@ export const sortRows = (rows, sorts, getters = {}) => {
     return x.index - y.index;
   }).map(item => item.row);
 };
+
+// Applies a saved column order. Keys the saved order does not know yet (added
+// in a later version) keep their place at the end.
+export const orderColumns = (keys, saved = []) => {
+  const known = saved.filter(k => keys.includes(k));
+  return known.concat(keys.filter(k => !known.includes(k)));
+};
+
+// Moves column `from` to where `to` is: dragging rightwards drops it after the
+// target, dragging leftwards before it.
+export const moveColumn = (keys, from, to) => {
+  const fromIndex = keys.indexOf(from);
+  const toIndex = keys.indexOf(to);
+  if (fromIndex < 0 || toIndex < 0 || from === to) {
+    return keys;
+  }
+  const next = keys.filter(k => k !== from);
+  next.splice(toIndex, 0, from);
+  return next;
+};

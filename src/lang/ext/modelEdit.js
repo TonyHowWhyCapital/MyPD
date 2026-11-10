@@ -15,8 +15,9 @@ export default {
       chooseColumns: '栏位设置',
       newDomainOption: '＋ 新增数据域…',
       domainKey: { required: '请填写数据域代码。', duplicate: '数据域代码已存在，请换一个。' },
-      sortHint: '点击表头排序，可依次点击多个表头做多栏排序',
+      sortHint: '点击表头排序，可依次点击多个表头做多栏排序；拖动表头可调整栏位顺序',
       clearSort: '清除排序',
+      resetOrder: '还原栏位顺序',
       tab: { entity: '数据表', field: '字段', domain: '数据域' },
       col: {
         table: '所属表',
@@ -52,8 +53,9 @@ export default {
       chooseColumns: 'Columns',
       newDomainOption: '+ New domain…',
       domainKey: { required: 'Enter a domain code.', duplicate: 'This domain code already exists.' },
-      sortHint: 'Click column headers to sort; click several for multi-column sort',
+      sortHint: 'Click headers to sort (several for multi-column); drag headers to reorder',
       clearSort: 'Clear sort',
+      resetOrder: 'Reset column order',
       tab: { entity: 'Tables', field: 'Columns', domain: 'Domains' },
       col: {
         table: 'Table',

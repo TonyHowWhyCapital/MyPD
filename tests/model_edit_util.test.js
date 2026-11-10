@@ -260,3 +260,20 @@ describe('all column attributes are editable', () => {
     expect(getColumnRows(ds)[0]).toMatchObject({ defaultValue: '', comment: '', refDict: '', hideInGraph: false });
   });
 });
+
+describe('column order', () => {
+  const { orderColumns, moveColumn } = require('../src/lib/model_edit_util');
+  const keys = ['a', 'b', 'c', 'd'];
+
+  test('dragging right drops after the target, dragging left before it', () => {
+    expect(moveColumn(keys, 'a', 'c')).toEqual(['b', 'c', 'a', 'd']);
+    expect(moveColumn(keys, 'd', 'b')).toEqual(['a', 'd', 'b', 'c']);
+    expect(moveColumn(keys, 'b', 'b')).toBe(keys);
+    expect(moveColumn(keys, 'x', 'b')).toBe(keys);
+  });
+
+  test('a saved order is applied, ignoring stale keys and appending new ones', () => {
+    expect(orderColumns(keys, ['c', 'gone', 'a'])).toEqual(['c', 'a', 'b', 'd']);
+    expect(orderColumns(keys)).toEqual(keys);
+  });
+});

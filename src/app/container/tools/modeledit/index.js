@@ -4,11 +4,14 @@ import { FormatMessage, Input, Select, Checkbox, Button, Message, Modal } from '
 import './style/index.less';
 import { getPrefix } from '../../../../lib/prefixUtil';
 import { NEW_DOMAIN, openNewDomain } from '../../../../components/table/newDomain';
-import { buildFieldColumns, isFixedColumn, loadHiddenColumns, saveHiddenColumns } from './fieldColumns';
+import {
+  buildFieldColumns, isFixedColumn, loadHiddenColumns, saveHiddenColumns,
+  loadColumnOrders, saveColumnOrders,
+} from './fieldColumns';
 import {
   getTableRows, getColumnRows, getDomainRows, getTypeOptions,
   updateTable, updateColumn, addColumn, removeTables, removeColumns,
-  updateDomain, addDomain, removeDomains, toggleSort, sortRows,
+  updateDomain, addDomain, removeDomains, toggleSort, sortRows, orderColumns, moveColumn,
 } from '../../../../lib/model_edit_util';
 
 const Option = Select.Option;
@@ -36,6 +39,26 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
   const [sorts, setSorts] = useState([]);
   const [hidden, setHidden] = useState(loadHiddenColumns);
   const [choosing, setChoosing] = useState(false);
+  const [orders, setOrders] = useState(loadColumnOrders);
+  const dragRef = useRef({ key: '', keys: [] });
+  const changeOrders = (next) => {
+    setOrders(next);
+    saveColumnOrders(next);
+  };
+  // Puts a tab's columns in the order the user dragged them into.
+  const arrange = (cols) => {
+    const keys = orderColumns(cols.map(c => c.key), orders[tab]);
+    dragRef.current.keys = keys;
+    return keys.map(k => cols.find(c => c.key === k));
+  };
+  const dropColumn = (target) => {
+    const { key, keys } = dragRef.current;
+    const next = moveColumn(keys, key, target);
+    if (next !== keys) {
+      changeOrders({ ...orders, [tab]: next });
+    }
+    dragRef.current.key = '';
+  };
   // Row order is frozen until the sort or filter changes, so a row does not
   // jump away while its sorted cell is being edited.
   const orderRef = useRef({ signature: '', keys: [] });
@@ -80,6 +103,10 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
       <span className={`${currentPrefix}-modeledit-hint`}>
         <FormatMessage id='modelEdit.sortHint'/>
         {sorts.length > 0 && <a onClick={() => setSorts([])}><FormatMessage id='modelEdit.clearSort'/></a>}
+        {(orders[tab] || []).length > 0
+          && <a onClick={() => changeOrders({ ...orders, [tab]: [] })}>
+            <FormatMessage id='modelEdit.resetOrder'/>
+          </a>}
       </span>
       {extra}
     </div>
@@ -119,6 +146,17 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
               style={{ width: c.width }}
               className={c.sort ? 'sortable' : ''}
               onClick={() => c.sort && setSorts(toggleSort(sorts, c.key))}
+              draggable
+              onDragStart={(e) => {
+                dragRef.current.key = c.key;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', c.key);
+              }}
+              onDragOver={e => dragRef.current.key && e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                dropColumn(c.key);
+              }}
             >{c.title}{sortMark(c.key)}</th>))}
           </tr>
         </thead>
@@ -136,13 +174,13 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
 
   if (tab === 'entity') {
     const rows = getTableRows(ds).filter(r => match(r, ['defKey', 'defName', 'comment']));
-    const cols = [
+    const cols = arrange([
       { key: 'defKey', sort: r => r.defKey, title: label('modelEdit.col.key'), width: '22%', render: r => textCell(r.defKey, v => persist(updateTable(ds, r.id, { defKey: v }))) },
       { key: 'defName', sort: r => r.defName, title: label('modelEdit.col.name'), width: '22%', render: r => textCell(r.defName, v => persist(updateTable(ds, r.id, { defName: v }))) },
       { key: 'comment', sort: r => r.comment, title: label('modelEdit.col.comment'), width: '34%', render: r => textCell(r.comment, v => persist(updateTable(ds, r.id, { comment: v }))) },
       { key: 'count', sort: r => r.fieldCount, title: label('modelEdit.col.fieldCount'), width: '10%', render: r => <span>{r.fieldCount}</span> },
       { key: 'op', title: label('modelEdit.col.op'), width: '12%', render: r => del(() => confirmRemove(FormatMessage.string({ id: 'modelEdit.deleteTable', data: { name: r.defKey } }), () => persist(removeTables(ds, [r.id])))) },
-    ];
+    ]);
     return <div className={`${currentPrefix}-modeledit`}>{header()}{grid(cols, rows, r => r.id)}</div>;
   }
 
@@ -178,7 +216,7 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
       dictOptions: (ds.dicts || []).map(named),
       uiHintOptions: (ds.profile?.uiHint || []).map(named),
     });
-    const cols = allCols.filter(c => !hidden.includes(c.key));
+    const cols = arrange(allCols).filter(c => !hidden.includes(c.key));
     const toggleColumn = (key) => {
       const next = hidden.includes(key) ? hidden.filter(k => k !== key) : hidden.concat(key);
       setHidden(next);
@@ -211,7 +249,7 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
 
   const rows = getDomainRows(ds).filter(r => match(r, ['defKey', 'defName', 'applyForName']));
   const change = (r, patch) => persist(updateDomain(ds, r.id, patch));
-  const cols = [
+  const cols = arrange([
     { key: 'defKey', sort: r => r.defKey, title: label('modelEdit.col.key'), width: '20%', render: r => textCell(r.defKey, v => change(r, { defKey: v })) },
     { key: 'defName', sort: r => r.defName, title: label('modelEdit.col.name'), width: '20%', render: r => textCell(r.defName, v => change(r, { defName: v })) },
     {
@@ -242,7 +280,7 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
         persist(result.next);
       }),
     },
-  ];
+  ]);
   const addBtn = (
     <Button className={`${currentPrefix}-modeledit-add`} onClick={() => persist(addDomain(ds).next)}>
       <FormatMessage id='modelEdit.addDomain'/>

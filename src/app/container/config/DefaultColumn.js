@@ -4,7 +4,6 @@ import {FormatMessage, IconTitle, Icon, Checkbox, Input, Select,
 import { moveArrayPosition } from '../../../lib/array_util';
 import {getPrefix} from '../../../lib/prefixUtil';
 import {getFullColumns, attNames, getAttNamesValue, attEditType} from '../../../lib/datasource_util';
-import { get } from '../../../lib/update'
 import {CodeHighlight} from "../../../components";
 
 export default React.memo(({prefix, dataSource, columnsChange, extAttrPropsUpdate, className}) => {
@@ -144,62 +143,6 @@ export default React.memo(({prefix, dataSource, columnsChange, extAttrPropsUpdat
         const optionsDataChange = (e) => {
             tempValue = e.target.value;
         };
-        const fetchData = () => {
-            const onFetch = (m, btn) => {
-                if(!optionsFetcher) {
-                    Modal.error({
-                        title: FormatMessage.string({id: 'config.attr.fetchError'}),
-                        message: FormatMessage.string({id: 'config.attr.fetchUrlEmpty'})
-                    });
-                } else {
-                    btn.updateStatus('loading')
-                    get(optionsFetcher).then((res) => {
-                        if(!Array.isArray(res)) {
-                            tempValue = "[]"
-                        } else {
-                            tempValue = JSON.stringify(res.map(f => {
-                                if(f.value) {
-                                    return {
-                                        value: f.value,
-                                        label: f.label || f.value
-                                    }
-                                }
-                                return null;
-                            }).filter(f => !!f));
-                        }
-                        editRef.current.setValue(tempValue);
-                        m && m.close();
-                    }).catch((err) => {
-                        Modal.error({
-                            title: FormatMessage.string({id: 'config.attr.fetchError'}),
-                            message: err.message
-                        });
-                    }).finally(() => {
-                        btn.updateStatus('normal')
-                    })
-                }
-            };
-            const onCancelFetch = (m) => {
-                m && m.close();
-            };
-            const optionsFetcherChange = (e) => {
-                optionsFetcher = e.target.value;
-            };
-            const fetchModel = openModal(<Input
-                placeholder='http://www.pdmaner.com/demo.json'
-                style={{width: '100%', marginBottom: 5}}
-                onChange={optionsFetcherChange}
-                defaultValue={optionsFetcher}
-            />, {
-                bodyStyle: {
-                    width: '70%'
-                },
-                title: FormatMessage.string({id: 'config.attr.fetch'}),
-                buttons: [
-                    <Button type='primary' key='ok' onClick={(e, btn) => onFetch(fetchModel, btn)}>{FormatMessage.string({id: 'config.attr.fetchData'})}</Button>,
-                    <Button key='cancel' onClick={() => onCancelFetch(fetchModel)}>{FormatMessage.string({id: 'button.cancel'})}</Button>],
-            });
-        }
         let formatJson = '';
         try {
             formatJson = JSON.stringify(JSON.parse(tempValue), null, 2);
@@ -247,7 +190,6 @@ export default React.memo(({prefix, dataSource, columnsChange, extAttrPropsUpdat
               </span>
             ,
             buttons: [
-                <a className={`${currentPrefix}-setting-entity-init-columns-option-fetch`} key='fetch' onClick={fetchData}>{FormatMessage.string({id: 'config.attr.fetch'})}</a>,
                 <Button type='primary' key='ok' onClick={() => onOk(modal)}>{FormatMessage.string({id: 'button.ok'})}</Button>,
                 <Button key='cancel' onClick={() => onCancel(modal)}>{FormatMessage.string({id: 'button.cancel'})}</Button>],
         });

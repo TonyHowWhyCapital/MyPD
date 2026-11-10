@@ -600,7 +600,7 @@ export const getCodeByDataTable = (dataSource, group, dataTable, code, templateS
     Message.error({title: <span>
         {FormatMessage.string({id: 'database.templateError'})}
         <FormatMessage id='database.templateErrorLink'/>
-        <a onClick={() => openUrl('http://github.com/olado/doT')}>http://github.com/olado/doT</a>
+        http://github.com/olado/doT
       </span>});
     sqlString = JSON.stringify(e.message);
   }

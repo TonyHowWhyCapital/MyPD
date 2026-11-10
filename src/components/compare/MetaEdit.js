@@ -3,10 +3,10 @@ import {Radio, FormatMessage, Icon, Input, Upload, Tooltip, CodeHighlight} from 
 import empty from '../../lib/template/教学管理系统.pdma';
 import {getPrefix} from '../../lib/prefixUtil';
 
-export default React.memo(({prefix, data = {type: 'URL'}, dataChange}) => {
+export default React.memo(({prefix, data = {type: 'FILE'}, dataChange}) => {
     const currentPrefix = getPrefix(prefix);
     const [file, setFile] = useState(data.file || '');
-    const [type, setType] = useState(data.type);
+    const [, setType] = useState(data.type);
     const dataRef = useRef({...data});
     const uploadJson = () => {
         Upload('application/json', (f) => {
@@ -60,11 +60,6 @@ export default React.memo(({prefix, data = {type: 'URL'}, dataChange}) => {
             onChange={e => onChange(e, 'type')}
             defaultValue={data.type}
           >
-            <Radio value='URL'>
-              <span>
-                <FormatMessage id='components.compare.URL'/>
-              </span>
-            </Radio>
             <Radio value='FILE'>
               <span>
                 <FormatMessage id='components.compare.FILE'/>
@@ -73,46 +68,29 @@ export default React.memo(({prefix, data = {type: 'URL'}, dataChange}) => {
           </Radio.RadioGroup>
         </span>
       </div>
-      {
-            type === 'URL' ? <div className={`${currentPrefix}-form-item`}>
-              <span
-                className={`${currentPrefix}-form-item-label`}
-                title={FormatMessage.string({id: 'components.compare.takeURL'})}
-        >
-                <span className={`${currentPrefix}-form-item-label-require`}>{}</span>
-                <FormatMessage id='components.compare.takeURL'/>
-                <Tooltip placement='left' title={<DataModel/>} force>
-                  <span className={`${currentPrefix}-form-item-label-help`}>
-                    <Icon type='icon-xinxi'/>
-                  </span>
-                </Tooltip>
-              </span>
-              <span className={`${currentPrefix}-form-item-component`}>
-                <Input
-                  defaultValue={data.url || ''}
-                  placeholder={FormatMessage.string({id: 'components.compare.takeURLPlaceholder'})}
-                  onChange={e => onChange(e, 'url')}
-          />
-              </span>
-            </div> : <div className={`${currentPrefix}-form-item`}>
-              <span
-                className={`${currentPrefix}-form-item-label`}
-                title={FormatMessage.string({id: 'components.compare.takeFILE'})}
-        >
-                <span className={`${currentPrefix}-form-item-label-require`}>{}</span>
-                <FormatMessage id='components.compare.takeFILE'/>
-              </span>
-              <span className={`${currentPrefix}-form-item-component`}>
-                <Input
-                  placeholder={FormatMessage.string({id: 'components.compare.takeFILEPlaceholder'})}
-                  value={file}
-                  readOnly
-                  suffix={<span className={`${currentPrefix}-setting-java-home-opt`}>
-                    <Icon type='fa-ellipsis-h' onClick={uploadJson} title={FormatMessage.string({id: 'components.compare.takeFILE'})}/>
-                  </span>}
-          />
-              </span>
-            </div>
-        }
+      <div className={`${currentPrefix}-form-item`}>
+        <span
+          className={`${currentPrefix}-form-item-label`}
+          title={FormatMessage.string({id: 'components.compare.takeFILE'})}
+  >
+          <span className={`${currentPrefix}-form-item-label-require`}>{}</span>
+          <FormatMessage id='components.compare.takeFILE'/>
+          <Tooltip placement='left' title={<DataModel/>} force>
+            <span className={`${currentPrefix}-form-item-label-help`}>
+              <Icon type='icon-xinxi'/>
+            </span>
+          </Tooltip>
+        </span>
+        <span className={`${currentPrefix}-form-item-component`}>
+          <Input
+            placeholder={FormatMessage.string({id: 'components.compare.takeFILEPlaceholder'})}
+            value={file}
+            readOnly
+            suffix={<span className={`${currentPrefix}-setting-java-home-opt`}>
+              <Icon type='fa-ellipsis-h' onClick={uploadJson} title={FormatMessage.string({id: 'components.compare.takeFILE'})}/>
+            </span>}
+    />
+        </span>
+      </div>
     </div>;
 });

@@ -278,28 +278,15 @@ export default React.memo(forwardRef(({prefix, style, dataSource, config, empty,
         resetTableList();
         openLoading(FormatMessage.string({id: 'components.compare.extractMetadata'}));
         const currentConn = metaDataSource.filter(d => d.defKey === meta)[0];
-        if (currentConn.type === 'URL') {
-            connectDB(dataSource, config, {
-                url: currentConn.url,
-            }, 'HttpParser', (data) => {
-                if (data.status === 'FAILED') {
-                    closeLoading();
-                    errorModal(data);
-                } else {
-                    analysisData(data.body);
-                }
+        extractFile(currentConn.file).then((res) => {
+            analysisData(res.toString());
+        }).catch((e) => {
+            closeLoading();
+            Modal.error({
+                title: FormatMessage.string({id: 'optFail'}),
+                message: e.message,
             });
-        } else {
-            extractFile(currentConn.file).then((res) => {
-                analysisData(res.toString());
-            }).catch((e) => {
-                closeLoading();
-                Modal.error({
-                    title: FormatMessage.string({id: 'optFail'}),
-                    message: e.message,
-                });
-            });
-        }
+        });
     };
     const getTableDetail = async (table, currentDataSource) => {
         if(scanTable) {

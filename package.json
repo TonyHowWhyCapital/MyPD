@@ -32,7 +32,6 @@
     "crypto": "1.0.1",
     "dom-to-svg": "0.12.2",
     "dot": "1.1.2",
-    "electron-updater": "4.3.9",
     "html2canvas": "1.4.1",
     "jquery": "3.2.1",
     "lodash": "4.17.15",
@@ -105,10 +104,6 @@
     "worker-loader": "3.0.8"
   },
   "build": {
-    "publish": {
-      "provider": "generic",
-      "url": "http://chiner-release.httpchk.com"
-    },
     "appId": "MyPD",
     "productName": "MyPD",
     "artifactName": "${productName}-${os}_v${version}.${ext}",

@@ -9,27 +9,10 @@ import { platform } from '../../lib/middle';
 import ProjectEdit from '../container/projectedit';
 import {getPrefix} from '../../lib/prefixUtil';
 import { version } from '../../../package';
-import { openUrl } from '../../lib/json2code_util';
 
 import template from '../../lib/template';
 import {READING} from '../../lib/variable';
 
-const CodeImg = ({currentPrefix}) => {
-  return <div className={`${currentPrefix}-home-container-codeimg`}>
-    <div><FormatMessage id='home.optBookTitle'/></div>
-    <div>
-      <div>
-        <img src='./asset/codeimage/img.png' alt=''/>
-        <span><FormatMessage id='home.optBookTitle1'/></span>
-      </div>
-      {/*<p/>*/}
-      {/*<div>*/}
-      {/*  <img src='./asset/codeimage/app.jpeg' alt=''/>*/}
-      {/*  <span><FormatMessage id='home.optBookTitle2'/></span>*/}
-      {/*</div>*/}
-    </div>
-  </div>;
-};
 
 export default React.memo(({prefix, importProject, createProject, openTemplate,
                              renameProject, updateHistory, deleteProject, lang, config}) => {
@@ -236,24 +219,6 @@ export default React.memo(({prefix, importProject, createProject, openTemplate,
               <Icon type='icon-quanbuxiangmu' style={{marginRight: 4}}/>
               <FormatMessage id='home.allProject'/>
             </div>
-            <Tooltip placement='bottom' title={<CodeImg currentPrefix={currentPrefix}/>} force>
-              <div
-                title={FormatMessage.string({id: 'home.jumpOptBook'})}
-                onClick={() => openUrl('https://www.yuque.com/pdmaner/docs')}
-                className={`${currentPrefix}-home-container-body-right-nav-type-unselected`}
-              >
-                <Icon type='fa-book' style={{marginRight: 4, fontSize: '16px'}}/>
-                <FormatMessage id='home.optBook'/>
-              </div>
-            </Tooltip>
-            <div
-              title={FormatMessage.string({id: 'home.page'})}
-              onClick={() => openUrl('http://pdmaas.pdmaner.com/')}
-              className={`${currentPrefix}-home-container-body-right-nav-type-unselected`}
-            >
-              <Icon type='fa-home' style={{marginRight: 4, fontSize: '16px'}}/>
-              <FormatMessage id='home.page'/>
-            </div>
           </div>
         </div>
         <div className={`${currentPrefix}-home-container-body-right-list`}>
@@ -261,12 +226,6 @@ export default React.memo(({prefix, importProject, createProject, openTemplate,
             <div className={`${currentPrefix}-home-container-body-right-ad-container`}>
               <div className={`${currentPrefix}-home-container-body-right-list-title`}>
                 <FormatMessage id='home.allProject'/>
-              </div>
-              <div onClick={() => openUrl('http://pdmaas.pdmaner.com')} className={`${currentPrefix}-home-container-body-right-ad`}>
-                <Icon type='fa-bullhorn'/>
-                <span>
-                  公云SaaS版，私云企业版，均已正式发布，支持多人团队协作，欢迎了解
-                </span>
               </div>
             </div>
             <div className={`${currentPrefix}-home-container-body-right-list-tab`}>

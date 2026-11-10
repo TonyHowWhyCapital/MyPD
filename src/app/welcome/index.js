@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
 
-import {Progressbar, Modal, UpdateMessage, FormatMessage} from 'components';
+import {Progressbar, Modal, FormatMessage} from 'components';
 import { fail, success, pageType, CONFIG } from '../../lib/variable';
 import './style/index.less';
 import {
@@ -25,7 +25,6 @@ import {
 import { openLoading, closeLoading } from '../../actions/common';
 import {ConfigContent} from '../../lib/context';
 import {getPrefix} from '../../lib/prefixUtil';
-import {getVersion, compareVersion} from '../../lib/update';
 // eslint-disable-next-line import/named
 import { platform } from '../../lib/middle';
 
@@ -38,25 +37,6 @@ const Welcome = React.memo(({ prefix, getUserData, config, ...restProps }) => {
     // 第一个页面打开 读取各个配置文件
     getUserData();
   }, []);
-  // const updateApp = () => {
-  //   if (platform === 'json') {
-  //     // eslint-disable-next-line global-require,import/no-extraneous-dependencies,no-shadow
-  //     const { ipcRenderer } = require('electron');
-  //     ipcRenderer.send('update');
-  //     restProps.openLoading(`${FormatMessage.string({id: 'download'})}[${0}%]`);
-  //     ipcRenderer.on('updateProgress', (event, progressObj) => {
-  // eslint-disable-next-line max-len
-  //       restProps.openLoading(`${FormatMessage.string({id: 'download'})}[${progressObj.percent.toFixed(2)}%]`);
-  //     });
-  //     ipcRenderer.on('updateEnd', () => {
-  //       restProps.closeLoading();
-  //       Modal.error({
-  //         title: FormatMessage.string({id: 'optFail'}),
-  //         message: FormatMessage.string({id: 'newVersionError'}),
-  //       });
-  //     });
-  //   }
-  // };
   useEffect(() => {
     if (config.result === success) {
       // 读取配置信息成功
@@ -64,24 +44,7 @@ const Welcome = React.memo(({ prefix, getUserData, config, ...restProps }) => {
       setMemoryCache(CONFIG, config);
       if (platform === 'json') {
         updateTitle(FormatMessage.string({id: 'welcomeVersionTitle'}));
-        getVersion().then((res) => {
-          if (compareVersion(res.version)) {
-            Modal.info({
-              title: FormatMessage.string({id: 'newVersion'}),
-              message: <UpdateMessage data={res}/>,
-              closeable: !res.forceUpdate,
-              bodyStyle: {width: 'auto'},
-              contentStyle: {width: '800px'},
-              // eslint-disable-next-line max-len
-              // buttons: process.platform === 'win32' ? [<Button type='primary' key='ok' onClick={updateApp}>
-              //   {FormatMessage.string({id: 'update'})}
-              // </Button>] : [],
-              buttons: [],
-            });
-          }
-        }).finally(() => {
-         updatePercent(100);
-        });
+        updatePercent(100);
       } else {
         setTimeout(() => {
          updatePercent(100);

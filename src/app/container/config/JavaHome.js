@@ -59,9 +59,6 @@ export default React.memo(({ prefix, dataSource, dataChange, config }) => {
             <Button onClick={test}>
               <FormatMessage id='button.test'/>
             </Button>
-            <span onClick={() => require('electron').shell.openExternal('https://jingyan.baidu.com/article/6dad5075d1dc40a123e36ea3.html')}>
-               <Icon type='icon-xinxi'/>
-            </span>
           </span>}
         />
       </span>

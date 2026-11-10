@@ -38,7 +38,6 @@ export { default as UploadInput } from './uploadinput';
 export { default as PathSelectInput } from './pathselectinput';
 export { default as SearchSuggest } from './searchsuggest';
 export { default as DropButton } from './dropbutton';
-export { default as UpdateMessage } from './updatemessage';
 export * from './download';
 export { default as Upload } from './upload';
 export { default as ListGroupSelect } from './listgroupselect';

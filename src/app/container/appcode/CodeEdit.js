@@ -42,16 +42,6 @@ export default ({prefix, data, onBlur, update, dataSource, type, name}) => {
                     <FormatMessage id='button.cancel'/>
                   </Button>],
             });
-        } else {
-            const href = 'https://gitee.com/robergroup/chiner-hub/tree/master/CodeTemplate';
-            if (platform === 'json') {
-                // eslint-disable-next-line global-require,import/no-extraneous-dependencies
-                require('electron').shell.openExternal(href);
-            } else {
-                const a = document.createElement('a');
-                a.href = href;
-                a.click();
-            }
         }
     };
     return <div className={`${prefix}-code-editor-content`}>

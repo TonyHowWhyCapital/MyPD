@@ -1,0 +1,42 @@
+@import "~style";
+
+.@{prefix}-gridview {
+  &-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 2px 0 4px;
+    font-size: 12px;
+    & > span {
+      color: #999999;
+    }
+  }
+  &-sort {
+    margin-left: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    user-select: none;
+    color: #BBBBBB;
+    &:hover, &.active {
+      color: @primary-color;
+    }
+  }
+  &-chooser {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    padding: 6px 8px;
+    margin: 4px 0;
+    border: 1px solid @primary-border-color;
+    border-radius: 4px;
+    background: @background-color;
+    & > span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+    }
+  }
+}

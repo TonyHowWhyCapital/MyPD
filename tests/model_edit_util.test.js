@@ -277,3 +277,24 @@ describe('column order', () => {
     expect(orderColumns(keys)).toEqual(keys);
   });
 });
+
+describe('grid view preferences', () => {
+  const { loadGridView, saveGridView } = require('../src/lib/grid_util');
+  const store = {};
+  beforeAll(() => {
+    global.localStorage = {
+      getItem: k => (k in store ? store[k] : null),
+      setItem: (k, v) => { store[k] = v; },
+    };
+  });
+  afterAll(() => { delete global.localStorage; });
+
+  test('are remembered per grid and fall back to defaults when missing or corrupt', () => {
+    expect(loadGridView('a', ['x'])).toEqual({ hidden: ['x'], order: [] });
+    saveGridView('a', { hidden: ['y'], order: ['b', 'a'] });
+    expect(loadGridView('a', ['x'])).toEqual({ hidden: ['y'], order: ['b', 'a'] });
+    expect(loadGridView('other')).toEqual({ hidden: [], order: [] });
+    store['mypd.grid.bad'] = '{oops';
+    expect(loadGridView('bad', ['x'])).toEqual({ hidden: ['x'], order: [] });
+  });
+});

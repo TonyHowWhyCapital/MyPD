@@ -5,6 +5,9 @@ import {
 } from '../../../lib/middle';
 import {parseNavicat, parseDbxRows, resolveType} from '../../../lib/dbconn_import';
 import {getPrefix} from '../../../lib/prefixUtil';
+import {SimpleGrid} from '../../../components/gridview';
+
+const text = key => FormatMessage.string({id: `dbConnImport.${key}`});
 
 const sources = {
   navicat: {
@@ -58,49 +61,52 @@ export default React.memo(({prefix, dataSource, onChange}) => {
       && <div className={`${currentPrefix}-dbconnect-import-tip`}>
         <FormatMessage id='dbConnImport.dbxPassword'/>
       </div>}
-    <table className={`${currentPrefix}-dbconnect-import-list`}>
-      <thead>
-        <tr>
-          <th>
-            <Checkbox
-              checked={allChecked}
-              disable={selectable.length === 0}
-              onChange={e => update({
-                ...state,
-                checked: e.target.checked ? selectable.map(c => c.id) : [],
-              })}
-            />
-          </th>
-          <th><FormatMessage id='dbConnImport.name'/></th>
-          <th><FormatMessage id='dbConnImport.type'/></th>
-          <th><FormatMessage id='dbConnImport.host'/></th>
-          <th><FormatMessage id='dbConnImport.database'/></th>
-          <th><FormatMessage id='dbConnImport.username'/></th>
-        </tr>
-      </thead>
-      <tbody>
-        {state.conns.map((c) => {
-          const supported = !!resolveType(c, dataSource);
-          return <tr key={c.id} style={{opacity: supported ? 1 : 0.48}}>
-            <td>
-              <Checkbox
-                checked={state.checked.includes(c.id)}
-                disable={!supported}
-                onChange={e => toggle(c.id, e.target.checked)}
-              />
-            </td>
-            <td>{c.name}</td>
-            <td>
-              {c.sourceType}
-              {!supported && <span>{FormatMessage.string({id: 'dbConnImport.unsupported'})}</span>}
-            </td>
-            <td>{c.host}{c.port ? `:${c.port}` : ''}</td>
-            <td>{c.database}</td>
-            <td>{c.username}</td>
-          </tr>;
-        })}
-      </tbody>
-    </table>
+    <SimpleGrid
+      prefix={prefix}
+      gridId='dbConnImport.list'
+      className={`${currentPrefix}-dbconnect-import-list`}
+      rows={state.conns}
+      rowKey={c => c.id}
+      rowProps={c => ({ style: { opacity: resolveType(c, dataSource) ? 1 : 0.48 } })}
+      columns={[
+        {
+          key: 'check',
+          fixed: true,
+          title: <Checkbox
+            checked={allChecked}
+            disable={selectable.length === 0}
+            onChange={e => update({
+              ...state,
+              checked: e.target.checked ? selectable.map(c => c.id) : [],
+            })}
+          />,
+          render: c => <Checkbox
+            checked={state.checked.includes(c.id)}
+            disable={!resolveType(c, dataSource)}
+            onChange={e => toggle(c.id, e.target.checked)}
+          />,
+        },
+        { key: 'name', title: text('name'), sort: c => c.name, render: c => c.name },
+        {
+          key: 'type',
+          title: text('type'),
+          sort: c => c.sourceType,
+          render: c => <span>
+            {c.sourceType}
+            {!resolveType(c, dataSource)
+              && <span>{FormatMessage.string({id: 'dbConnImport.unsupported'})}</span>}
+          </span>,
+        },
+        {
+          key: 'host',
+          title: text('host'),
+          sort: c => c.host,
+          render: c => `${c.host || ''}${c.port ? `:${c.port}` : ''}`,
+        },
+        { key: 'database', title: text('database'), sort: c => c.database, render: c => c.database },
+        { key: 'username', title: text('username'), sort: c => c.username, render: c => c.username },
+      ]}
+    />
     {state.conns.length === 0 && !state.error
       && <div className={`${currentPrefix}-dbconnect-import-tip`}>
         <FormatMessage id='dbConnImport.empty'/>

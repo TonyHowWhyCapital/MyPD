@@ -1424,6 +1424,13 @@ export default {
       "templateNotFound": "模板不存在"
     }
   },
+  "gridView": {
+    "columns": "顯示欄位",
+    "reset": "還原欄位",
+    "clearSort": "清除排序",
+    "sortTip": "點選排序，可依次點選多欄做多欄排序",
+    "dragTip": "拖動表頭可調整欄位順序"
+  },
   "impact": {
     "title": "影響分析",
     "deleteAffected": "將影響 {count} 個物件：",

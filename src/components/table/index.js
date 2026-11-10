@@ -23,6 +23,7 @@ import { moveArrayPositionByArray } from '../../lib/array_util';
 import { addBodyEvent, removeBodyEvent } from '../../lib/listener';
 import { Copy, Paste } from '../../lib/event_tool';
 import Tr from './Tr';
+import { useGridView, SortMark, ColumnChooser } from '../gridview';
 import './style/index.less';
 import {getPrefix} from '../../lib/prefixUtil';
 import {separator} from '../../../profile';
@@ -106,7 +107,7 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
   const insertFieldRef = useRef('');
   insertFieldRef.current = insertField;
   const standardGroupRef = useRef(null);
-  const tempHeaders = useMemo(() => {
+  const baseHeaders = useMemo(() => {
     return restData.headers.map((h) => {
       let refKey = h.refKey || h.newCode;
       const columnOthers = (dataSource?.profile?.headers || [])
@@ -129,6 +130,16 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
       return h;
     });
   }, [restData.headers, allColumns, dataSource?.profile?.headers]);
+  // Per-grid view preferences (shown columns, their order, sort). They are kept
+  // on this machine only and never written into the model.
+  const gridView = useGridView(`table.${tableType || (isEntity ? 'entity' : 'list')}.${
+    allColumns.map(c => c.newCode).join(',')}`);
+  const [choosingColumns, setChoosingColumns] = useState(false);
+  const tempHeaders = useMemo(() => {
+    return gridView.arrange(baseHeaders.map(h => h?.refKey))
+      .map(key => baseHeaders.find(h => h?.refKey === key))
+      .map(h => (gridView.hidden.includes(h?.refKey) ? { ...h, viewHidden: true } : h));
+  }, [baseHeaders, gridView.hidden, gridView.order]);
   const cellClick = (h, f) => {
     if (h !== 'domain' || (h === 'domain' && !selectedFieldsRef.current.includes(f.id))) {
       updateSelectedFields((pre) => {
@@ -264,9 +275,12 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
         return h;
       });
     }
+    if (type === 'move' && gridView.order.length > 0) {
+      gridView.setOrder(newHeaders.map(h => h?.refKey));
+    }
     const newData = {
       ...restData,
-      headers: newHeaders,
+      headers: newHeaders.map(({ viewHidden, ...h }) => h),
       fields,
     };
     updateTableData(newData);
@@ -280,6 +294,7 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
         hideInGraph: c.relationNoShow,
       };
     }));
+    gridView.reset();
   };
   const updateNote = () => {
     let modal;
@@ -461,6 +476,7 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
   };
   const onMouseDown = (e) => {
     if (!disableDragRow && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      gridView.clearSort();
       dragStatus.current = {
         status: true,
         downDom: e.currentTarget,
@@ -488,6 +504,8 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
     }).filter(field => field !== null);
   };
   const moveFields = (type, status) => {
+    // Moving rows changes the stored order, so show that order again.
+    gridView.clearSort();
     // 将所有选中的属性进行移动
     const tempFields = moveArrayPositionByArray(fieldsRef.current,
         selectedFieldsRef.current,
@@ -523,6 +541,7 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
     return emptyFields;
   };
   const addField = (e, pasteFields) => {
+    gridView.clearSort();
     const selectedTrsIndex = getSelectedFieldsIndex();
     let tempFields = [...(fieldsRef.current || [])];
     let newFields = pasteFields;
@@ -770,7 +789,7 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
     return classData;
   };
   const finalTempHeaders = tempHeaders
-      .filter(h => (!hiddenFields.includes(h.refKey)) && (h.enable !== false));
+      .filter(h => (!hiddenFields.includes(h.refKey)) && (h.enable !== false) && !h.viewHidden);
   const cellRef = (ref, row, cell) => {
     if(!inputRef.current[row]) {
       inputRef.current[row] = {};
@@ -875,12 +894,29 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
       left: calcLeft(h),
     };
   };
-  const filterFields = fields.filter((f) => {
+  // What a cell shows, so sorting follows the displayed value rather than an id.
+  const sortValue = (f, key) => {
+    if (key === 'domain') {
+      const domain = domains.find(d => d.id === f.domain);
+      return domain ? (domain.defName || domain.defKey) : '';
+    } else if ((key === 'type' || key === 'len' || key === 'scale') && f.domain) {
+      return getFieldProps(f.domain)[key];
+    } else if (key === 'refDict') {
+      const dict = (dicts || []).find(d => d.id === f.refDict);
+      return dict ? (dict.defName || dict.defKey) : '';
+    } else if (key === 'refEntity') {
+      return (dataSource?.entities || []).find(e => e.id === f.refEntity)?.defKey || '';
+    }
+    return f[key];
+  };
+  // Sorting only changes the order shown here; the stored row order is untouched.
+  const filterFields = gridView.sortFrozen(fields.filter((f) => {
     if (valueSearch || search) {
       return (valueSearch || search)(f, valueContext || searchValue);
     }
     return true;
-  });
+  }), gridView.sorts.reduce((all, s) => ({ ...all, [s.key]: f => sortValue(f, s.key) }), {}),
+  f => f.id, `${valueContext || searchValue || ''}`);
   const filterFieldsRef = useRef([...filterFields]);
   filterFieldsRef.current = [...filterFields];
   const otherStyle = { position: 'sticky', left: 0, zIndex: 100, top: fixHeader ? 0 : 'unset' };
@@ -968,7 +1004,8 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
         selectedColumns,
         type === 'left' ? -1 : 1,
         'refKey')
-        .concat(tempHeaders.filter(h => hiddenFields.includes(h.refKey))).map((h, i) => {
+        .concat(tempHeaders.filter(h => hiddenFields.includes(h.refKey) || h.viewHidden))
+        .map((h, i) => {
           return {
             ...h,
             freeze: freezeIndex.includes(i),
@@ -1166,10 +1203,13 @@ fields}}
           // }
           const thClass = selectedColumns.includes(h?.refKey)
               ? `${currentPrefix}-table-selected` : '';
+          const dragHeader = (h?.freeze && freeze)
+              ? {} : gridView.dragProps(h?.refKey, tempHeaders.map(t => t?.refKey));
           return <th
             className={thClass}
             onClick={() => onHeaderClick(h?.refKey)}
             key={h?.refKey}
+            {...dragHeader}
             style={{
                 cursor: 'pointer',
                 width: autoWidth ? 'auto' : columnWidth[h?.refKey],
@@ -1180,6 +1220,12 @@ fields}}
           >
             <span style={{width: columnWidth[h?.refKey] ? columnWidth[h?.refKey] - 3 : 'auto'}}>
               {h?.value}
+              {typeof h?.com !== 'function' && <SortMark
+                prefix={prefix}
+                sorts={gridView.sorts}
+                columnKey={h?.refKey}
+                onToggle={gridView.toggleSort}
+              />}
               {/*{!disableHeaderIcon && h?.refKey !== 'extProps' && isView &&*/}
               {/*    <Component.Icon*/}
               {/*  onClick={*/}
@@ -1331,6 +1377,9 @@ fields}}
                   </div>
               }
             </span>
+              <span className={`${currentPrefix}-table-opt-setting`} key='columns' onClick={() => setChoosingColumns(!choosingColumns)}>{Component.FormatMessage.string({id: 'gridView.columns'})}</span>
+              {gridView.sorts.length > 0 && <span className={`${currentPrefix}-table-opt-setting`} key='clearSort' onClick={gridView.clearSort}>{Component.FormatMessage.string({id: 'gridView.clearSort'})}</span>}
+              {gridView.isCustom && <span className={`${currentPrefix}-table-opt-setting`} key='resetView' onClick={gridView.reset}>{Component.FormatMessage.string({id: 'gridView.reset'})}</span>}
               {isEntity && <span className={`${currentPrefix}-table-opt-setting`} key='setting' onClick={jumpEdit}>{Component.FormatMessage.string({id: 'tableEdit.columnSetting'})}</span>}
               {(isEntity || tableType === 'dict' || tableType === 'logicEntity') && <span className={`${currentPrefix}-table-opt-setting`} key='excel' onClick={jumpExcel}>{Component.FormatMessage.string({id: 'tableEdit.excelMode'})}</span> }
             </span>
@@ -1339,6 +1388,14 @@ fields}}
             search && !searchRef && renderSearch()
         }
       </div>
+      {choosingColumns && <ColumnChooser
+        prefix={prefix}
+        columns={baseHeaders
+          .filter(h => !hiddenFields.includes(h?.refKey) && h?.enable !== false)
+          .map(h => ({ key: h?.refKey, title: h?.value }))}
+        hidden={gridView.hidden}
+        onToggle={gridView.toggleHidden}
+      />}
       {
         virtual && filterFields.length > 100 ? <Component.VirtualList
           onScroll={onScroll}

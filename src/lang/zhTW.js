@@ -1522,6 +1522,39 @@ export default {
     "objectEntity": "表",
     "objectDbObject": "資料庫物件"
   },
+  "modelEdit": {
+    "title": "模型清單編輯",
+    "search": "搜尋",
+    "empty": "暫無資料",
+    "delete": "刪除",
+    "confirmDelete": "刪除確認",
+    "deleteTable": "確定刪除資料表 {name} 及其相關引用嗎？",
+    "domainInUse": "該資料域仍被欄位引用，無法刪除。",
+    "noDomain": "（不使用資料域）",
+    "addColumn": "新增欄位",
+    "addDomain": "新增資料域",
+    "added": "已新增",
+    "tab": {
+      "entity": "資料表",
+      "field": "欄位",
+      "domain": "資料域"
+    },
+    "col": {
+      "table": "所屬表",
+      "key": "程式碼",
+      "name": "名稱",
+      "comment": "說明",
+      "type": "型別",
+      "len": "長度",
+      "scale": "小數",
+      "pk": "主鍵",
+      "notNull": "非空",
+      "autoInc": "自增",
+      "domain": "資料域",
+      "fieldCount": "欄位數",
+      "op": "操作"
+    }
+  },
   "pdm": {
     "saveTitle": "寫回 PDM 檔案",
     "reverseToPdm": "從資料庫逆向生成 PDM 檔案",

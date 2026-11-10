@@ -22,6 +22,7 @@ import Relation from '../container/relation';
 import Config from '../container/config';
 import DbConnect from '../container/dbconnect';
 import DbReverseParse from '../container/tools/dbreverseparse';
+import ModelEdit from '../container/tools/modeledit';
 import ExportSql from '../container/tools/exportsql';
 import ImportPd from '../container/tools/importpd';
 import ImportExcel from '../container/tools/excel';
@@ -1176,6 +1177,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     dbObject: [DbObject, 'dbObject.title'],
     report: [Report, 'report.title'],
     entityTemplate: [EntityTemplate, 'entityTemplate.title'],
+    modelEdit: [ModelEdit, 'modelEdit.title'],
   };
   const openExtTool = (key) => {
     let modal;
@@ -1766,6 +1768,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       case 'dbObject':
       case 'report':
       case 'entityTemplate': openExtTool(key);break;
+      case 'modelEdit': openExtTool(key);break;
       case 'polygon': createPolygonNode(e);break;
       case 'group': createGroupNode(e);break;
       case 'alignLeft':

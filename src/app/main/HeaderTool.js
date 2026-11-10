@@ -210,6 +210,11 @@ export default React.memo(forwardRef(({currentPrefix, close, iconClick, openModa
                        key: 'entityTemplate',
                        name: FormatMessage.string({id: 'toolbar.entityTemplate'}),
                    },
+                   {
+                       icon: <Icon type='fa-table' style={{marginRight: 4}}/>,
+                       key: 'modelEdit',
+                       name: FormatMessage.string({id: 'modelEdit.title'}),
+                   },
                ]}/>
       </GroupIconGroup>
       <GroupIconGroup>

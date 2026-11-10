@@ -1,0 +1,66 @@
+@import "~style";
+
+.@{prefix}-modeledit {
+  display: flex;
+  flex-direction: column;
+  height: 70vh;
+  &-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 4px 0 10px;
+  }
+  &-seg {
+    display: inline-flex;
+    border: 1px solid @primary-border-color;
+    border-radius: 4px;
+    overflow: hidden;
+    &-item {
+      padding: 4px 16px;
+      cursor: pointer;
+      border-right: 1px solid @primary-border-color;
+      &:last-child { border-right: none; }
+      &.active {
+        background: @primary-color;
+        color: #FFFFFF;
+      }
+    }
+  }
+  &-search { width: 220px; }
+  &-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+  &-grid {
+    flex: 1;
+    overflow: auto;
+    border: 1px solid @primary-border-color;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 1px solid @primary-border-color;
+      padding: 2px 6px;
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: #F7F7F7;
+      z-index: 1;
+    }
+  }
+  &-empty {
+    padding: 24px;
+    text-align: center;
+    color: #999999;
+  }
+}

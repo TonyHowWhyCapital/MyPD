@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2E86FF"/>
+      <stop offset="1" stop-color="#0B4FB5"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" rx="228" ry="228" fill="url(#bg)"/>
+  <!-- database cylinder, white line art -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="540" cy="372" rx="210" ry="74"/>
+    <path d="M330 372 V652 C330 693 424 726 540 726 C656 726 750 693 750 652 V372"/>
+    <path d="M330 512 C330 553 424 586 540 586 C656 586 750 553 750 512"/>
+  </g>
+  <!-- T badge, top-left -->
+  <g>
+    <text x="196" y="300" font-family="Helvetica, Arial, sans-serif" font-size="360" font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="middle">T</text>
+  </g>
+</svg>

@@ -16,12 +16,15 @@ import { removeHistory, addHistory, updateHistory } from '../config';
 import allLangData from '../../lang';
 import { projectSuffix } from '../../../profile';
 import emptyProject from '../../lib/template/empty';
-import { version } from '../../../package';
+import schemaVersion from '../../lib/schemaVersion';
 import {reduceProject, transformationData, getEmptyEntity} from '../../lib/datasource_util';
 import {setMemoryCache} from '../../lib/cache';
 import * as template from '../../lib/template';
 import {compareVersion} from '../../lib/update';
 import {EDIT, READING} from '../../lib/variable';
+
+// 保存到项目文件中的是数据格式版本（迁移用），与产品版本号无关
+const version = schemaVersion;
 
 /*
 * 核心的action 负责整个项目的保存和删除

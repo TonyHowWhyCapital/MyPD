@@ -1,6 +1,6 @@
 {
   "name": "MyPD",
-  "version": "4.9.3",
+  "version": "1.0.0",
   "description": "MyPD",
   "scripts": {
     "test": "jest",

@@ -3,6 +3,8 @@ import {Checkbox, FormatMessage, SearchInput} from 'components';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeList as List } from 'react-window';
 import {postWorkerFuc} from '../../lib/event_tool';
+import {sortRows, toggleSort} from '../../lib/grid_util';
+import {SortMark} from '../gridview';
 
 const Item = React.memo(({prefix, repeatData,
                            checkBoxChange, checked, d, i,
@@ -28,7 +30,14 @@ const Item = React.memo(({prefix, repeatData,
 
 export default React.memo(({prefix, newData, checkBoxChange, repeatTitle,
                              repeatData, checked, defaultSelected, onSearch, header}) => {
-  const [filterData, setFilterData] = useState([]);
+  const [matched, setFilterData] = useState([]);
+  // View-only sort of the candidates by code and/or name.
+  const [sorts, setSorts] = useState([]);
+  const filterData = sortRows(matched, sorts);
+  const sortLabel = (key, id) => <span style={{marginLeft: 12}}>
+    {FormatMessage.string({id})}
+    <SortMark sorts={sorts} columnKey={key} onToggle={k => setSorts(toggleSort(sorts, k))}/>
+  </span>;
   const newDataRef = useRef([]);
   newDataRef.current = newData;
   useEffect(() => {
@@ -55,8 +64,8 @@ export default React.memo(({prefix, newData, checkBoxChange, repeatTitle,
     });
   };
   useEffect(() => {
-    onSearch(filterData);
-  }, [filterData]);
+    onSearch(matched);
+  }, [matched]);
   return <div className={`${prefix}-listselect-left`}>
     <div className={`${prefix}-listselect-left-search`}>
       <SearchInput
@@ -67,6 +76,8 @@ export default React.memo(({prefix, newData, checkBoxChange, repeatTitle,
     <div className={`${prefix}-listselect-left-header`}>
       {header}
       <span><FormatMessage id='components.listSelect.all'/></span>
+      {sortLabel('defKey', 'tableBase.defKey')}
+      {sortLabel('defName', 'tableBase.defName')}
     </div>
     <div className={`${prefix}-listselect-left-container`}>
       <AutoSizer>

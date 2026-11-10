@@ -2,8 +2,11 @@ import React, {useEffect, useState} from 'react';
 import {Select, FormatMessage, Checkbox, IconTitle, openModal, Button, Modal, Icon, Tooltip} from 'components';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { VariableSizeGrid as Grid } from 'react-window';
+import {sortRows, toggleSort} from '../../lib/grid_util';
+import {SortMark} from '../gridview';
 
 const Option = Select.Option;
+const nameOf = d => d.defName || d.defKey;
 
 const Item = React.memo(({prefix, d, onGroupChange, defaultSelected,
                            allowClear, notAllowEmpty, currentGroup, i, checked,
@@ -184,7 +187,19 @@ export default React.memo(({prefix, newData, onRemove, allowClear,
   };
   const finalType = calcType();
   const columnWidth = [50, 250, 200];
-  const finalData = newData.filter(d => !!d.defKey);
+  // View-only sort of the chosen tables by code, name or group.
+  const [sorts, setSorts] = useState([]);
+  const groupName = (d) => {
+    const id = dataGroup.find(dg => dg.id === d.id)?.group || '';
+    return currentGroup.find(g => g.id === id)?.defName || '';
+  };
+  const finalData = sortRows(newData.filter(d => !!d.defKey), sorts,
+    {defName: nameOf, group: groupName});
+  const sortMark = key => <SortMark
+    sorts={sorts}
+    columnKey={key}
+    onToggle={k => setSorts(toggleSort(sorts, k))}
+  />;
   return <div className={`${prefix}-listselect-right`}>
     <div className={`${prefix}-listselect-right-opt`}>
       <span className={`${prefix}-listselect-right-opt-batch`}>
@@ -237,8 +252,9 @@ export default React.memo(({prefix, newData, onRemove, allowClear,
                       return <>
                         <div style={{width}} className={`${prefix}-listselect-right-header`}>
                           <span style={{width: columnWidth[0]}}>{}</span>
-                          <span style={{width: width - (columnWidth[0] + columnWidth[2] + 15)}}>{FormatMessage.string({id: 'components.listSelect.tableName'})}</span>
-                          <span style={{width: columnWidth[2]}}>{FormatMessage.string({id: 'components.listSelect.useGroup'})}</span>
+                          <span style={{width: width - (columnWidth[0] + columnWidth[2] + 15)}}>{FormatMessage.string({id: 'tableBase.defKey'})}{sortMark('defKey')}
+                            {' / '}{FormatMessage.string({id: 'tableBase.defName'})}{sortMark('defName')}</span>
+                          <span style={{width: columnWidth[2]}}>{FormatMessage.string({id: 'components.listSelect.useGroup'})}{sortMark('group')}</span>
                         </div>
                         <Grid
                           className={`${prefix}-listselect-right-grid`}

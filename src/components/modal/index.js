@@ -30,6 +30,28 @@ export const Modal = DragCom(React.memo(React.forwardRef(({prefix, title, onClos
       current && current.focus();
     }
   });
+  // Dragging the corner grip resizes the dialog from its top-left corner.
+  const startResize = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const container = e.currentTarget.parentElement;
+    const rect = container.getBoundingClientRect();
+    const start = { x: e.clientX, y: e.clientY };
+    container.style.left = `${rect.left}px`;
+    container.style.top = `${rect.top}px`;
+    container.classList.add(`${currentPrefix}-modal-container-resized`);
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const move = (ev) => {
+      container.style.width = `${clamp(rect.width + ev.clientX - start.x, 320, window.innerWidth - rect.left)}px`;
+      container.style.height = `${clamp(rect.height + ev.clientY - start.y, 160, window.innerHeight - rect.top)}px`;
+    };
+    const stop = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', stop);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', stop);
+  };
   const onKeyDown = (e) => {
     if (e.key === 'Escape' && closeable) {
       // 按了键盘的返回键
@@ -70,6 +92,10 @@ export const Modal = DragCom(React.memo(React.forwardRef(({prefix, title, onClos
             {buttons}
           </div>
         </div>
+        {!small && !fullScreen && <span
+          className={`${currentPrefix}-modal-resize`}
+          onMouseDown={startResize}
+        />}
       </div>
     </div>
   );

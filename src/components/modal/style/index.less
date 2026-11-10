@@ -29,6 +29,38 @@
   overflow: hidden;
   &-container {
     width: @modal-width;
+    max-width: 100vw;
+    // Once resized by the user the body follows the dialog size.
+    &-resized {
+      display: flex;
+      flex-direction: column;
+      & > .@{prefix}-modal-content {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        justify-content: flex-start;
+        & > *:first-child {
+          flex: 1 1 auto;
+          min-height: 0;
+          height: auto !important;
+          max-height: none !important;
+        }
+        & > .@{prefix}-modal-footer {
+          flex: none;
+        }
+      }
+    }
+  }
+  &-resize {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 16px;
+    height: 16px;
+    z-index: 2;
+    cursor: nwse-resize;
+    background: linear-gradient(135deg, transparent 50%, @primary-border-color 50%, @primary-border-color 60%,
+      transparent 60%, transparent 70%, @primary-border-color 70%, @primary-border-color 80%, transparent 80%);
   }
   &-content {
     //min-height: @modal-height;

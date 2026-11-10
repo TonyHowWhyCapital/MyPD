@@ -140,11 +140,15 @@ export default React.memo(({prefix, dataSource, dataChange, isNewView,
           </span>
           <span className={`${currentPrefix}-form-item-component`}>
             <Select defaultValue="1" onChange={onChange} notAllowEmpty>
-              <Select.Option value='1' key='1'>{FormatMessage.string({id: 'tableBase.empty'})}</Select.Option>
-              <Select.Option value='2' key='2'>{FormatMessage.string({id: 'tableBase.extend'})}</Select.Option>
-              {templates.length > 0 && <Select.Option value='3' key='3'>
-                {FormatMessage.string({id: 'entityTemplate.fromTemplate'})}
-              </Select.Option>}
+              {
+                // Select 的子节点必须全部是 Option，不能出现 false
+                [['1', 'tableBase.empty'], ['2', 'tableBase.extend']]
+                  .concat(templates.length > 0 ? [['3', 'entityTemplate.fromTemplate']] : [])
+                  .map(([value, id]) => (
+                    <Select.Option value={value} key={value}>
+                      {FormatMessage.string({id})}
+                    </Select.Option>))
+              }
             </Select>
           </span>
         </div>

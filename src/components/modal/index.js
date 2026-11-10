@@ -172,10 +172,11 @@ Modal.info = ({title, message, bodyStyle, contentStyle, closeable, buttons}) => 
   });
 };
 
-Modal.confirm = ({title, message, onOk}) => {
+Modal.confirm = ({title, message, onOk, onCancel: cancelCallback}) => {
   let modal = null;
   const onCancel = () => {
     modal && modal.close();
+    cancelCallback && cancelCallback();
   };
   const onOK = () => {
     modal && modal.close();

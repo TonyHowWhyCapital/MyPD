@@ -7,7 +7,9 @@ import {
 removeAllVersionProject, openFileOrDirPath, ensureDirectoryExistence,
   renameVersion,
   dirSplicing, fileExists, deleteFile, basename, writeLog, getBackupAllFile, renameBackupAllFile,
+  readPdmFile, savePdmFile,
 } from '../../lib/middle';
+import { isPdmFile, pdmToDataSource } from '../../lib/pdm';
 import { openLoading, closeLoading, optReset, STATUS } from '../common';
 //import { pdman2sino, version2sino } from '../../lib/datasource_util';
 import { removeHistory, addHistory, updateHistory } from '../config';
@@ -15,7 +17,7 @@ import allLangData from '../../lang';
 import { projectSuffix } from '../../../profile';
 import emptyProject from '../../lib/template/empty';
 import { version } from '../../../package';
-import {reduceProject, transformationData} from '../../lib/datasource_util';
+import {reduceProject, transformationData, getEmptyEntity} from '../../lib/datasource_util';
 import {setMemoryCache} from '../../lib/cache';
 import * as template from '../../lib/template';
 import {compareVersion} from '../../lib/update';
@@ -115,7 +117,8 @@ export const autoSaveProject = (data) => {
   return (dispatch, getState) => {
     const info = getState()?.core?.info;
     const mode = getState()?.core?.mode;
-    if (mode !== READING) {
+    // PDM 文件只在用户主动保存时写回
+    if (mode !== READING && !isPdmFile(info)) {
       getBackupAllFile({info, data: tempData}, () => {
         saveJsonPromise(info, tempData)
             .catch((err) => {
@@ -185,9 +188,11 @@ export const saveProject = (data, title, saveAs, callback) => {
       } else {
         dispatch(openLoading(title)); // 开启全局loading
         // 超过一千张表 不再格式化后保存 优化保存性能
-        saveJsonPromise(info, tempData, tempData.entities?.length > 1000)
+        const pdmFile = isPdmFile(info);
+        (pdmFile ? savePdmFile(info, tempData)
+          : saveJsonPromise(info, tempData, tempData.entities?.length > 1000))
             .then(() => {
-              getBackupAllFile({info, data: tempData}, (err) => {
+              (pdmFile ? cb => cb() : cb => getBackupAllFile({info, data: tempData}, cb))((err) => {
                 isSaving = false;
                 if (err) {
                   callback && callback(err);
@@ -228,8 +233,18 @@ export const readProject = (path, title, getState, type, isDemoProject, mode = E
   return (dispatch) => {
     dispatch(openLoading(title)); // 开启全局loading
     const config = getState()?.config?.data[0];
+    const readPdm = () => readPdmFile(path).then((xml) => {
+      try {
+        return {
+          ...pdmToDataSource(xml, emptyProject, { createEntity: () => getEmptyEntity() }),
+          version,
+        };
+      } catch (e) {
+        throw new Error(`${allLangData[config.lang].invalidPdmFile}: ${e.message}`);
+      }
+    });
     // 判断项目文件是否为只读权限
-    readJsonPromise(path)
+    (isPdmFile(path) ? readPdm() : readJsonPromise(path))
       .then((data) => {
         if (!data.version) {
           // 无效的项目

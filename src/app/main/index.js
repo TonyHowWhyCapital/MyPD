@@ -79,6 +79,7 @@ import { imgAll } from '../../lib/generatefile/img';
 import {compareVersion} from '../../lib/update';
 import {notify} from '../../lib/subscribe';
 import {READING} from '../../lib/variable';
+import {isPdmFile} from '../../lib/pdm';
 import LogicEntity from '../container/logicentity';
 
 const TabItem = Tab.TabItem;
@@ -173,8 +174,23 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       setMainId(Math.uuid());
     }
   }, [restProps.dataSource]);
+  const pdmSaveConfirmedRef = useRef(false);
   const saveProject = (saveAs, callback) => {
     const isSaveAs = saveAs || !projectInfoRef.current;
+    if (!isSaveAs && isPdmFile(projectInfoRef.current) && !pdmSaveConfirmedRef.current) {
+      Modal.confirm({
+        title: FormatMessage.string({id: 'pdm.saveTitle'}),
+        message: <div style={{whiteSpace: 'pre-wrap', maxWidth: 520}}>
+          {FormatMessage.string({id: 'pdm.saveConfirm'})}
+        </div>,
+        onOk: () => {
+          pdmSaveConfirmedRef.current = true;
+          saveProject(saveAs, callback);
+        },
+        onCancel: () => callback && callback(true),
+      });
+      return;
+    }
     const newData = updateAllData(dataSourceRef.current);
     if (newData.result.status) {
       restProps.save(newData.dataSource, FormatMessage.string({id: 'saveProject'}), isSaveAs, (err) => {

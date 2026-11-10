@@ -33,6 +33,8 @@ const getLogPath = json.getLogPath;
 const showErrorLogFolder = json.showErrorLogFolder;
 const basename = json.basename;
 const getBackupAllFile = json.getBackupAllFile;
+const readPdmFile = json.readPdmFile;
+const savePdmFile = json.savePdmFile;
 const saveVersion = json.saveVersion;
 const deleteVersion = json.deleteVersion;
 const renameVersion = json.renameVersion;
@@ -74,6 +76,8 @@ export {
   showErrorLogFolder,
   basename,
   getBackupAllFile,
+  readPdmFile,
+  savePdmFile,
   saveVersion,
   deleteVersion,
   renameVersion,

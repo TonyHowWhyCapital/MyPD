@@ -1,6 +1,7 @@
 // 桌面版
 
 import fs from 'fs';
+import { isPdmFile, applyDataSourceToPdm } from './pdm';
 import path from 'path';
 import moment from 'moment';
 import * as _ from 'lodash/object';
@@ -143,6 +144,27 @@ export const readJsonPromise = (filePath) => {
     }).catch((err) => {
       rej(err);
     });
+  });
+};
+
+export const readPdmFile = (filePath) => {
+  return readNormalFile(filePath).then(data => data.toString());
+};
+
+export const savePdmFile = (filePath, dataSource) => {
+  return readPdmFile(filePath).then((xml) => {
+    const result = applyDataSourceToPdm(xml, dataSource);
+    if (result !== xml) {
+      const backup = `${filePath}.bak`;
+      if (!fs.existsSync(backup)) {
+        fs.copyFileSync(filePath, backup);
+      }
+      // 先写临时文件再替换，避免写入中断损坏原文件
+      const temp = `${filePath}.saving`;
+      fs.writeFileSync(temp, result);
+      fs.renameSync(temp, filePath);
+    }
+    return result;
   });
 };
 
@@ -299,10 +321,10 @@ export const openFileOrDirPath = (filters, properties, rest) => {
 
 export const openProjectFilePath = (errorFileMessage, suffix) => {
   const tempSuffix = suffix || projectSuffix;
-  const extensions = suffix ? [suffix] : [`${projectSuffix}.json`, 'chnr.json'];
+  const extensions = suffix ? [suffix] : [`${projectSuffix}.json`, 'chnr.json', 'pdm', 'PDM'];
   return new Promise((res, rej) => {
     openFileOrDirPath([{ name: tempSuffix, extensions: extensions}]).then((file) => {
-      if (extensions.every(e => !file.endsWith(`.${e}`))) {
+      if (extensions.every(e => !file.endsWith(`.${e}`)) && !(isPdmFile(file) && !suffix)) {
         // 项目名不符合规范 抛出异常
         rej(new Error(errorFileMessage || 'Invalid project file'));
       } else {

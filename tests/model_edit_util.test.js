@@ -172,3 +172,48 @@ describe('multi-column sort', () => {
     expect(ids(sortRows(rows, [{ key: 'label', dir: 'asc' }], getters))).toEqual([2, 4, 1, 3]);
   });
 });
+
+describe('new domain from a column', () => {
+  const { addDomainFromColumn } = require('../src/lib/model_edit_util');
+  const withLen = () => {
+    const ds = build();
+    ds.entities[0].fields[0] = { ...ds.entities[0].fields[0], type: 'int', len: 11 };
+    return ds;
+  };
+
+  test('creates a domain with the column type and links the column to it', () => {
+    const ds = withLen();
+    const { next, id, defKey } = addDomainFromColumn(ds, 'e1', 'f1');
+    const domain = next.domains.find(d => d.id === id);
+    expect(domain).toMatchObject({ defKey: 'id', defName: '主键', applyFor: 'm-int', len: 11 });
+    expect(defKey).toBe('id');
+    expect(next.entities[0].fields[0]).toMatchObject({ domain: id, baseType: 'm-int' });
+    expect(next.dataTypeMapping.mappings).toHaveLength(2);
+    expect(resolveColumnType(next, next.entities[0].fields[0])).toEqual({ type: 'INT', len: 11, scale: '' });
+    expect(ds.domains).toHaveLength(1);
+  });
+
+  test('adds a type mapping when no existing one yields the column type', () => {
+    const ds = build();
+    ds.entities[0].fields[0].type = 'GEOMETRY';
+    const { next, id } = addDomainFromColumn(ds, 'e1', 'f1');
+    const mapping = next.dataTypeMapping.mappings[2];
+    expect(mapping).toMatchObject({ defKey: 'GEOMETRY', [mysql]: 'GEOMETRY' });
+    expect(next.domains.find(d => d.id === id).applyFor).toBe(mapping.id);
+    expect(resolveColumnType(next, next.entities[0].fields[0]).type).toBe('GEOMETRY');
+  });
+
+  test('keeps domain codes unique and copies the type of an already linked column', () => {
+    const ds = build();
+    ds.entities[0].fields[1].defKey = 'Code';
+    const { next, id, defKey } = addDomainFromColumn(ds, 'e1', 'f2');
+    expect(defKey).toBe('Code_2');
+    expect(next.domains.find(d => d.id === id)).toMatchObject({ applyFor: 'm-str', len: 20 });
+    expect(next.entities[0].fields[1].domain).toBe(id);
+  });
+
+  test('an unknown column changes nothing', () => {
+    const ds = build();
+    expect(addDomainFromColumn(ds, 'e1', 'nope').next).toBe(ds);
+  });
+});

@@ -6,11 +6,12 @@ import { getPrefix } from '../../../../lib/prefixUtil';
 import {
   getTableRows, getColumnRows, getDomainRows, getTypeOptions,
   updateTable, updateColumn, addColumn, removeTables, removeColumns,
-  updateDomain, addDomain, removeDomains, toggleSort, sortRows,
+  updateDomain, addDomain, removeDomains, toggleSort, sortRows, addDomainFromColumn,
 } from '../../../../lib/model_edit_util';
 
 const Option = Select.Option;
 const TABS = ['entity', 'field', 'domain'];
+const NEW_DOMAIN = '__new_domain__';
 
 const textCell = (value, onChange, disabled) => (
   <Input
@@ -144,6 +145,17 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
   if (tab === 'field') {
     const rows = getColumnRows(ds).filter(r => match(r, ['entityKey', 'defKey', 'defName', 'resolvedType', 'comment']));
     const change = (r, patch) => persist(updateColumn(ds, r.entityId, r.id, patch));
+    const pickDomain = (r, value) => {
+      if (value !== NEW_DOMAIN) {
+        change(r, { domain: value });
+        return;
+      }
+      const result = addDomainFromColumn(ds, r.entityId, r.id);
+      persist(result.next);
+      Message.success({
+        title: FormatMessage.string({ id: 'modelEdit.domainCreated', data: { name: result.defKey } }),
+      });
+    };
     const cols = [
       { key: 'entity', sort: r => r.entityKey, title: label('modelEdit.col.table'), width: '13%', render: r => <span title={r.entityKey}>{r.entityKey}</span> },
       { key: 'defKey', sort: r => r.defKey, title: label('modelEdit.col.key'), width: '12%', render: r => textCell(r.defKey, v => change(r, { defKey: v })) },
@@ -155,9 +167,12 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
         width: '13%',
         render: r => (
           // Select flattens only one level of children, so pass a single flat array of Options.
-          <Select value={r.domain || ''} onChange={e => change(r, { domain: e.target.value })}>
+          <Select value={r.domain || ''} onChange={e => pickDomain(r, e.target.value)}>
             {[<Option key='' value=''>{FormatMessage.string({ id: 'modelEdit.noDomain' })}</Option>]
-              .concat(domainOptions.map(o => <Option key={o.id} value={o.id}>{o.label}</Option>))}
+              .concat(domainOptions.map(o => <Option key={o.id} value={o.id}>{o.label}</Option>))
+              .concat(<Option key={NEW_DOMAIN} value={NEW_DOMAIN}>
+                {FormatMessage.string({ id: 'modelEdit.newDomain' })}
+              </Option>)}
           </Select>),
       },
       { key: 'type', sort: r => (r.domain ? r.resolvedType : r.type), title: label('modelEdit.col.type'), width: '11%', render: r => textCell(r.domain ? r.resolvedType : r.type, v => change(r, { type: v }), !!r.domain) },

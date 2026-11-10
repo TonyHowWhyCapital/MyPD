@@ -241,6 +241,52 @@ export const addDomain = (ds) => {
   };
 };
 
+const uniqueKey = (base, taken) => {
+  let key = base;
+  for (let n = 2; taken.includes(key.toLowerCase()); n += 1) {
+    key = `${base}_${n}`;
+  }
+  return key;
+};
+
+// Turns a column's current type into a new domain and links the column to it,
+// so other columns can then share the same definition. The type mapping is
+// reused when one already produces that type for the current database.
+export const addDomainFromColumn = (ds, entityId, fieldId) => {
+  const field = (entitiesOf(ds).find(e => e.id === entityId)?.fields || [])
+    .find(f => f.id === fieldId);
+  if (!field) {
+    return { next: ds, id: '' };
+  }
+  const dbId = defaultDb(ds);
+  const resolved = resolveColumnType(ds, field);
+  const sameType = m => `${m[dbId] || ''}`.toLowerCase() === resolved.type.toLowerCase();
+  const existing = mappingsOf(ds).find(m => m.id === field.baseType && sameType(m))
+    || mappingsOf(ds).find(sameType);
+  const mapping = existing
+    || { id: Math.uuid(), defKey: resolved.type, defName: resolved.type, [dbId]: resolved.type };
+  const id = Math.uuid();
+  const defKey = uniqueKey(field.defKey || 'domain',
+    domainsOf(ds).map(d => `${d.defKey || ''}`.toLowerCase()));
+  const withDomain = {
+    ...ds,
+    dataTypeMapping: {
+      ...ds.dataTypeMapping,
+      mappings: existing ? mappingsOf(ds) : mappingsOf(ds).concat(mapping),
+    },
+    domains: domainsOf(ds).concat({
+      id,
+      defKey,
+      defName: field.defName || '',
+      applyFor: mapping.id,
+      len: resolved.len,
+      scale: resolved.scale,
+      uiHint: '',
+    }),
+  };
+  return { next: updateColumn(withDomain, entityId, fieldId, { domain: id }), id, defKey };
+};
+
 // A domain in use cannot be removed, since columns would lose their type source.
 export const domainUsage = (ds, id) => entitiesOf(ds).reduce((count, e) => count
   + (e.fields || []).filter(f => f.domain === id).length, 0);

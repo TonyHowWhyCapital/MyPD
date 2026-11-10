@@ -273,3 +273,25 @@ describe('creating a pdm file from tables', () => {
     expect(() => createPdm(project, { entityIds: ['missing'] })).toThrow(/No tables to write/);
   });
 });
+
+describe('domain created from a column in the list editor', () => {
+  const { addDomainFromColumn, resolveColumnType } = require('../src/lib/model_edit_util');
+
+  test('is written to the file and the column stays linked after reopening', () => {
+    const xml = buildPdm();
+    const before = open(xml);
+    const target = before.entities
+      .map(e => ({ e, f: e.fields.find(f => !f.domain && f.len !== '') }))
+      .find(x => x.f);
+    const type = resolveColumnType(before, target.f);
+    const { next, id } = addDomainFromColumn(before, target.e.id, target.f.id);
+    const saved = applyDataSourceToPdm(xml, next, { now: 1800000000, user: 'jest' });
+    expect(danglingRefs(saved)).toEqual([]);
+    const after = open(saved);
+    const column = field(after, target.e.id, target.f.id);
+    expect(after.domains).toHaveLength(before.domains.length + 1);
+    expect(column.domain).toBe(id);
+    expect(resolveColumnType(after, column)).toEqual(type);
+    expect(applyDataSourceToPdm(saved, after)).toBe(saved);
+  });
+});

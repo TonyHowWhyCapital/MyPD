@@ -1524,6 +1524,9 @@ export default {
   },
   "pdm": {
     "saveTitle": "寫回 PDM 檔案",
+    "reverseToPdm": "從資料庫逆向生成 PDM 檔案",
+    "created": "已生成 PDM 檔案（{count} 張表）：{path}",
+    "createFail": "生成 PDM 檔案失敗",
     "saveConfirm": "儲存將直接修改此 PDM 檔案，原檔案會先備份為同目錄下的 .bak 檔案。\n只會寫入資料表、欄位、主鍵、索引、資料域的變更；關係線、關係圖佈局、視圖、資料字典及其他內容不會寫入 PDM 檔案。\n如需保留全部內容，請使用“另存為”儲存為專案檔案。"
   },
   "report": {

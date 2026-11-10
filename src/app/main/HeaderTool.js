@@ -239,6 +239,7 @@ export default React.memo(forwardRef(({currentPrefix, close, iconClick, openModa
                       name: FormatMessage.string({id: 'toolbar.importDbData'}),
                       children: [
                         { key: 'db', name: FormatMessage.string({id: 'toolbar.importDb'}) },
+                        { key: 'dbToPdm', name: FormatMessage.string({id: 'pdm.reverseToPdm'}) },
                         { key: 'importDDL', name: FormatMessage.string({id: 'toolbar.importDDL'}) },
                      ],
                     },

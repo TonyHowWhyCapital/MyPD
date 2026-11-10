@@ -253,8 +253,8 @@ const readGroups = (doc) => {
 
 export const resolveDb = (target, base) => {
   const supports = base.profile?.dataTypeSupports || [];
-  const key = (dbMatchers.find(m => m[0].test(target)) || [])[1];
-  const db = supports.find(s => s.defKey === key);
+  const key = (dbMatchers.find(m => m[0].test(target)) || [])[1] || target;
+  const db = supports.find(s => s.defKey.toLowerCase() === `${key}`.toLowerCase());
   return db ? db.id : (base.profile?.default?.db || supports[0]?.id);
 };
 

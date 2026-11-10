@@ -201,3 +201,75 @@ describe('saving a pdm file', () => {
     expect(() => applyDataSourceToPdm('<Model></Model>', open(buildPdm()))).toThrow(/Invalid PDM file/);
   });
 });
+
+describe('creating a pdm file from tables', () => {
+  const { createPdm } = require('../src/lib/pdm');
+  const dbId = key => base.profile.dataTypeSupports.find(s => s.defKey === key).id;
+  const stringMapping = base.dataTypeMapping.mappings.find(m => m.defKey === 'string');
+  const project = {
+    ...base,
+    name: 'Shop',
+    domains: [{ id: 'dom-1', defKey: 'Name', defName: 'Name', applyFor: stringMapping.id, len: 60, scale: '' }],
+    entities: [
+      {
+        id: 'e1', defKey: 'orders', defName: '訂單', comment: 'all orders',
+        fields: [
+          newField('f1', 'id', { type: 'bigint', len: '', primaryKey: true, notNull: true, autoIncrement: true }),
+          newField('f2', 'amount', { type: 'numeric', len: 12, scale: 2, defaultValue: '0' }),
+          newField('f3', 'buyer', { type: '', len: '', domain: 'dom-1', baseType: stringMapping.id }),
+        ],
+        indexes: [{ id: 'i1', defKey: 'ix_orders_buyer', unique: true, fields: [{ fieldDefKey: 'BUYER', ascOrDesc: 'A' }] }],
+      },
+      { id: 'e2', defKey: 'items', defName: '', comment: '', fields: [newField('f4', 'sku')], indexes: [] },
+    ],
+  };
+
+  test('writes every table with columns, primary key and index', () => {
+    const xml = createPdm(project, { dbId: dbId('PostgreSQL'), now: 1800000000 });
+    expect(danglingRefs(xml)).toEqual([]);
+    const ds = open(xml);
+    expect(ds.name).toBe('Shop');
+    expect(ds.profile.default.db).toBe(dbId('PostgreSQL'));
+    expect(ds.entities.map(e => [e.defKey, e.defName])).toEqual([['orders', '訂單'], ['items', 'items']]);
+    const orders = ds.entities[0];
+    expect(orders.comment).toBe('all orders');
+    expect(orders.fields.map(f => [f.defKey, f.type, f.len, f.scale, f.primaryKey, f.notNull, f.autoIncrement, f.defaultValue])).toEqual([
+      ['id', 'bigint', '', '', true, true, true, ''],
+      ['amount', 'numeric', 12, 2, false, false, false, '0'],
+      ['buyer', stringMapping[dbId('PostgreSQL')], 60, '', false, false, false, ''],
+    ]);
+    expect(orders.indexes).toMatchObject([{ defKey: 'ix_orders_buyer', unique: true, fields: [{ fieldDefKey: orders.fields[2].id }] }]);
+  });
+
+  test('resolves column types for the chosen database', () => {
+    const ds = open(createPdm(project, { dbId: dbId('ORACLE') }));
+    expect(ds.entities[0].fields[2].type).toBe(stringMapping[dbId('ORACLE')]);
+    expect(ds.profile.default.db).toBe(dbId('ORACLE'));
+  });
+
+  test('writes only the chosen tables', () => {
+    const ds = open(createPdm(project, { dbId: dbId('MYSQL'), entityIds: ['e2'], name: 'Part' }));
+    expect(ds.name).toBe('Part');
+    expect(ds.entities.map(e => e.defKey)).toEqual(['items']);
+    expect(ds.profile.default.db).toBe(dbId('MYSQL'));
+  });
+
+  test('places each table on the diagram without overlap', () => {
+    const many = { ...project, entities: Array.from({ length: 9 }, (x, i) => ({ ...project.entities[1], id: `t${i}`, defKey: `t${i}` })) };
+    const cells = open(createPdm(many, { dbId: dbId('SQLServer') })).diagrams[0].canvasData.cells;
+    expect(cells).toHaveLength(9);
+    expect(new Set(cells.map(c => `${c.position.x},${c.position.y}`)).size).toBe(9);
+  });
+
+  test('a created file can be edited and saved again', () => {
+    const xml = createPdm(project, { dbId: dbId('PostgreSQL') });
+    expect(applyDataSourceToPdm(xml, open(xml))).toBe(xml);
+    const { ds } = edit(xml, (d) => { d.entities[1].fields.push(newField('EEEEEEEE-0000-4000-8000-000000000001', 'qty')); });
+    expect(ds.entities[1].fields.map(f => f.defKey)).toEqual(['sku', 'qty']);
+  });
+
+  test('refuses to create a file without tables', () => {
+    expect(() => createPdm({ ...project, entities: [] }, {})).toThrow(/No tables to write/);
+    expect(() => createPdm(project, { entityIds: ['missing'] })).toThrow(/No tables to write/);
+  });
+});

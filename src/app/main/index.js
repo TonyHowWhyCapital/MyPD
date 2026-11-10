@@ -74,12 +74,12 @@ import './style/index.less';
 import {getPrefix} from '../../lib/prefixUtil';
 import {addBodyEvent, removeBodyEvent} from '../../lib/listener';
 import {firstUp} from '../../lib/string';
-import {connectDB, getLogPath, selectWordFile, selectDir, showItemInFolder} from '../../lib/middle';
+import {connectDB, getLogPath, selectWordFile, selectDir, showItemInFolder, saveFile} from '../../lib/middle';
 import { imgAll } from '../../lib/generatefile/img';
 import {compareVersion} from '../../lib/update';
 import {notify} from '../../lib/subscribe';
 import {READING} from '../../lib/variable';
-import {isPdmFile} from '../../lib/pdm';
+import {isPdmFile, createPdm} from '../../lib/pdm';
 import LogicEntity from '../container/logicentity';
 
 const TabItem = Tab.TabItem;
@@ -996,7 +996,33 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       return result;
     });
   };
-  const importFromDb = () => {
+  const reverseToPdm = (data, dbKey) => {
+    const conn = (dataSourceRef.current?.dbConn || []).find(d => d.defKey === dbKey) || {};
+    try {
+      const xml = createPdm({
+        ...dataSourceRef.current,
+        entities: data.map(e => ({...e, id: e.id || Math.uuid()})),
+      }, {name: conn.defName, dbId: conn.type});
+      saveFile(xml, [{name: 'PDM', extensions: ['pdm']}],
+        p => (/\.pdm$/i.test(p) ? p : `${p}.pdm`),
+        {defaultPath: `${conn.defName || 'model'}.pdm`}).then(({filePath}) => {
+        Message.success({
+          title: FormatMessage.string({
+            id: 'pdm.created',
+            data: {count: data.length, path: filePath},
+          }),
+        });
+      }).catch((err) => {
+        err?.message && Modal.error({
+          title: FormatMessage.string({id: 'pdm.createFail'}),
+          message: err.message,
+        });
+      });
+    } catch (err) {
+      Modal.error({title: FormatMessage.string({id: 'pdm.createFail'}), message: err.message});
+    }
+  };
+  const importFromDb = (toPdm) => {
     // 判断是否已经存在数据库连接
     const dbConn = dataSourceRef.current?.dbConn || [];
     if (dbConn.length === 0) {
@@ -1010,6 +1036,10 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
         modal && modal.close();
       };
       const onOk = (data, dbKey) => {
+        if (toPdm) {
+          reverseToPdm(data, dbKey);
+          return;
+        }
         restProps.openLoading();
         mergeDataSource(dataSourceRef.current, {},
             calcDomain(data, dbKey, dataSourceRef.current.domains || []), true, (d) => {
@@ -1030,7 +1060,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
         dataSource={dataSourceRef.current}
       />, {
         closeable: false,
-        title: FormatMessage.string({id: 'toolbar.importDb'}),
+        title: FormatMessage.string({id: toPdm ? 'pdm.reverseToPdm' : 'toolbar.importDb'}),
         bodyStyle: { width: '80%' },
       });
     }
@@ -1706,6 +1736,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       case 'PDManer': importFromPDMan('PDManer');break;
       case 'powerdesigner': importFromPb('PD');break;
       case 'db': importFromDb();break;
+      case 'dbToPdm': importFromDb(true);break;
       case 'domains': importDomains('dbDDL');break;
       case 'exportDomains': exportDomains('dbDDL');break;
       case 'appCodes': importDomains('appCode');break;

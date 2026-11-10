@@ -4,6 +4,7 @@ import { FormatMessage, Input, Select, Checkbox, Button, Message, Modal } from '
 import './style/index.less';
 import { getPrefix } from '../../../../lib/prefixUtil';
 import { NEW_DOMAIN, openNewDomain } from '../../../../components/table/newDomain';
+import { buildFieldColumns, isFixedColumn, loadHiddenColumns, saveHiddenColumns } from './fieldColumns';
 import {
   getTableRows, getColumnRows, getDomainRows, getTypeOptions,
   updateTable, updateColumn, addColumn, removeTables, removeColumns,
@@ -23,6 +24,7 @@ const textCell = (value, onChange, disabled) => (
 const checkCell = (value, onChange) => (
   <Checkbox checked={!!value} onChange={e => onChange(e.target.checked)}/>
 );
+const named = d => ({ id: d.id, label: d.defName || d.defKey });
 const toLen = v => (v === '' ? '' : (parseInt(v, 10) || ''));
 
 export default React.memo(({ dataSource, updateDataSource, prefix }) => {
@@ -32,6 +34,8 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
   const [keyword, setKeyword] = useState('');
   const [pendingEntity, setPendingEntity] = useState('');
   const [sorts, setSorts] = useState([]);
+  const [hidden, setHidden] = useState(loadHiddenColumns);
+  const [choosing, setChoosing] = useState(false);
   // Row order is frozen until the sort or filter changes, so a row does not
   // jump away while its sorted cell is being edited.
   const orderRef = useRef({ signature: '', keys: [] });
@@ -107,7 +111,7 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
   };
   const grid = (cols, rows, keyFn) => (
     <div className={`${currentPrefix}-modeledit-grid`}>
-      <table>
+      <table style={{ minWidth: cols.reduce((sum, c) => sum + (typeof c.width === 'number' ? c.width : 0), 0) }}>
         <thead>
           <tr>{cols.map(c => (
             <th
@@ -143,7 +147,7 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
   }
 
   if (tab === 'field') {
-    const rows = getColumnRows(ds).filter(r => match(r, ['entityKey', 'defKey', 'defName', 'resolvedType', 'comment']));
+    const rows = getColumnRows(ds).filter(r => match(r, ['entityKey', 'defKey', 'defName', 'resolvedType', 'comment', 'defaultValue']));
     const change = (r, patch) => persist(updateColumn(ds, r.entityId, r.id, patch));
     const pickDomain = (r, value) => {
       if (value !== NEW_DOMAIN) {
@@ -162,36 +166,37 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
         onCreated: domain => persist(updateColumn(latest, r.entityId, r.id, { domain: domain.id })),
       });
     };
-    const cols = [
-      { key: 'entity', sort: r => r.entityKey, title: label('modelEdit.col.table'), width: '13%', render: r => <span title={r.entityKey}>{r.entityKey}</span> },
-      { key: 'defKey', sort: r => r.defKey, title: label('modelEdit.col.key'), width: '12%', render: r => textCell(r.defKey, v => change(r, { defKey: v })) },
-      { key: 'defName', sort: r => r.defName, title: label('modelEdit.col.name'), width: '12%', render: r => textCell(r.defName, v => change(r, { defName: v })) },
-      {
-        key: 'domain',
-        sort: r => (domainOptions.find(o => o.id === r.domain) || {}).label,
-        title: label('modelEdit.col.domain'),
-        width: '13%',
-        render: r => (
-          // Select flattens only one level of children, so pass a single flat array of Options.
-          <Select value={r.domain || ''} onChange={e => pickDomain(r, e.target.value)}>
-            {[<Option key='' value=''>{FormatMessage.string({ id: 'modelEdit.noDomain' })}</Option>]
-              .concat(domainOptions.map(o => <Option key={o.id} value={o.id}>{o.label}</Option>))
-              .concat(<Option key={NEW_DOMAIN} value={NEW_DOMAIN}>
-                {FormatMessage.string({ id: 'modelEdit.newDomainOption' })}
-              </Option>)}
-          </Select>),
-      },
-      { key: 'type', sort: r => (r.domain ? r.resolvedType : r.type), title: label('modelEdit.col.type'), width: '11%', render: r => textCell(r.domain ? r.resolvedType : r.type, v => change(r, { type: v }), !!r.domain) },
-      { key: 'len', sort: r => r.len, title: label('modelEdit.col.len'), width: '7%', render: r => textCell(r.len, v => change(r, { len: toLen(v) }), !!r.domain) },
-      { key: 'scale', sort: r => r.scale, title: label('modelEdit.col.scale'), width: '7%', render: r => textCell(r.scale, v => change(r, { scale: toLen(v) }), !!r.domain) },
-      { key: 'pk', sort: r => !!r.primaryKey, title: label('modelEdit.col.pk'), width: '5%', render: r => checkCell(r.primaryKey, v => change(r, { primaryKey: v })) },
-      { key: 'nn', sort: r => !!r.notNull, title: label('modelEdit.col.notNull'), width: '5%', render: r => checkCell(r.notNull, v => change(r, { notNull: v })) },
-      { key: 'ai', sort: r => !!r.autoIncrement, title: label('modelEdit.col.autoInc'), width: '5%', render: r => checkCell(r.autoIncrement, v => change(r, { autoIncrement: v })) },
-      { key: 'op', title: label('modelEdit.col.op'), width: '8%', render: r => del(() => persist(removeColumns(ds, [{ entityId: r.entityId, fieldId: r.id }]))) },
-    ];
+    const allCols = buildFieldColumns({
+      textCell,
+      checkCell,
+      toLen,
+      change,
+      pickDomain,
+      onDelete: r => del(() => persist(removeColumns(ds,
+        [{ entityId: r.entityId, fieldId: r.id }]))),
+      domainOptions,
+      dictOptions: (ds.dicts || []).map(named),
+      uiHintOptions: (ds.profile?.uiHint || []).map(named),
+    });
+    const cols = allCols.filter(c => !hidden.includes(c.key));
+    const toggleColumn = (key) => {
+      const next = hidden.includes(key) ? hidden.filter(k => k !== key) : hidden.concat(key);
+      setHidden(next);
+      saveHiddenColumns(next);
+    };
+    const chooser = choosing ? (
+      <div className={`${currentPrefix}-modeledit-chooser`}>
+        {allCols.filter(c => !isFixedColumn(c.key)).map(c => (
+          <span key={c.key} onClick={() => toggleColumn(c.key)}>
+            <Checkbox checked={!hidden.includes(c.key)} onChange={() => {}}/>
+            {c.title}
+          </span>))}
+      </div>
+    ) : null;
     const selected = pendingEntity || entityOptions[0]?.id || '';
     const addBtn = entityOptions.length > 0 ? (
       <span className={`${currentPrefix}-modeledit-add`}>
+        <Button onClick={() => setChoosing(!choosing)}><FormatMessage id='modelEdit.chooseColumns'/></Button>
         <Select value={selected} onChange={e => setPendingEntity(e.target.value)}>
           {entityOptions.map(o => <Option key={o.id} value={o.id}>{o.label}</Option>)}
         </Select>
@@ -201,7 +206,7 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
         }}><FormatMessage id='modelEdit.addColumn'/></Button>
       </span>
     ) : null;
-    return <div className={`${currentPrefix}-modeledit`}>{header(addBtn)}{grid(cols, rows, r => `${r.entityId}:${r.id}`)}</div>;
+    return <div className={`${currentPrefix}-modeledit`}>{header(addBtn)}{chooser}{grid(cols, rows, r => `${r.entityId}:${r.id}`)}</div>;
   }
 
   const rows = getDomainRows(ds).filter(r => match(r, ['defKey', 'defName', 'applyForName']));

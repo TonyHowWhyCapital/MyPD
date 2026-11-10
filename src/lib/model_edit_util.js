@@ -23,6 +23,9 @@ const domainLabel = (ds, domainId) => {
   return domain ? (domain.defName || domain.defKey || '') : '';
 };
 
+const extAttrsOf = f => ['attr1', 'attr2', 'attr3', 'attr4', 'attr5', 'attr6', 'attr7', 'attr8', 'attr9']
+  .reduce((all, name) => ({ ...all, [name]: f[name] || '' }), {});
+
 // The database-specific type text a column resolves to, after domain and mapping.
 export const resolveColumnType = (ds, field) => {
   const dbId = defaultDb(ds);
@@ -54,6 +57,10 @@ export const getColumnRows = ds => entitiesOf(ds).reduce((rows, e) => rows.conca
       comment: f.comment || '',
       domain: f.domain || '',
       domainName: domainLabel(ds, f.domain),
+      refDict: f.refDict || '',
+      uiHint: f.uiHint || '',
+      hideInGraph: !!f.hideInGraph,
+      ...extAttrsOf(f),
     };
   }),
 ), []);
@@ -71,10 +78,13 @@ export const getDomainRows = ds => domainsOf(ds).map((d) => {
   };
 });
 
+export const EXT_ATTRS = ['attr1', 'attr2', 'attr3', 'attr4', 'attr5', 'attr6', 'attr7', 'attr8', 'attr9'];
+
 const TABLE_FIELDS = ['defKey', 'defName', 'comment'];
 const DOMAIN_FIELDS = ['defKey', 'defName', 'applyFor', 'len', 'scale'];
 const COLUMN_FIELDS = ['defKey', 'defName', 'type', 'len', 'scale', 'primaryKey',
-  'notNull', 'autoIncrement', 'defaultValue', 'comment', 'domain'];
+  'notNull', 'autoIncrement', 'defaultValue', 'comment', 'domain', 'refDict', 'uiHint',
+  'hideInGraph'].concat(EXT_ATTRS);
 
 const pick = (patch, keys) => keys.reduce((acc, k) => {
   if (k in patch) {

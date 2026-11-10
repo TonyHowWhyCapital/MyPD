@@ -1534,6 +1534,7 @@ export default {
     "addColumn": "新增欄位",
     "addDomain": "新增資料域",
     "added": "已新增",
+    "chooseColumns": "欄位設定",
     "newDomainOption": "＋ 新增資料域…",
     "domainKey": {
       "required": "請填寫資料域程式碼。",
@@ -1558,6 +1559,7 @@ export default {
       "notNull": "非空",
       "autoInc": "自增",
       "domain": "資料域",
+      "inGraph": "關係圖顯示",
       "fieldCount": "欄位數",
       "op": "操作"
     }

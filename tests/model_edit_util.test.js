@@ -248,3 +248,15 @@ describe('new domain dialog helpers', () => {
     expect(domainKeyProblem(ds, 'Money')).toBe('');
   });
 });
+
+describe('all column attributes are editable', () => {
+  test('rows expose and updates store default value, comment, dictionary, hint, diagram flag and extension attributes', () => {
+    const ds = build();
+    const patch = { defaultValue: '0', comment: 'note', refDict: 'dict-1', uiHint: 'hint-1', hideInGraph: true, attr3: 'x' };
+    const next = updateColumn(ds, 'e1', 'f1', patch);
+    expect(next.entities[0].fields[0]).toMatchObject(patch);
+    expect(next.entities[0].fields[0].type).toBe('INT');
+    expect(getColumnRows(next)[0]).toMatchObject({ ...patch, attr1: '', attr9: '' });
+    expect(getColumnRows(ds)[0]).toMatchObject({ defaultValue: '', comment: '', refDict: '', hideInGraph: false });
+  });
+});

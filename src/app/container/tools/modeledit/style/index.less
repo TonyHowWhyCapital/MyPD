@@ -67,6 +67,22 @@
     color: @primary-color;
     font-size: 12px;
   }
+  &-chooser {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    padding: 6px 8px;
+    margin-bottom: 8px;
+    border: 1px solid @primary-border-color;
+    border-radius: 4px;
+    & > span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+  }
   &-hint {
     color: #999999;
     font-size: 12px;

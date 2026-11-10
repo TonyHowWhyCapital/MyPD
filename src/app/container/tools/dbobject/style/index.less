@@ -1,0 +1,68 @@
+@import "~style";
+
+.@{prefix}-dbobject {
+  display: flex;
+  height: 80vh;
+  border: 1px solid @primary-border-color;
+  &-types, &-objects {
+    width: 18%;
+    overflow: auto;
+    border-right: 1px solid @primary-border-color;
+    & > div {
+      padding: 6px 10px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      &:hover {
+        color: @primary-color;
+      }
+    }
+    &-selected {
+      color: @primary-color;
+      font-weight: bold;
+    }
+  }
+  &-objects {
+    width: 22%;
+    &-head {
+      cursor: default !important;
+      border-bottom: 1px solid @primary-border-color;
+    }
+  }
+  &-main {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    min-width: 0;
+  }
+  &-form, &-preview {
+    width: 50%;
+    padding: 8px;
+    overflow: auto;
+  }
+  &-form {
+    & > .@{prefix}-form-item {
+      margin-bottom: 6px;
+    }
+    &-actions {
+      margin-top: 8px;
+      & > * + * {
+        margin-left: 8px;
+      }
+    }
+  }
+  &-preview {
+    border-left: 1px solid @primary-border-color;
+  }
+  &-list {
+    &-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+      & > span {
+        margin-right: 4px;
+        cursor: pointer;
+      }
+    }
+  }
+}

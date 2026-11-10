@@ -1,6 +1,7 @@
 process.env.CHINER_NODE_ENV = 'development';
 var path = require('path');
 var childProcess = require('child_process');
+require('./node-compat');
 var webpack = require('webpack');
 var config = require('../config/webpack.dev.config.js');
 var profile = require('../profile');

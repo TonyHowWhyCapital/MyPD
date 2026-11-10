@@ -185,6 +185,31 @@ export default React.memo(forwardRef(({currentPrefix, close, iconClick, openModa
                        key: 'compareTable',
                        name: FormatMessage.string({id: 'toolbar.compareTable'}),
                    },
+                   {
+                       icon: <Icon type='fa-sitemap' style={{marginRight: 4}}/>,
+                       key: 'impactAnalysis',
+                       name: FormatMessage.string({id: 'toolbar.impactAnalysis'}),
+                   },
+                   {
+                       icon: <Icon type='fa-exchange' style={{marginRight: 4}}/>,
+                       key: 'modelCompare',
+                       name: FormatMessage.string({id: 'toolbar.modelCompare'}),
+                   },
+                   {
+                       icon: <Icon type='fa-cubes' style={{marginRight: 4}}/>,
+                       key: 'dbObject',
+                       name: FormatMessage.string({id: 'toolbar.dbObject'}),
+                   },
+                   {
+                       icon: <Icon type='fa-file-text-o' style={{marginRight: 4}}/>,
+                       key: 'report',
+                       name: FormatMessage.string({id: 'toolbar.report'}),
+                   },
+                   {
+                       icon: <Icon type='fa-clone' style={{marginRight: 4}}/>,
+                       key: 'entityTemplate',
+                       name: FormatMessage.string({id: 'toolbar.entityTemplate'}),
+                   },
                ]}/>
       </GroupIconGroup>
       <GroupIconGroup>

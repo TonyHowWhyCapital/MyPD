@@ -11,6 +11,7 @@ import {
   Checkbox,
 } from 'components';
 import {getPrefix} from '../../../lib/prefixUtil';
+import {getEntityTemplates, instantiateTemplateFields} from '../../../lib/entity_template_util';
 
 export default React.memo(({prefix, dataSource, dataChange, isNewView,
                              BaseExtraCom, disableExtend = false, data}) => {
@@ -21,6 +22,9 @@ export default React.memo(({prefix, dataSource, dataChange, isNewView,
   const [type, setType] = useState('1');
   const [extendFields, setExtendFields] = useState([]);
   const currentParent = useRef(null);
+  const templates = isNewView || disableExtend ? [] : getEntityTemplates(dataSource);
+  const [templateId, setTemplateId] = useState('');
+  const [keepLink, setKeepLink] = useState(false);
   const onParentEntityChange = (e) => {
     currentParent.current = e.target.value;
     const entityData = (dataSource?.entities || [])
@@ -33,12 +37,19 @@ export default React.memo(({prefix, dataSource, dataChange, isNewView,
     setExtendFields([]);
   };
   useEffect(() => {
+    if (type === '3') {
+      const template = templates.find(t => t.id === templateId);
+      dataChange(template ? instantiateTemplateFields(template, {keepLink}) : [], 'fields', '');
+      dataChange(template && keepLink ? template.id : undefined, 'templateRef');
+      return;
+    }
+    if (!isNewView && !disableExtend) dataChange(undefined, 'templateRef');
     if (type === '1') {
       dataChange(entityInitFields, 'fields', '');
     } else {
       dataChange(extendFields.map(f => ({...f, id: Math.uuid()})), 'fields', currentParent.current);
     }
-  }, [type, extendFields]);
+  }, [type, extendFields, templateId, keepLink]);
   const pickerFields = () => {
     const entity = (dataSource?.entities || []).filter(e => e.id === currentParent.current)[0];
     let modal = null;
@@ -131,6 +142,9 @@ export default React.memo(({prefix, dataSource, dataChange, isNewView,
             <Select defaultValue="1" onChange={onChange} notAllowEmpty>
               <Select.Option value='1' key='1'>{FormatMessage.string({id: 'tableBase.empty'})}</Select.Option>
               <Select.Option value='2' key='2'>{FormatMessage.string({id: 'tableBase.extend'})}</Select.Option>
+              {templates.length > 0 && <Select.Option value='3' key='3'>
+                {FormatMessage.string({id: 'entityTemplate.fromTemplate'})}
+              </Select.Option>}
             </Select>
           </span>
         </div>
@@ -169,6 +183,30 @@ export default React.memo(({prefix, dataSource, dataChange, isNewView,
               <a onClick={pickerFields}>
                 <FormatMessage id='tableBase.parentFieldsCount' data={{count: extendFields.length}}/>
               </a>
+            </span>
+          </div>
+        </>
+      }
+      {
+        type === '3' && <>
+          <div className={`${currentPrefix}-form-item`}>
+            <span className={`${currentPrefix}-form-item-label`}>
+              <FormatMessage id='entityTemplate.template'/>
+            </span>
+            <span className={`${currentPrefix}-form-item-component`}>
+              <Select value={templateId} onChange={e => setTemplateId(e.target.value)}>
+                {templates.map(t => (
+                  <Select.Option value={t.id} key={t.id}>{`${t.defKey}(${t.defName || t.defKey})`}</Select.Option>
+                ))}
+              </Select>
+            </span>
+          </div>
+          <div className={`${currentPrefix}-form-item`}>
+            <span className={`${currentPrefix}-form-item-label`}/>
+            <span className={`${currentPrefix}-form-item-component`}>
+              <Checkbox checked={keepLink} onChange={e => setKeepLink(e.target.checked)}>
+                <FormatMessage id='entityTemplate.keepLink'/>
+              </Checkbox>
             </span>
           </div>
         </>

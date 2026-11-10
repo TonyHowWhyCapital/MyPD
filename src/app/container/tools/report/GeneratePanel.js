@@ -1,0 +1,72 @@
+import React, { useState } from 'react';
+import { FormatMessage, Button, Select, Icon, Message, Download, openModal } from 'components';
+import { buildReport, renderReport } from '../../../../lib/report';
+import { openProjectFilePath, readJsonPromise } from '../../../../lib/middle';
+import { getPrefix } from '../../../../lib/prefixUtil';
+
+const Option = Select.Option;
+const FORMATS = ['docx', 'html', 'markdown', 'csv'];
+
+export default React.memo(({ prefix, template, getDataSource, lang }) => {
+  const currentPrefix = getPrefix(prefix);
+  const [extras, setExtras] = useState([]);
+  const [format, setFormat] = useState('docx');
+  const addModel = () => {
+    openProjectFilePath().then(path => readJsonPromise(path).then((data) => {
+      setExtras(pre => pre.concat({ path, data }));
+    })).catch((err) => {
+      // A cancelled file dialog rejects without a message.
+      if (err && err.message) {
+        Message.error({ title: `${FormatMessage.string({ id: 'report.loadFail' })}: ${err.message}` });
+      }
+    });
+  };
+  const build = () => {
+    const models = [getDataSource(), ...extras.map(e => e.data)];
+    return buildReport(template, models, { lang });
+  };
+  const preview = () => {
+    const doc = build();
+    const asHtml = format === 'html';
+    const previewFormat = ['html', 'csv'].includes(format) ? format : 'markdown';
+    const { data } = renderReport(doc, previewFormat);
+    const modal = openModal(asHtml
+      ? <iframe title='report' sandbox='' srcDoc={data} style={{ width: '100%', height: '70vh', border: 'none' }}/>
+      : <pre style={{ margin: 0, maxHeight: '70vh', overflow: 'auto', whiteSpace: 'pre-wrap' }}>{data}</pre>, {
+      title: FormatMessage.string({ id: 'report.previewTitle' }),
+      bodyStyle: { width: '80%' },
+      buttons: [<Button key='close' onClick={() => modal.close()}><FormatMessage id='report.close'/></Button>],
+    });
+  };
+  const exportReport = () => {
+    try {
+      const { data, extension, mime } = renderReport(build(), format);
+      // Download wraps parts in a Blob, so a docx Uint8Array goes in as one binary part.
+      Download([data], mime, `${template.defName || 'report'}.${extension}`);
+    } catch (err) {
+      Message.error({ title: `${FormatMessage.string({ id: 'report.exportFail' })}: ${err.message}` });
+    }
+  };
+  return <div className={`${currentPrefix}-report-generate`}>
+    <div className={`${currentPrefix}-report-title`}><FormatMessage id='report.generate'/></div>
+    <div className={`${currentPrefix}-report-label`}><FormatMessage id='report.models'/></div>
+    <div className={`${currentPrefix}-report-models`}>
+      <div className={`${currentPrefix}-report-model`}><FormatMessage id='report.currentModel'/></div>
+      {extras.map((e, i) => <div key={e.path} className={`${currentPrefix}-report-model`}>
+        <span title={e.path}>{e.data.name || e.path}</span>
+        <a onClick={() => setExtras(extras.filter((_, idx) => idx !== i))}><Icon type='fa-times'/></a>
+      </div>)}
+    </div>
+    <Button onClick={addModel}><FormatMessage id='report.addModel'/></Button>
+    <div className={`${currentPrefix}-report-row`}>
+      <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.format'/></span>
+      <Select notAllowEmpty value={format} onChange={e => setFormat(e.target.value)}>
+        {FORMATS.filter(f => f !== 'csv' || template.kind === 'list').map(f => <Option key={f} value={f}>{f}</Option>)}
+      </Select>
+    </div>
+    <div className={`${currentPrefix}-report-actions`}>
+      <Button onClick={preview}><FormatMessage id='report.preview'/></Button>
+      <Button type='primary' onClick={exportReport}><FormatMessage id='report.export'/></Button>
+    </div>
+  </div>;
+});

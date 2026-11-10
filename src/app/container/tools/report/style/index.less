@@ -1,0 +1,83 @@
+@import "~style";
+
+.@{prefix}-report {
+  display: flex;
+  height: calc(100vh - 120px);
+  padding: 10px;
+  gap: 12px;
+  &-title {
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+  &-hint {
+    font-size: 12px;
+    opacity: 0.7;
+    margin: 6px 0;
+  }
+  &-label {
+    display: inline-block;
+    min-width: 80px;
+    margin-right: 8px;
+  }
+  &-row {
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  a {
+    cursor: pointer;
+    margin-left: 8px;
+  }
+  &-list {
+    width: 240px;
+    flex-shrink: 0;
+    overflow: auto;
+    &-actions > span {
+      margin: 0 4px 4px 0;
+    }
+    &-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 6px;
+      cursor: pointer;
+      &-name {
+        margin-left: 6px;
+      }
+      &-selected {
+        background: rgba(128, 128, 128, 0.2);
+      }
+    }
+  }
+  &-editor {
+    flex: 1;
+    overflow: auto;
+  }
+  &-section {
+    border: 1px solid rgba(128, 128, 128, 0.4);
+    padding: 6px 8px;
+    margin-bottom: 8px;
+    &-head {
+      display: flex;
+      justify-content: space-between;
+    }
+  }
+  &-columns > label {
+    margin-right: 10px;
+  }
+  &-generate {
+    width: 260px;
+    flex-shrink: 0;
+  }
+  &-model {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+  }
+  &-models {
+    margin-bottom: 8px;
+  }
+  &-actions > span {
+    margin-right: 6px;
+  }
+}

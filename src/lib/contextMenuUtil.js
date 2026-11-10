@@ -15,6 +15,7 @@ import DataType from '../app/container/datatype';
 import Domain from '../app/container/domain';
 import Preview from '../app/container/database';
 import AppCode from '../app/container/appcode';
+import {analyzeImpact} from './impact_util';
 import Quickedit from '../app/container/tools/quickedit';
 import Extract from '../app/container/tools/extract';
 import {
@@ -595,7 +596,7 @@ const addOpt = (dataSource, menu, updateDataSource, oldData = {}, title, custome
         headers: resetHeader(dataSource, {}),
         type: 'P'
       },
-      dataPick: commonPick.concat('fields'),
+      dataPick: commonPick.concat(['fields', 'templateRef']),
       component: NewEntity,
       title: FormatMessage.string({id: 'menus.add.newEntity'}),
       allKeys: commonAllKeys,
@@ -1519,10 +1520,35 @@ const pasteOpt = (dataSource, menu, updateDataSource) => {
   });
 };
 
+const getDeleteImpactMessage = (dataSource, menu) => {
+  try {
+    if (getOptConfig(menu.dataType)?.mainKey !== 'entities') {
+      return '';
+    }
+    let ids = [];
+    if ((menu.otherMenus || []).length > 0) {
+      copyOpt(dataSource, menu, 'delete', (data) => {
+        ids = (data?.data || []).map(e => e.id);
+      });
+    } else if (menu.dataKey) {
+      ids = [menu.dataKey];
+    }
+    const items = ids.reduce((a, id) => a.concat(analyzeImpact(dataSource, {type: 'deleteEntity', entityId: id}).items), []);
+    if (!items.length) {
+      return '';
+    }
+    const list = items.slice(0, 10)
+      .map(i => `${FormatMessage.string({id: `impact.objectType.${i.objectType}`, defaultMessage: i.objectType})}: ${[i.parentDefKey, i.objectDefKey].filter(Boolean).join('.')} (${FormatMessage.string({id: `impact.reason.${i.reason}`, defaultMessage: i.reason})})`);
+    return `\n${FormatMessage.string({id: 'impact.deleteAffected', defaultMessage: 'Affected objects: {count}', data: {count: items.length}})}\n${list.join('\n')}${items.length > 10 ? '\n...' : ''}`;
+  } catch (e) {
+    return '';
+  }
+};
+
 const deleteOpt = (dataSource, menu, updateDataSource, tabClose) => {
   Modal.confirm({
     title: FormatMessage.string({id: 'deleteConfirmTitle'}),
-    message: FormatMessage.string({id: 'deleteConfirm'}),
+    message: <span style={{whiteSpace: 'pre-wrap'}}>{FormatMessage.string({id: 'deleteConfirm'}) + getDeleteImpactMessage(dataSource, menu)}</span>,
     onOk: () => {
       const { dataType, dataKey, otherMenus = [] } = menu;
       const domain = domainData.filter(d => d.type === dataType)[0];

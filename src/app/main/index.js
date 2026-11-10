@@ -31,6 +31,11 @@ import HeaderTool from './HeaderTool';
 import MessageHelp from './MessageHelp';
 import ToggleCase from '../container/tools/togglecase';
 import CompareTable from '../container/tools/comparetable';
+import ImpactAnalysis from '../container/tools/impactanalysis';
+import ModelCompare from '../container/tools/modelcompare';
+import DbObject from '../container/tools/dbobject';
+import Report from '../container/tools/report';
+import EntityTemplate from '../container/tools/entitytemplate';
 import History from '../container/tools/operationshistory';
 import CheckRule from '../container/checkrule';
 import { separator } from '../../../profile';
@@ -1119,6 +1124,32 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       title: FormatMessage.string({id: 'toolbar.compareTable'}),
     });
   };
+  const extTools = {
+    impactAnalysis: [ImpactAnalysis, 'impact.title'],
+    modelCompare: [ModelCompare, 'modelCompare.title'],
+    dbObject: [DbObject, 'dbObject.title'],
+    report: [Report, 'report.title'],
+    entityTemplate: [EntityTemplate, 'entityTemplate.title'],
+  };
+  const openExtTool = (key) => {
+    let modal;
+    const [Com, title] = extTools[key];
+    modal = openModal(<Com
+      dataSource={dataSourceRef.current}
+      getDataSource={getDataSource}
+      updateDataSource={restProps.update}
+      config={configRef.current}
+      openLoading={restProps.openLoading}
+      closeLoading={restProps.closeLoading}
+    />, {
+      bodyStyle: { width: '90%' },
+      buttons:  [
+        <Button key='cancel' onClick={() => modal && modal.close()}>
+          <FormatMessage id='button.close'/>
+        </Button>],
+      title: FormatMessage.string({id: title}),
+    });
+  };
   const toggleCase = () => {
     let modal;
     let tempValue;
@@ -1683,6 +1714,11 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       case 'mind': createTopicNode(e);break;
       case 'compareDb': quickCompareDb();break;
       case 'compareTable': quickCompareTable();break;
+      case 'impactAnalysis':
+      case 'modelCompare':
+      case 'dbObject':
+      case 'report':
+      case 'entityTemplate': openExtTool(key);break;
       case 'polygon': createPolygonNode(e);break;
       case 'group': createGroupNode(e);break;
       case 'alignLeft':

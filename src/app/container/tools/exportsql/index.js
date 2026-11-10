@@ -19,6 +19,7 @@ import {getPrefix} from '../../../../lib/prefixUtil';
 import './style/index.less';
 import {separator} from '../../../../../profile';
 import {postWorkerFuc} from '../../../../lib/event_tool';
+import {getAllDbObjectsDDL} from '../../../../lib/dbobject_util';
 
 const CheckboxGroup = Checkbox.CheckboxGroup;
 const RadioGroup = Radio.RadioGroup;
@@ -36,6 +37,8 @@ export default React.memo(({prefix, dataSource, templateType}) => {
   const codeTemplates = _.get(dataSource, 'profile.codeTemplates', []);
   const [visible, setVisible] = useState(false);
   const [codeData, setCodeData] = useState('');
+  const hasDbObjects = (dataSource.dbObjects || []).length > 0;
+  const [withDbObjects, setWithDbObjects] = useState(hasDbObjects);
   const getCode = (template, select, db) => {
     setVisible(true);
     postWorkerFuc('utils._getAllDataSQLByFilter', true, [
@@ -44,7 +47,11 @@ export default React.memo(({prefix, dataSource, templateType}) => {
       template || templateRef.current,
       select,
     ]).then((res) => {
-      setCodeData(res);
+      const ddlDb = db || defaultDb;
+      const isDDL = templateType !== 'dict'
+        && codeTemplates.some(c => c.applyFor === ddlDb && c.type === 'dbDDL');
+      const objectsDDL = isDDL && withDbObjects ? getAllDbObjectsDDL(dataSource, ddlDb) : '';
+      setCodeData(objectsDDL ? `${res}\n\n${objectsDDL}` : res);
     }).finally(() => {
       setVisible(false);
     });
@@ -229,6 +236,19 @@ export default React.memo(({prefix, dataSource, templateType}) => {
                 }
                   </CheckboxGroup>
                 </span>
+              </span>
+            </div>
+        }
+        {
+            templateType !== 'dict' && hasDbObjects && <div className={`${currentPrefix}-form-item`}>
+              <span className={`${currentPrefix}-form-item-label`}>
+                <FormatMessage id='dbObject.includeInExport'/>
+              </span>
+              <span className={`${currentPrefix}-form-item-component`}>
+                <Checkbox
+                  checked={withDbObjects}
+                  onChange={e => setWithDbObjects(e.target.checked)}
+                />
               </span>
             </div>
         }

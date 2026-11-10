@@ -11,3 +11,6 @@ dist
 .DS_Store
 npm-debug.log*
 .idea
+
+# Java engine, fetched separately (see README)
+public/jar/*.jar

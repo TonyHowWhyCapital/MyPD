@@ -167,7 +167,7 @@ export const getUserConfig = () => {
     // 获取用户的配置信息
     const defaultUserConfigData = {
       projectHistories: [], // 历史项目记录
-      lang: 'zh', // 当前应用使用的语言
+      lang: /^zh-(TW|HK|MO|Hant)/i.test(app.getLocale()) ? 'zhTW' : 'zh', // 当前应用使用的语言
     };
     const defaultProjectConfigData = {
       commonFields: [], // 通用字段信息 多个项目可通用
@@ -436,6 +436,13 @@ export const connectDB = (dataSource, config, params = {}, cmd, cb) => {
   const javaHome = config?.javaHome || _.get(dataSource, 'profile.javaHome', '');
   const jvm = ('jvm' in (config || {})) ? config.jvm : defaultJVM;
   const jar = ipcRenderer.sendSync('jarPath');
+  if (!fs.existsSync(jar)) {
+    cb && cb({
+      status : "FAILED",
+      body: FormatMessage.string({id: 'config.JavaHomeConfigResult.notFoundJar', data: {path: jar}}),
+    });
+    return null;
+  }
   const tempValue = javaHome ? `${javaHome}${path.sep}bin${path.sep}java` : 'java';
   const customerDriver = _.get(tempParams, 'customer_driver', '');
   const commend = [

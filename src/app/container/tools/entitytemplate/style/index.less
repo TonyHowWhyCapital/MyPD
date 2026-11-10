@@ -1,0 +1,55 @@
+@import "~style";
+
+.@{prefix}-entity-template {
+  display: flex;
+  padding: 10px;
+  min-height: 400px;
+  &-list {
+    width: 260px;
+    margin-right: 10px;
+    &-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 6px;
+      cursor: pointer;
+      &-active {
+        background: rgba(0, 0, 0, 0.08);
+      }
+    }
+  }
+  &-editor {
+    flex: 1;
+    overflow: auto;
+  }
+  &-toolbar {
+    margin: 6px 0;
+    > * + * {
+      margin-left: 6px;
+    }
+  }
+  &-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    > * + * {
+      margin-left: 8px;
+    }
+  }
+  &-grid {
+    width: 100%;
+    border-collapse: collapse;
+    th, td {
+      border: 1px solid #ddd;
+      padding: 2px 4px;
+    }
+  }
+  &-cell {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+  }
+  &-linked {
+    margin-top: 10px;
+  }
+}

@@ -1,8 +1,11 @@
 import React, {useCallback, useRef, useState} from 'react';
-import {IconTitle, Radio, Input, Icon, Button, Modal, FormatMessage, Tooltip, Select, Terminal} from 'components';
+import {IconTitle, Radio, Input, Icon, Button, Modal, FormatMessage, Tooltip, Select, Terminal, openModal, Message} from 'components';
 import _ from 'lodash/object';
 import { emptyDbConn, getDemoDbConnect } from '../../../lib/datasource_util';
 import { openFileOrDirPath, connectDB, showItemInFolder, getLogPath } from '../../../lib/middle';
+
+import ImportConn from './ImportConn';
+import {importDbConns} from '../../../lib/dbconn_import';
 
 import './style/index.less';
 import {getPrefix} from '../../../lib/prefixUtil';
@@ -80,6 +83,42 @@ export default React.memo(({prefix, dataSource, config, dataChange, lang}) => {
     updateDefaultConn(empty.defKey);
     dataChange && dataChange(empty.defKey, 'profile.default.dbConn');
     dataChange && dataChange(newData, 'dbConn');
+  };
+  const importConn = () => {
+    let selected = [];
+    let modal;
+    const onOk = () => {
+      if (selected.length === 0) {
+        Modal.error({
+          title: FormatMessage.string({id: 'optFail'}),
+          message: FormatMessage.string({id: 'dbConnImport.noneSelected'}),
+        });
+        return;
+      }
+      const newData = importDbConns(dbConn, selected, dataSource);
+      updateDbConn(newData);
+      dataChange && dataChange(newData, 'dbConn');
+      if (!defaultConn) {
+        const first = newData[dbConn.length];
+        updateDefaultConn(first.defKey);
+        dataChange && dataChange(first.defKey, 'profile.default.dbConn');
+      }
+      modal.close();
+      Message.success({
+        title: FormatMessage.string({id: 'dbConnImport.imported', data: {count: selected.length}}),
+      });
+    };
+    modal = openModal(<ImportConn
+      dataSource={dataSource}
+      onChange={(conns) => { selected = conns; }}
+    />, {
+      title: FormatMessage.string({id: 'dbConnImport.title'}),
+      bodyStyle: {width: '70%'},
+      buttons: [
+        <Button key='ok' type='primary' onClick={onOk}><FormatMessage id='button.ok'/></Button>,
+        <Button key='cancel' onClick={() => modal.close()}><FormatMessage id='button.cancel'/></Button>,
+      ],
+    });
   };
   const copyConn = () => {
     const newData = dbConn.filter(d => d.defKey === defaultConn)[0];
@@ -188,6 +227,11 @@ export default React.memo(({prefix, dataSource, config, dataChange, lang}) => {
             type='fa-plus'
             onClick={() => addConn()}
             title={FormatMessage.string({id: 'dbConnect.add'})}
+          />
+          <IconTitle
+            type='fa-download'
+            onClick={importConn}
+            title={FormatMessage.string({id: 'dbConnImport.title'})}
           />
           <IconTitle
             title={FormatMessage.string({id: 'dbConnect.copy'})}

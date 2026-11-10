@@ -34,6 +34,9 @@ const showErrorLogFolder = json.showErrorLogFolder;
 const basename = json.basename;
 const getBackupAllFile = json.getBackupAllFile;
 const readPdmFile = json.readPdmFile;
+const readDbxConnections = json.readDbxConnections;
+const getDbxDefaultFile = json.getDbxDefaultFile;
+const readNormalFile = json.readNormalFile;
 const savePdmFile = json.savePdmFile;
 const saveVersion = json.saveVersion;
 const deleteVersion = json.deleteVersion;
@@ -77,6 +80,9 @@ export {
   basename,
   getBackupAllFile,
   readPdmFile,
+  readDbxConnections,
+  getDbxDefaultFile,
+  readNormalFile,
   savePdmFile,
   saveVersion,
   deleteVersion,

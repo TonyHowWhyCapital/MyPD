@@ -147,6 +147,29 @@ export const readJsonPromise = (filePath) => {
   });
 };
 
+export const getDbxDefaultFile = () => {
+  return path.join(app.getPath('appData'), 'com.dbx.app', 'dbx.db');
+};
+
+// DBX 的连接保存在 SQLite 文件中，使用系统自带的 sqlite3 以只读方式读取
+export const readDbxConnections = (filePath) => {
+  return new Promise((res, rej) => {
+    const sqlite = process.platform === 'darwin' ? '/usr/bin/sqlite3' : 'sqlite3';
+    execFile(sqlite, ['-readonly', '-json', filePath, 'select config_json from connections'],
+      {maxBuffer: 64 * 1024 * 1024}, (err, stdout, stderr) => {
+        if (err) {
+          rej(new Error(`${stderr || err.message}`.trim()));
+        } else {
+          try {
+            res(stdout.trim() ? JSON.parse(stdout) : []);
+          } catch (e) {
+            rej(e);
+          }
+        }
+      });
+  });
+};
+
 export const readPdmFile = (filePath) => {
   return readNormalFile(filePath).then(data => data.toString());
 };

@@ -128,3 +128,50 @@
     }
   }
 }
+
+.@{prefix}-dbconnect-import {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 240px;
+  max-height: 60vh;
+  overflow: auto;
+  padding: 10px;
+  &-source {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    & > button {
+      margin-right: 8px;
+    }
+  }
+  &-file {
+    flex: 1 0 100%;
+    margin-top: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #666666;
+  }
+  &-error {
+    color: #E64242;
+    margin-bottom: 8px;
+  }
+  &-tip {
+    color: #999999;
+    margin-bottom: 8px;
+  }
+  &-list {
+    width: 100%;
+    border-collapse: collapse;
+    th, td {
+      border: 1px solid #E8E8E8;
+      padding: 4px 8px;
+      text-align: left;
+      white-space: nowrap;
+    }
+    th {
+      background: #F7F7F7;
+    }
+  }
+}

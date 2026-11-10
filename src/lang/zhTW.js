@@ -1305,6 +1305,23 @@ export default {
     "backConfirmTitle": "離開當前介面，將會丟失當前尚未確認的規範檢查，是否繼續？",
     "checkObjectEmpty": "暫無可檢查物件"
   },
+  "dbConnImport": {
+    "title": "匯入資料庫連線",
+    "navicat": "選擇 Navicat 連線檔案 (.ncx)",
+    "dbx": "選擇 DBX 資料檔案 (dbx.db)",
+    "noFile": "尚未選擇檔案",
+    "name": "連線名",
+    "type": "資料庫",
+    "host": "主機",
+    "database": "資料庫名",
+    "username": "使用者名稱",
+    "unsupported": "（不支援）",
+    "empty": "請先選擇要匯入的配置檔案，再勾選要匯入的連線。",
+    "dbxPassword": "DBX 的密碼以其自有金鑰加密儲存，無法匯入，匯入後請自行填寫密碼。",
+    "readError": "讀取失敗：",
+    "noneSelected": "請至少勾選一個連線",
+    "imported": "已匯入 {count} 個連線"
+  },
   "dbObject": {
     "title": "資料庫物件",
     "types": {

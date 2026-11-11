@@ -11,6 +11,9 @@ import {
   ALIGNS, alignOf, setColumnAlign, nextAlign, applyAligns,
 } from './align';
 import { columnLabel, originalLabel, setColumnLabel } from './rename';
+import {
+  FONT_SIZES, styleOf, setColumnStyle, cssOf,
+} from './style';
 import { renderMarkdown } from './markdown';
 import { renderHtml } from './html';
 import { renderDocx } from './docx';
@@ -21,6 +24,7 @@ export {
   dragColumn, widthsOf, applyWidths, clearWidths, hasWidths,
   ALIGNS, alignOf, setColumnAlign, nextAlign, applyAligns,
   columnLabel, originalLabel, setColumnLabel,
+  FONT_SIZES, styleOf, setColumnStyle, cssOf,
 };
 
 const KINDS = ['document', 'list'];
@@ -129,6 +133,7 @@ const buildListTable = (template, dataSources, lang) => {
     keys: multi ? [null, ...tables[0].table.keys] : tables[0].table.keys,
     aligns: multi ? ['left', ...tables[0].table.aligns] : tables[0].table.aligns,
     renamed: multi ? ['', ...tables[0].table.renamed] : tables[0].table.renamed,
+    styles: multi ? [null, ...tables[0].table.styles] : tables[0].table.styles,
   }];
 };
 

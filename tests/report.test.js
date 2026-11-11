@@ -442,3 +442,33 @@ describe('report column names', () => {
     expect(originalLabel({}, 'defKey', 'en')).toBe('');
   });
 });
+
+describe('report column style', () => {
+  const { setColumnStyle, styleOf, cssOf, renderHtml: html } = require('../src/lib/report');
+  const { buildDocumentXml } = require('../src/lib/report/docx');
+  const ds = { name: 'm', entities: [{ id: 'a', defKey: 'A', defName: 'n', fields: [{ id: '1', defKey: 'x' }] }] };
+  const template = styles => ({
+    defName: 't', kind: 'list', sections: [sectionOf('entityList', { columns: ['defKey', 'defName'], styles })],
+  });
+  const look = { size: 12, bold: true, italic: true, underline: true, color: '#FF0000', fill: '#ffffcc' };
+  test('only valid, set values are kept', () => {
+    expect(setColumnStyle({}, 'defKey', look)).toEqual({ defKey: { ...look, color: '#ff0000' } });
+    expect(setColumnStyle({ styles: { defKey: { bold: true } } }, 'defKey', { bold: false })).toEqual({});
+    expect(setColumnStyle({}, 'defKey', { size: 13, color: 'red', fill: '#12' })).toEqual({});
+    expect(styleOf({ styles: { defKey: { bold: true, size: '' } } }, 'defKey')).toEqual({ bold: true });
+    expect(cssOf({ size: 12, fill: '#ffffcc' })).toEqual({ fontSize: '12pt', backgroundColor: '#ffffcc' });
+  });
+  test('html and docx style the cells of that column and nothing else', () => {
+    const doc = buildReport(template({ defKey: look }), [ds], { lang: 'en' });
+    expect(doc.blocks[0].styles[1]).toBeNull();
+    expect(html(doc)).toContain('<td style="font-size:12pt;font-weight:bold;font-style:italic;text-decoration:underline;color:#ff0000;background-color:#ffffcc">A</td><td>n</td>');
+    const xml = buildDocumentXml(doc);
+    expect(xml).toContain('<w:rPr><w:b/><w:i/><w:color w:val="FF0000"/><w:sz w:val="24"/><w:u w:val="single"/></w:rPr>');
+    expect(xml.match(/w:fill="FFFFCC"/g).length).toBe(1);
+  });
+  test('a template without styles renders as before', () => {
+    const doc = buildReport(template(), [ds], { lang: 'en' });
+    expect(html(doc)).toContain('<tr><td>A</td><td>n</td></tr>');
+    expect(buildDocumentXml(doc)).not.toContain('<w:sz ');
+  });
+});

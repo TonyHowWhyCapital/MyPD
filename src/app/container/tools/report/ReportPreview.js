@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Button, FormatMessage, Icon } from 'components';
 import {
   buildReport, labelOf, columnPercents, dragColumn, widthsOf, applyWidths, clearWidths, hasWidths,
-  nextAlign, setColumnAlign,
+  nextAlign, setColumnAlign, cssOf,
 } from '../../../../lib/report';
 import { getPrefix } from '../../../../lib/prefixUtil';
 
@@ -36,7 +36,7 @@ const Table = ({ cls, block, onDrag, onAlign }) => {
         </th>)}</tr>
       </thead>
       <tbody>
-        {rows.map((r, n) => <tr key={n}>{r.map((c, i) => <td key={i} style={{ textAlign: aligns[i] || 'left' }}>{c}</td>)}</tr>)}
+        {rows.map((r, n) => <tr key={n}>{r.map((c, i) => <td key={i} style={{ textAlign: aligns[i] || 'left', ...cssOf((block.styles || [])[i]) }}>{c}</td>)}</tr>)}
       </tbody>
     </table>
     {block.rows.length > MAX_ROWS && <div className={`${cls}-more`}>

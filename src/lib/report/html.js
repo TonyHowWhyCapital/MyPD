@@ -1,5 +1,6 @@
 import { labelOf } from './labels';
 import { columnPercents } from './sections';
+import { cssText } from './style';
 
 export const escapeHtml = v => String(v)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -34,7 +35,8 @@ export const renderHtml = (doc) => {
     if (b.type === 'table') {
       const head = b.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('');
       const aligns = b.aligns || [];
-      const td = i => (aligns[i] && aligns[i] !== 'left' ? `<td class="${aligns[i]}">` : '<td>');
+      const styles = (b.styles || []).map(cssText);
+      const td = i => `<td${aligns[i] && aligns[i] !== 'left' ? ` class="${aligns[i]}"` : ''}${styles[i] ? ` style="${styles[i]}"` : ''}>`;
       const rows = b.rows.map(r => `<tr>${r.map((c, i) => `${td(i)}${escapeHtml(c)}</td>`).join('')}</tr>`).join('');
       const percents = columnPercents(b.widths, b.headers.length);
       const cols = percents

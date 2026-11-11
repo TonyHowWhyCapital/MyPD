@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   FormatMessage, Button, Input, Select, Text, openModal,
 } from 'components';
 import { sectionTypes, labelOf } from '../../../../lib/report';
 import { getPrefix } from '../../../../lib/prefixUtil';
-import ColumnPicker from './ColumnPicker';
+import SectionPreview from './SectionPreview';
 import ColumnDesigner from './ColumnDesigner';
 
 const Option = Select.Option;
@@ -14,6 +14,8 @@ export default React.memo(({
 }) => {
   const currentPrefix = getPrefix(prefix);
   const [newType, setNewType] = useState('entityList');
+  // The report tool is modal, the model cannot change underneath it.
+  const dataSource = useMemo(() => getDataSource(), []);
   if (!draft) {
     return <div className={`${currentPrefix}-report-editor`}><FormatMessage id='report.noSelection'/></div>;
   }
@@ -29,7 +31,7 @@ export default React.memo(({
       prefix={prefix}
       section={section}
       def={sectionTypes[section.type]}
-      dataSource={getDataSource()}
+      dataSource={dataSource}
       lang={lang}
       onChange={patch => patchSection(index, patch)}
     />, {
@@ -73,7 +75,7 @@ export default React.memo(({
           <div className={`${currentPrefix}-report-section-head`}>
             <strong>{labelOf(`section.${s.type}`, lang)}</strong>
             <span>
-              {def && def.columns.length > 0 && !def.summary
+              {def && def.columns.length > 0
                 && <a onClick={() => design(i)}><FormatMessage id='report.design'/></a>}
               <a onClick={() => move(i, -1)}><FormatMessage id='report.moveUp'/></a>
               <a onClick={() => move(i, 1)}><FormatMessage id='report.moveDown'/></a>
@@ -95,15 +97,12 @@ export default React.memo(({
           </div>}
           {def && def.columns.length > 0 && <div className={`${currentPrefix}-report-row`}>
             <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.columns'/></span>
-            <ColumnPicker
-              currentPrefix={currentPrefix}
-              def={def}
+            <SectionPreview
+              cls={`${currentPrefix}-report-strip`}
               section={s}
+              dataSource={dataSource}
               lang={lang}
-              onChange={columns => patchSection(i, { columns })}
-              onWidths={widths => patchSection(i, { widths })}
-              onAligns={aligns => patchSection(i, { aligns })}
-              onLabels={labels => patchSection(i, { labels })}
+              onClick={() => design(i)}
             />
           </div>}
         </div>;

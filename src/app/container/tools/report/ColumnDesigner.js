@@ -1,23 +1,32 @@
 import React, { useState } from 'react';
-import { Button, Checkbox, FormatMessage, Icon } from 'components';
+import { Checkbox, FormatMessage } from 'components';
 import {
-  buildSection, labelOf, resolveColumns, toggleColumn, moveColumn, setColumnWidth, columnPercents,
-  dragColumn, widthsOf, ALIGNS, alignOf, setColumnAlign, columnLabel, originalLabel,
+  resolveColumns, toggleColumn, moveColumn, columnPercents, dragColumn, widthsOf,
+  columnLabel, originalLabel, cssOf,
 } from '../../../../lib/report';
 import { getPrefix } from '../../../../lib/prefixUtil';
+import ColumnProperties from './ColumnProperties';
+import { sampleTable } from './SectionPreview';
 
 const SAMPLE_ROWS = 12;
 const text = id => FormatMessage.string({ id: `report.${id}` });
-const without = (map, key) => {
-  const { [key]: dropped, ...rest } = map || {};
-  return rest;
-};
 
 // The table of one section, laid out as it will be exported. Headers are picked by a
 // click, moved by dragging them and resized by dragging the border between two of them.
 const Sheet = ({
-  cls, table, selected, onSelect, onMove, onResize,
+  cls, table, chosen, selected, onSelect, onMove, onResize,
 }) => {
+  if (!table.keys) {
+    // The model summary: one row per column.
+    return <table>
+      <thead><tr>{table.headers.map((h, i) => <th key={i}>{h}</th>)}</tr></thead>
+      <tbody>
+        {table.rows.map((r, n) => <tr key={chosen[n]} onClick={() => onSelect(chosen[n])}>
+          {r.map((c, i) => <td key={i} className={chosen[n] === selected ? 'picked' : ''}>{c}</td>)}
+        </tr>)}
+      </tbody>
+    </table>;
+  }
   const percents = columnPercents(table.widths, table.headers.length);
   const startResize = (e, index) => {
     e.preventDefault();
@@ -60,70 +69,11 @@ const Sheet = ({
       {table.rows.slice(0, SAMPLE_ROWS).map((r, n) => <tr key={n}>{r.map((c, i) => <td
         key={i}
         className={picked(i)}
-        style={{ textAlign: table.aligns[i] }}
+        style={{ textAlign: table.aligns[i], ...cssOf(table.styles[i]) }}
         onClick={() => onSelect(table.keys[i])}
       >{c}</td>)}</tr>)}
     </tbody>
   </table>;
-};
-
-const Properties = ({
-  cls, def, section, lang, selected, patch,
-}) => {
-  const chosen = resolveColumns(def, section);
-  const at = chosen.indexOf(selected);
-  if (at < 0) {
-    return <div className={`${cls}-empty`}>{text('designPick')}</div>;
-  }
-  const move = to => patch({ columns: moveColumn(def, section, selected, to) });
-  const setLabel = (value) => {
-    const rest = without(section.labels, selected);
-    patch({ labels: value.trim() ? { ...rest, [selected]: value } : rest });
-  };
-  const reset = () => patch({
-    labels: without(section.labels, selected),
-    widths: without(section.widths, selected),
-    aligns: without(section.aligns, selected),
-  });
-  const row = (id, body) => <div className={`${cls}-prop`}><span>{text(id)}</span>{body}</div>;
-  return <React.Fragment>
-    {row('propOriginal', <em>{labelOf(selected, lang)}</em>)}
-    {row('propLabel', <input
-      type='text'
-      value={(section.labels || {})[selected] || ''}
-      placeholder={labelOf(selected, lang)}
-      onChange={e => setLabel(e.target.value)}
-    />)}
-    {row('propPosition', <React.Fragment>
-      <input
-        type='number'
-        min={1}
-        max={chosen.length}
-        value={at + 1}
-        onChange={e => Number(e.target.value) >= 1 && move(Number(e.target.value) - 1)}
-      />
-      <a className={at === 0 ? 'disabled' : ''} onClick={() => move(at - 1)}>‹</a>
-      <a className={at === chosen.length - 1 ? 'disabled' : ''} onClick={() => move(at + 1)}>›</a>
-      <i>/ {chosen.length}</i>
-    </React.Fragment>)}
-    {row('propWidth', <React.Fragment>
-      <input
-        type='number'
-        min={1}
-        max={100}
-        value={(section.widths || {})[selected] || ''}
-        placeholder={text('widthAuto')}
-        onChange={e => patch({ widths: setColumnWidth(section, selected, e.target.value) })}
-      /><i>%</i>
-    </React.Fragment>)}
-    {row('propAlign', ALIGNS.map(a => <a
-      key={a}
-      title={text(`align.${a}`)}
-      className={alignOf(section, selected) === a ? 'active' : ''}
-      onClick={() => patch({ aligns: setColumnAlign(section, selected, a) })}
-    ><Icon type={`fa-align-${a}`}/></a>))}
-    <Button onClick={reset}><FormatMessage id='report.propReset'/></Button>
-  </React.Fragment>;
 };
 
 // Lays out the columns of one section: the sheet on the left always shows the result,
@@ -139,12 +89,15 @@ export default ({
     setSec(next);
     // The caller patches the template it had when the designer opened, so send it all.
     onChange({
-      columns: next.columns, widths: next.widths, aligns: next.aligns, labels: next.labels,
+      columns: next.columns,
+      widths: next.widths,
+      aligns: next.aligns,
+      labels: next.labels,
+      styles: next.styles,
     });
   };
   const chosen = resolveColumns(def, sec);
-  const table = buildSection(dataSource, sec, { lang, level: 1, flatOnly: true }).find(b => b.type === 'table')
-    || buildSection({ entities: [{ fields: [] }] }, sec, { lang, level: 1, flatOnly: true }).find(b => b.type === 'table');
+  const table = sampleTable(dataSource, sec, lang);
   const toggle = (key, checked) => {
     patch({ columns: toggleColumn(def, sec, key, checked) });
     checked && setSelected(key);
@@ -156,6 +109,7 @@ export default ({
         <Sheet
           cls={cls}
           table={table}
+          chosen={chosen}
           selected={selected}
           onSelect={setSelected}
           onMove={(key, to) => { patch({ columns: moveColumn(def, sec, key, to) }); setSelected(key); }}
@@ -180,7 +134,7 @@ export default ({
       </div>
       <div className={`${cls}-panel`}>
         <strong><FormatMessage id='report.designProps'/></strong>
-        <Properties cls={cls} def={def} section={sec} lang={lang} selected={selected} patch={patch}/>
+        <ColumnProperties cls={cls} def={def} section={sec} lang={lang} selected={selected} patch={patch}/>
       </div>
     </div>
   </div>;

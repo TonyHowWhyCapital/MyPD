@@ -1624,7 +1624,6 @@ export default {
     "remove": "移除",
     "sectionTitle": "章節標題",
     "columns": "列",
-    "columnOrderTip": "拖拽或點選箭頭調整列的順序",
     "widthAuto": "自動",
     "design": "版面設計",
     "designTitle": "列版面設計",
@@ -1639,15 +1638,23 @@ export default {
     "propWidth": "寬度",
     "propAlign": "對齊",
     "propReset": "恢復預設",
+    "propDefault": "預設",
+    "propSize": "字號",
+    "propFont": "字形",
+    "propColor": "文字顏色",
+    "propFill": "底色",
+    "font": {
+      "bold": "粗體",
+      "italic": "斜體",
+      "underline": "下劃線"
+    },
     "align": {
       "left": "靠左",
       "center": "居中",
       "right": "靠右"
     },
-    "renameTip": "修改列名，清空則恢復原名稱",
     "originalName": "原名稱：{name}",
     "alignTip": "內容對齊方式，點選在靠左、居中、靠右之間切換",
-    "widthTip": "列寬佔表格寬度的百分比（1-100），留空為自動；對 docx 與 html 生效",
     "text": "文字內容",
     "save": "儲存模板",
     "saved": "模板已儲存",

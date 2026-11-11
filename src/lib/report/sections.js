@@ -2,6 +2,7 @@ import _ from 'lodash';
 import { _transform } from '../utils';
 import { labelOf } from './labels';
 import { resolveAligns } from './align';
+import { resolveStyles } from './style';
 import { columnLabel, originalLabel } from './rename';
 
 const yes = v => (v ? 'Y' : '');
@@ -230,6 +231,7 @@ const tableBuild = (def, type) => (ds, section, ctx) => {
         sectionId: section.id,
         keys: cols,
         aligns: resolveAligns(cols, section),
+        styles: resolveStyles(cols, section),
         renamed: cols.map(c => originalLabel(section, c, ctx.lang)),
       }),
     },
@@ -273,6 +275,7 @@ export const sectionTypes = {
             sectionId: section.id,
             keys: cols,
             aligns: resolveAligns(cols, section),
+            styles: resolveStyles(cols, section),
             renamed: cols.map(c => originalLabel(section, c, ctx.lang)),
           },
         ]),

@@ -1436,7 +1436,10 @@ export default {
     "reset": "還原欄位",
     "clearSort": "清除排序",
     "sortTip": "點選排序，可依次點選多欄做多欄排序",
-    "dragTip": "拖動表頭可調整欄位順序"
+    "dragTip": "拖動表頭可調整欄位順序，拖動表頭右緣可調整欄寬",
+    "fitAll": "最適欄寬",
+    "resetWidths": "還原欄寬",
+    "resizeTip": "拖動調整欄寬，雙擊設為最適欄寬"
   },
   "groupNew": {
     "option": "＋ 新增主題域…",

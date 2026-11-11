@@ -88,3 +88,40 @@ export const saveGridView = (gridId, view) => {
     // Preferences are a convenience; a full or unavailable store is not an error.
   }
 };
+
+const WIDTH_PREFIX = 'mypd.gridWidths.';
+export const MIN_COLUMN_WIDTH = 40;
+export const MAX_FIT_WIDTH = 600;
+
+// Column widths in px by column key; empty when the grid still uses its defaults.
+export const loadGridWidths = (gridId) => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(`${WIDTH_PREFIX}${gridId}`)) || {};
+    return Object.keys(saved).reduce((all, k) => (
+      typeof saved[k] === 'number' && saved[k] > 0 ? { ...all, [k]: saved[k] } : all), {});
+  } catch (e) {
+    return {};
+  }
+};
+
+export const saveGridWidths = (gridId, widths) => {
+  try {
+    if (Object.keys(widths).length === 0) {
+      localStorage.removeItem(`${WIDTH_PREFIX}${gridId}`);
+    } else {
+      localStorage.setItem(`${WIDTH_PREFIX}${gridId}`, JSON.stringify(widths));
+    }
+  } catch (e) {
+    // Preferences are a convenience; a full or unavailable store is not an error.
+  }
+};
+
+export const clampWidth = (width, max = Infinity) => {
+  return Math.round(Math.min(max, Math.max(MIN_COLUMN_WIDTH, width)));
+};
+
+// Width that shows the longest of the texts; `measure` gives the px width of one text.
+export const fitWidth = (texts, measure, padding = 24) => {
+  const longest = (texts || []).reduce((max, t) => Math.max(max, measure(`${t || ''}`)), 0);
+  return clampWidth(longest + padding, MAX_FIT_WIDTH);
+};

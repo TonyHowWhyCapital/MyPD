@@ -298,3 +298,33 @@ describe('grid view preferences', () => {
     expect(loadGridView('bad', ['x'])).toEqual({ hidden: ['x'], order: [] });
   });
 });
+
+describe('grid column widths', () => {
+  const { loadGridWidths, saveGridWidths, clampWidth, fitWidth } = require('../src/lib/grid_util');
+  const store = {};
+  beforeAll(() => {
+    global.localStorage = {
+      getItem: k => (k in store ? store[k] : null),
+      setItem: (k, v) => { store[k] = v; },
+      removeItem: (k) => { delete store[k]; },
+    };
+  });
+
+  test('widths are remembered per grid and cleared by saving none', () => {
+    expect(loadGridWidths('w1')).toEqual({});
+    saveGridWidths('w1', { defKey: 180, comment: 320, bad: 'x' });
+    expect(loadGridWidths('w1')).toEqual({ defKey: 180, comment: 320 });
+    expect(loadGridWidths('w2')).toEqual({});
+    saveGridWidths('w1', {});
+    expect(loadGridWidths('w1')).toEqual({});
+  });
+
+  test('the best width shows the longest text, within limits', () => {
+    const measure = t => t.length * 10;
+    expect(fitWidth(['id', 'customer_name', null], measure, 20)).toBe(150);
+    expect(fitWidth([''], measure, 20)).toBe(40);
+    expect(fitWidth(['x'.repeat(500)], measure)).toBe(600);
+    expect(clampWidth(12.4)).toBe(40);
+    expect(clampWidth(203.6)).toBe(204);
+  });
+});

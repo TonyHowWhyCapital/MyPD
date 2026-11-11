@@ -4,6 +4,7 @@ import { FormatMessage, Input, Select, Checkbox, Button, Message, Modal } from '
 import './style/index.less';
 import { getPrefix } from '../../../../lib/prefixUtil';
 import { NEW_DOMAIN, openNewDomain } from '../../../../components/table/newDomain';
+import { useColumnWidths } from '../../../../components/gridview';
 import {
   buildFieldColumns, isFixedColumn, loadHiddenColumns, saveHiddenColumns,
   loadColumnOrders, saveColumnOrders,
@@ -40,6 +41,7 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
   const [hidden, setHidden] = useState(loadHiddenColumns);
   const [choosing, setChoosing] = useState(false);
   const [orders, setOrders] = useState(loadColumnOrders);
+  const sizes = useColumnWidths(`modelEdit.${tab}`);
   const dragRef = useRef({ key: '', keys: [] });
   const changeOrders = (next) => {
     setOrders(next);
@@ -103,6 +105,8 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
       <span className={`${currentPrefix}-modeledit-hint`}>
         <FormatMessage id='modelEdit.sortHint'/>
         {sorts.length > 0 && <a onClick={() => setSorts([])}><FormatMessage id='modelEdit.clearSort'/></a>}
+        <a onClick={sizes.fitAll}><FormatMessage id='gridView.fitAll'/></a>
+        {sizes.customized && <a onClick={sizes.reset}><FormatMessage id='gridView.resetWidths'/></a>}
         {(orders[tab] || []).length > 0
           && <a onClick={() => changeOrders({ ...orders, [tab]: [] })}>
             <FormatMessage id='modelEdit.resetOrder'/>
@@ -138,12 +142,17 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
   };
   const grid = (cols, rows, keyFn) => (
     <div className={`${currentPrefix}-modeledit-grid`}>
-      <table style={{ minWidth: cols.reduce((sum, c) => sum + (typeof c.width === 'number' ? c.width : 0), 0) }}>
+      <table
+        ref={sizes.tableRef}
+        style={sizes.customized ? sizes.tableStyle(cols.map(c => c.key))
+          : { minWidth: cols.reduce((sum, c) => sum + (typeof c.width === 'number' ? c.width : 0), 0) }}
+      >
         <thead>
           <tr>{cols.map(c => (
             <th
               key={c.key}
-              style={{ width: c.width }}
+              {...sizes.headerProps(c.key)}
+              style={{ width: sizes.customized ? (sizes.widths[c.key] || 120) : c.width }}
               className={c.sort ? 'sortable' : ''}
               onClick={() => c.sort && setSorts(toggleSort(sorts, c.key))}
               draggable
@@ -157,7 +166,7 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
                 e.preventDefault();
                 dropColumn(c.key);
               }}
-            >{c.title}{sortMark(c.key)}</th>))}
+            >{c.title}{sortMark(c.key)}{sizes.handle(c.key, prefix)}</th>))}
           </tr>
         </thead>
         <tbody>

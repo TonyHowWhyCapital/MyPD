@@ -146,6 +146,14 @@
       cursor: pointer;
     }
   }
+  &-sized {
+    th > span:first-child {
+      width: 100% !important;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
   th:first-of-type {
     border-left: 1px solid @primary-border-color;
   }

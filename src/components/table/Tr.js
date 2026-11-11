@@ -126,7 +126,8 @@ export default React.memo(({f, i, expand, onMouseOver, tempHeaders, calcPosition
 ];
 }, (pre, next) => {
   const simpleProps = ['f', 'i', 'expand', 'tempHeaders', 'getClass', 'entities', 'allFieldOptions',
-    'selectedColumns', 'defaultGroups', 'getFieldProps', 'domains', 'mapping', 'dicts', 'uiHint', 'extAttrProps'];
+    'selectedColumns', 'defaultGroups', 'getFieldProps', 'domains', 'mapping', 'dicts', 'uiHint', 'extAttrProps',
+    'layoutKey'];
   const calcArray = (oldData, newData) => {
     return (oldData === newData)
         || (oldData.includes(pre.f.id) && newData.includes(next.f.id))

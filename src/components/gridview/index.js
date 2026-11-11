@@ -4,7 +4,10 @@ import {
   loadGridView, saveGridView, moveColumn, orderColumns, sortRows, toggleSort,
 } from '../../lib/grid_util';
 import { getPrefix } from '../../lib/prefixUtil';
+import { useColumnWidths } from './widths';
 import './style/index.less';
+
+export { useColumnWidths };
 
 // View state for one grid: which columns show, in what order, and the current
 // multi-column sort. Visibility and order are remembered per `gridId`.
@@ -116,6 +119,7 @@ export const SimpleGrid = React.memo(({
 }) => {
   const currentPrefix = getPrefix(prefix);
   const view = useGridView(gridId);
+  const sizes = useColumnWidths(gridId);
   const [choosing, setChoosing] = useState(false);
   const allKeys = view.arrange(columns.map(c => c.key));
   const cols = allKeys.map(k => columns.find(c => c.key === k))
@@ -126,7 +130,9 @@ export const SimpleGrid = React.memo(({
     <div className={`${currentPrefix}-gridview-bar`}>
       {link('gridView.columns', () => setChoosing(!choosing))}
       {view.sorts.length > 0 && link('gridView.clearSort', view.clearSort)}
+      {link('gridView.fitAll', sizes.fitAll)}
       {view.isCustom && link('gridView.reset', view.reset)}
+      {sizes.customized && link('gridView.resetWidths', sizes.reset)}
       <span>{FormatMessage.string({ id: 'gridView.dragTip' })}</span>
     </div>
     {choosing && <ColumnChooser
@@ -135,26 +141,38 @@ export const SimpleGrid = React.memo(({
       hidden={view.hidden}
       onToggle={view.toggleHidden}
     />}
-    <table className={className}>
-      <thead>
-        <tr>{cols.map(c => (
-          <th key={c.key} {...(c.fixed ? {} : view.dragProps(c.key, allKeys))}>
-            {c.title}
-            {c.sort && <SortMark
-              prefix={prefix}
-              sorts={view.sorts}
-              columnKey={c.key}
-              onToggle={view.toggleSort}
-            />}
-          </th>))}
-        </tr>
-      </thead>
-      <tbody>
-        {view.sortFrozen(rows, getters, rowKey, `${rows.length}`).map((row, index) => (
-          <tr key={rowKey(row, index)} {...(rowProps ? rowProps(row) : {})}>
-            {cols.map(c => <td key={c.key}>{c.render(row)}</td>)}
-          </tr>))}
-      </tbody>
-    </table>
+    <div className={`${currentPrefix}-gridview-scroll`}>
+      <table
+        ref={sizes.tableRef}
+        className={`${className || ''}${sizes.customized ? ` ${currentPrefix}-gridview-sized` : ''}`}
+        style={sizes.tableStyle(cols.map(c => c.key))}
+      >
+        <thead>
+          <tr>{cols.map(c => (
+            <th
+              key={c.key}
+              {...sizes.headerProps(c.key)}
+              {...(c.fixed ? {} : view.dragProps(c.key, allKeys))}
+              style={sizes.customized ? { width: sizes.widths[c.key] || 120 } : undefined}
+            >
+              {c.title}
+              {c.sort && <SortMark
+                prefix={prefix}
+                sorts={view.sorts}
+                columnKey={c.key}
+                onToggle={view.toggleSort}
+              />}
+              {sizes.handle(c.key, prefix)}
+            </th>))}
+          </tr>
+        </thead>
+        <tbody>
+          {view.sortFrozen(rows, getters, rowKey, `${rows.length}`).map((row, index) => (
+            <tr key={rowKey(row, index)} {...(rowProps ? rowProps(row) : {})}>
+              {cols.map(c => <td key={c.key}>{c.render(row)}</td>)}
+            </tr>))}
+        </tbody>
+      </table>
+    </div>
   </div>;
 });

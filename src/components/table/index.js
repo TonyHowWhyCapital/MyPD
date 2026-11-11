@@ -23,7 +23,7 @@ import { moveArrayPositionByArray } from '../../lib/array_util';
 import { addBodyEvent, removeBodyEvent } from '../../lib/listener';
 import { Copy, Paste } from '../../lib/event_tool';
 import Tr from './Tr';
-import { useGridView, SortMark, ColumnChooser } from '../gridview';
+import { useGridView, useColumnWidths, SortMark, ColumnChooser } from '../gridview';
 import './style/index.less';
 import {getPrefix} from '../../lib/prefixUtil';
 import {separator} from '../../../profile';
@@ -132,8 +132,10 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
   }, [restData.headers, allColumns, dataSource?.profile?.headers]);
   // Per-grid view preferences (shown columns, their order, sort). They are kept
   // on this machine only and never written into the model.
-  const gridView = useGridView(`table.${tableType || (isEntity ? 'entity' : 'list')}.${
-    allColumns.map(c => c.newCode).join(',')}`);
+  const gridId = `table.${tableType || (isEntity ? 'entity' : 'list')}.${
+    allColumns.map(c => c.newCode).join(',')}`;
+  const gridView = useGridView(gridId);
+  const sizes = useColumnWidths(gridId, tableRef);
   const [choosingColumns, setChoosingColumns] = useState(false);
   const tempHeaders = useMemo(() => {
     return gridView.arrange(baseHeaders.map(h => h?.refKey))
@@ -774,7 +776,9 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
       return pre.concat(key);
     });
   };
-  const columnWidth = getColumnWidth();
+  const columnWidth = {...getColumnWidth(), ...sizes.widths};
+  // rows are memoised; this tells them the frozen-column offsets changed
+  const layoutKey = JSON.stringify(sizes.widths);
   const getClass = (f) => {
     let classData = '';
     const base = `${currentPrefix}-table-`;
@@ -1185,10 +1189,10 @@ fields}}
   const renderTable = () => {
     return <table
       ref={tableRef}
-      className={`${currentPrefix}-table`}
+      className={`${currentPrefix}-table${sizes.customized ? ` ${currentPrefix}-table-sized` : ''}`}
       tabIndex='0'
       onKeyDown={tableKeyDown}
-      style={style}
+      style={{...style, ...sizes.tableStyle(finalTempHeaders.map(h => h?.refKey), 150)}}
     >
       {!hiddenHeader && <thead>
         <tr>
@@ -1210,9 +1214,12 @@ fields}}
             onClick={() => onHeaderClick(h?.refKey)}
             key={h?.refKey}
             {...dragHeader}
+            {...sizes.headerProps(h?.refKey)}
             style={{
                 cursor: 'pointer',
-                width: autoWidth ? 'auto' : columnWidth[h?.refKey],
+                // eslint-disable-next-line no-nested-ternary
+                width: sizes.customized ? (columnWidth[h?.refKey] || 150)
+                  : (autoWidth ? 'auto' : columnWidth[h?.refKey]),
                 zIndex: h?.freeze ? 100 : 99,
                 top: fixHeader ? 0 : 'unset',
                 ...freezeStyle,
@@ -1243,6 +1250,7 @@ fields}}
                           style={{marginLeft: 5, cursor: 'pointer'}}
                         />}
             </span>
+            {sizes.handle(h?.refKey, prefix)}
           </th>;
         })}
         </tr>
@@ -1280,6 +1288,7 @@ fields}}
                   onMouseOver={onMouseOver}
                   tempHeaders={tempHeaders}
                   calcPosition={calcPosition}
+                  layoutKey={layoutKey}
                   getClass={getClass(f)}
                   tableRowClick={tableRowClick}
                   disableDragRow={disableDragRow}
@@ -1379,7 +1388,9 @@ fields}}
             </span>
               <span className={`${currentPrefix}-table-opt-setting`} key='columns' onClick={() => setChoosingColumns(!choosingColumns)}>{Component.FormatMessage.string({id: 'gridView.columns'})}</span>
               {gridView.sorts.length > 0 && <span className={`${currentPrefix}-table-opt-setting`} key='clearSort' onClick={gridView.clearSort}>{Component.FormatMessage.string({id: 'gridView.clearSort'})}</span>}
+              <span className={`${currentPrefix}-table-opt-setting`} key='fitAll' onClick={sizes.fitAll}>{Component.FormatMessage.string({id: 'gridView.fitAll'})}</span>
               {gridView.isCustom && <span className={`${currentPrefix}-table-opt-setting`} key='resetView' onClick={gridView.reset}>{Component.FormatMessage.string({id: 'gridView.reset'})}</span>}
+              {sizes.customized && <span className={`${currentPrefix}-table-opt-setting`} key='resetWidths' onClick={sizes.reset}>{Component.FormatMessage.string({id: 'gridView.resetWidths'})}</span>}
               {isEntity && <span className={`${currentPrefix}-table-opt-setting`} key='setting' onClick={jumpEdit}>{Component.FormatMessage.string({id: 'tableEdit.columnSetting'})}</span>}
               {(isEntity || tableType === 'dict' || tableType === 'logicEntity') && <span className={`${currentPrefix}-table-opt-setting`} key='excel' onClick={jumpExcel}>{Component.FormatMessage.string({id: 'tableEdit.excelMode'})}</span> }
             </span>

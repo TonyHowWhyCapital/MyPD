@@ -39,4 +39,30 @@
       user-select: none;
     }
   }
+  &-resize {
+    position: absolute;
+    top: 0;
+    right: -3px;
+    bottom: 0;
+    width: 7px;
+    z-index: 2;
+    cursor: col-resize;
+    user-select: none;
+    &:hover {
+      background: fade(@primary-color, 35%);
+    }
+  }
+  table th {
+    position: relative;
+  }
+  &-scroll {
+    overflow-x: auto;
+  }
+  &-sized {
+    th, td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
 }

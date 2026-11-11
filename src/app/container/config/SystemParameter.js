@@ -3,6 +3,7 @@ import {getPrefix} from '../../../lib/prefixUtil';
 import JavaHome from './JavaHome';
 import SqlDelimiter from './SqlDelimiter';
 import RemarkSplit from './RemarkSplit';
+import DomainInDdl from './DomainInDdl';
 // import DocTemplate from './DocTemplate';
 import Language from './Language';
 // import Model from './Model';
@@ -24,6 +25,7 @@ export default React.memo(({prefix, ...restProps}) => {
     {/*<AutoBackup {...restProps}/>*/}
     <SqlDelimiter {...restProps}/>
     <RemarkSplit {...restProps}/>
+    <DomainInDdl {...restProps}/>
     {/*<DocTemplate {...restProps}/>*/}
     <Language {...restProps}/>
     {/*<Model {...restProps}/>*/}

@@ -7,6 +7,7 @@ import { separator } from '../../profile';
 import {getDefaultTemplate, transform} from './datasource_util';
 import {platform} from './middle';
 import {remarkSetting} from './remark';
+import {domainDdl, wrapDomainDdl} from './column_domain';
 import {
   _camel, _getAllDataSQLByFilter,
   _getDataByChanges,
@@ -571,6 +572,14 @@ const generateIncreaseSql = (dataSource, group, dataTable, code, templateShow) =
     separator: sqlSeparator,
     remarkSeparator: remarkSetting(dataSource).separator,
   };
+  // 建表语句带出数据域（SQL Server 扩展属性 / PostgreSQL DOMAIN）
+  const render = (tpl, t) => {
+    if (t !== 'createTable' || type !== 'dbDDL') {
+      return getTemplateString(tpl, templateData);
+    }
+    const domain = domainDdl(dataSource, code, tempDataTable);
+    return wrapDomainDdl(getTemplateString(tpl, {...templateData, entity: domain.entity}), domain);
+  };
   if (!templateShow) {
     const dataTypeSupports = (dataSource.profile?.dataTypeSupports || []).filter(t => t.id === code)[0]
     return Object.keys(_.omit(tData, ['type', 'applyFor']))
@@ -581,11 +590,11 @@ const generateIncreaseSql = (dataSource, group, dataTable, code, templateShow) =
               ...tempDataTable.env?.base || {},
               codeRoot: tempDataTable.env?.base?.codeRoot || camel(tempDataTable.defKey, true) || '',
             }) || t) : '',
-            code: getTemplateString(tData[t] || '', templateData),
+            code: render(tData[t] || '', t),
           }
         });
   }
-  return getTemplateString(template, templateData);
+  return render(template, templateShow);
 };
 // 获取单个数据表的各个模板的代码
 export const getCodeByDataTable = (dataSource, group, dataTable, code, templateShow, type) => {

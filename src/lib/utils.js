@@ -7,6 +7,7 @@ import doT from 'dot';
 import {separator} from '../../profile';
 import {firstUp} from './string';
 import {remarkSetting, joinRemark} from './remark';
+import {domainDdl, wrapDomainDdl} from './column_domain';
 import './Math';
 
 export const demoGroup = [{defKey: "DEFAULT_GROUP", defName: "默认分组"}];
@@ -1492,6 +1493,7 @@ export const _getAllDataSQLByFilter = (data, code, filterTemplate, filterDefKey)
     try {
         const tempData = code === 'dictSQLTemplate' ? getFilterData('dicts') : getFilterData('entities')
             .concat(getFilterData('views'));
+        const seenDomains = new Set();
         sqlString += tempData.map(e => {
             const tempTemplate = [...filterTemplate];
             let tempData = '';
@@ -1563,8 +1565,13 @@ export const _getAllDataSQLByFilter = (data, code, filterTemplate, filterDefKey)
                 }
                 return t !== 'createTable';
             }).forEach(f => {
-                const code = `${_getTemplateString(getTemplate(f), templateData)}`;
-                tempData += code ? `${code}\n` : '';
+                // 建表语句带出数据域（SQL Server 扩展属性 / PostgreSQL DOMAIN）
+                const domain = f === 'createTable' && data.entity
+                    ? domainDdl(dataSource, code, data.entity, seenDomains) : null;
+                const text = `${_getTemplateString(getTemplate(f),
+                    domain ? {...templateData, entity: domain.entity} : templateData)}`;
+                const ddl = domain ? wrapDomainDdl(text, domain) : text;
+                tempData += ddl ? `${ddl}\n` : '';
             });
             return tempData;
         }).join('');

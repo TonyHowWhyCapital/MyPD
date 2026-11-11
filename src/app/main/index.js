@@ -81,6 +81,7 @@ import {compareVersion} from '../../lib/update';
 import {notify} from '../../lib/subscribe';
 import {READING} from '../../lib/variable';
 import {isPdmFile, createPdm, remarksAsComments} from '../../lib/pdm';
+import {resolveColumnDomains, keepColumnDomains} from '../../lib/column_domain';
 import {pickNewGroups} from '../../components/listgroupselect/newGroup';
 import LogicEntity from '../container/logicentity';
 
@@ -851,7 +852,8 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     'profile.default.entityInitProperties', 'profile.sql.delimiter', 'profile.generatorDoc.docTemplate',
   'profile.relationFieldSize', 'profile.uiHint', 'profile.relationType', 'profile.extProps',
     'profile.headers',
-    'profile.DDLToggleCase', 'profile.sql.remarkSplit', 'profile.sql.remarkSeparator'];
+    'profile.DDLToggleCase', 'profile.sql.remarkSplit', 'profile.sql.remarkSeparator',
+    'profile.sql.domainInDdl'];
   const importConfig = () => {
     Upload('application/json', (d) => {
       const data = JSON.parse(d);
@@ -1005,10 +1007,15 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
   const reverseToPdm = (data, dbKey, addToProject) => {
     const conn = (dataSourceRef.current?.dbConn || []).find(d => d.defKey === dbKey) || {};
     try {
+      const linked = resolveColumnDomains(dataSourceRef.current, data, conn.type);
       const xml = createPdm({
-        ...dataSourceRef.current,
-        entities: remarksAsComments(data).map(e => ({...e, id: e.id || Math.uuid()})),
-      }, {name: conn.defName, dbId: conn.type});
+        ...linked.dataSource,
+        entities: remarksAsComments(linked.entities).map(e => ({...e, id: e.id || Math.uuid()})),
+      }, {
+        name: conn.defName,
+        dbId: conn.type,
+        domainIds: Object.values(linked.links).map(l => l.domain),
+      });
       saveFile(xml, [{name: 'PDM', extensions: ['pdm']}],
         p => (/\.pdm$/i.test(p) ? p : `${p}.pdm`),
         {defaultPath: `${conn.defName || 'model'}.pdm`}).then(({filePath}) => {
@@ -1047,8 +1054,11 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       };
       const addToProject = (data, dbKey, newGroups) => {
         restProps.openLoading();
-        mergeDataSource(dataSourceRef.current, {viewGroups: newGroups || []},
-            calcDomain(data, dbKey, dataSourceRef.current.domains || []), true, (d) => {
+        const connType = dbConn.find(c => c.defKey === dbKey)?.type;
+        const linked = resolveColumnDomains(dataSourceRef.current, data, connType);
+        mergeDataSource(linked.dataSource, {viewGroups: newGroups || []},
+            keepColumnDomains(calcDomain(data, dbKey, dataSourceRef.current.domains || []),
+              linked.links), true, (d) => {
               if(d) {
                 injectDataSource(d, modal);
               } else {

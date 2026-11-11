@@ -842,6 +842,8 @@ export default {
     "SystemParameter": "系統引數",
     "DbConnect": "資料庫連線配置",
     "SqlDelimiterLabel": "SQL分隔符",
+    "domainInDdlLabel": "資料域寫入資料庫",
+    "domainInDdlTip": "建表語句帶出欄位的資料域（SQL Server 擴充屬性 Domain / PostgreSQL DOMAIN），逆向時可還原",
     "remarkSplitLabel": "拆解備註欄",
     "remarkSplitTip": "從資料庫逆向時，將備註依分隔符拆成名稱與說明",
     "remarkSeparatorLabel": "備註分隔符",

@@ -93,7 +93,7 @@ const effectiveType = (field, dataSource, dbId) => {
 
 // The file stores each column's concrete type for the target database, so
 // project-side domains and type mappings are resolved before writing.
-const flatten = (entities, dataSource, dbId) => entities.map((entity) => {
+const flatten = (entities, dataSource, dbId, kept) => entities.map((entity) => {
   const fields = (entity.fields || []).map((field) => {
     const { type, len, scale } = effectiveType(field, dataSource, dbId);
     return {
@@ -103,7 +103,7 @@ const flatten = (entities, dataSource, dbId) => entities.map((entity) => {
       type,
       len: hasValue(len) ? len : '',
       scale: hasValue(len) && hasValue(scale) ? scale : '',
-      domain: '',
+      domain: kept.has(field.domain) ? field.domain : '',
       baseType: '',
     };
   });
@@ -167,7 +167,11 @@ export const remarksAsComments = (entities) => {
   return (entities || []).map(e => ({ ...fill(e), fields: (e.fields || []).map(fill) }));
 };
 
-export const createPdm = (dataSource, { name, dbId, entityIds, now, user = 'MyPD' } = {}) => {
+// `domainIds` names the domains to carry into the file with their column links. All
+// other columns are written with their concrete type only.
+export const createPdm = (dataSource, {
+  name, dbId, entityIds, domainIds = [], now, user = 'MyPD',
+} = {}) => {
   const supports = dataSource.profile?.dataTypeSupports || [];
   const db = supports.find(s => s.id === dbId) || supports.find(s => s.id === dataSource.profile?.default?.db);
   const chosen = (dataSource.entities || []).filter(e => !entityIds || entityIds.includes(e.id));
@@ -176,13 +180,18 @@ export const createPdm = (dataSource, { name, dbId, entityIds, now, user = 'MyPD
   }
   const modelName = name || dataSource.name || 'Model';
   const time = now || Math.floor(Date.now() / 1000);
-  const entities = flatten(chosen, dataSource, db?.id);
+  const kept = new Set(domainIds);
+  const entities = flatten(chosen, dataSource, db?.id, kept);
   const xml = applyDataSourceToPdm(skeleton({
     name: modelName,
     code: modelName.replace(/[^\w]+/g, '_'),
     target: targets[`${db?.defKey || ''}`.toLowerCase()] || [db?.defKey || 'ANSI Level 2'],
     now: time,
     user,
-  }), { ...dataSource, entities, domains: [] }, { now: time, user });
+  }), {
+    ...dataSource,
+    entities,
+    domains: (dataSource.domains || []).filter(d => kept.has(d.id)),
+  }, { now: time, user });
   return addSymbols(xml, entities);
 };

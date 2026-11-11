@@ -840,6 +840,8 @@ export default {
         SystemParameter: '系统参数',
         DbConnect: '数据库连接配置',
         SqlDelimiterLabel: 'SQL分隔符',
+        domainInDdlLabel: '数据域写入数据库',
+        domainInDdlTip: '建表语句带出字段的数据域（SQL Server 扩充属性 Domain / PostgreSQL DOMAIN），逆向时可还原',
         remarkSplitLabel: '拆解备注栏',
         remarkSplitTip: '从数据库逆向时，将备注依分隔符拆成名称与说明',
         remarkSeparatorLabel: '备注分隔符',

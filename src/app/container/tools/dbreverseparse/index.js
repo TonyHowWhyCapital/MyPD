@@ -8,6 +8,8 @@ import DealData from './DealData';
 import DealProgress from './DealProgress';
 import './style/index.less';
 import {getPrefix} from '../../../../lib/prefixUtil';
+import {listColumnDomains} from '../../../../lib/middle';
+import {canCarryDomains, applyColumnDomains} from '../../../../lib/column_domain';
 
 export default React.memo(({prefix, dataSource, dataChange, config, onClose, onOk}) => {
   const dealDataRef = useRef(null);
@@ -59,13 +61,25 @@ export default React.memo(({prefix, dataSource, dataChange, config, onClose, onO
     const groups = dealDataRef.current.getData();
     const selectedTable = groups
         .reduce((a, b) => a.concat(b.fields.map(f => ({...f, group: b.id}))), []);
+    const properties = connProperties(currentConn, dbData.database);
+    // 数据库中记录的字段数据域只读取一次，读取失败不影响逆向
+    let domainRows;
+    const withDomains = (data) => {
+      if (!canCarryDomains(properties.url)) {
+        return Promise.resolve(data);
+      }
+      domainRows = domainRows
+        || listColumnDomains(dataSource, config, properties).catch(() => []);
+      return domainRows.then(rows => applyColumnDomains(data, rows));
+    };
     modal = openModal(<DealProgress
       dbData={dbData}
-      currentDb={{...currentConn, properties: connProperties(currentConn, dbData.database)}}
+      currentDb={{...currentConn, properties}}
       dataSource={dataSource}
       config={config}
       selectedTable={selectedTable}
-      onOk={data => onOk(data, dbData.defKey, pickNewGroups(groups))}
+      onOk={data => withDomains(data)
+        .then(d => onOk(d, dbData.defKey, pickNewGroups(groups)))}
       onClose={onCloseModal}
     />,  {
       header: <div />,

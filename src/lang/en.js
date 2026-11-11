@@ -838,6 +838,8 @@ export default {
         SystemParameter: 'SystemParameter',
         DbConnect: 'DbConnect',
         SqlDelimiterLabel: 'sqlDelimiter',
+        domainInDdlLabel: 'Domains in DDL',
+        domainInDdlTip: 'Write each column domain in CREATE TABLE (SQL Server extended property Domain / PostgreSQL DOMAIN) so reversing restores it',
         remarkSplitLabel: 'Split remarks',
         remarkSplitTip: 'When reversing a database, split each remark into name and comment',
         remarkSeparatorLabel: 'Remark separator',

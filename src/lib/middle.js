@@ -37,6 +37,7 @@ const readPdmFile = json.readPdmFile;
 const readDbxConnections = json.readDbxConnections;
 const getDbxDefaultFile = json.getDbxDefaultFile;
 const listDatabases = json.listDatabases;
+const listColumnDomains = json.listColumnDomains;
 const readNormalFile = json.readNormalFile;
 const savePdmFile = json.savePdmFile;
 const saveVersion = json.saveVersion;
@@ -84,6 +85,7 @@ export {
   readDbxConnections,
   getDbxDefaultFile,
   listDatabases,
+  listColumnDomains,
   readNormalFile,
   savePdmFile,
   saveVersion,

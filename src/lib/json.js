@@ -552,17 +552,17 @@ export const connectDB = (dataSource, config, params = {}, cmd, cb) => {
     });
 };
 
-// 列出连接所在服务器上的数据库，使用引擎 jar 自带的驱动加载 build/jar/tools 下的小工具
-export const listDatabases = (dataSource, config, params = {}) => {
+// 以引擎 jar 自带的驱动运行 build/jar/tools 下的小工具，结果为其输出文件中的 body
+const runJavaTool = (main, dataSource, config, params = {}) => {
   return new Promise((res, rej) => {
     const jar = ipcRenderer.sendSync('jarPath');
-    const outFile = `${execJarOut}${moment().unix()}-databases.json`;
+    const outFile = `${execJarOut}${moment().unix()}-${main}.json`;
     const javaHome = config?.javaHome || _.get(dataSource, 'profile.javaHome', '');
     const args = [
       '-Dfile.encoding=utf-8',
       '-cp', jar,
       `-Dloader.path=${path.join(path.dirname(jar), 'tools')}${path.sep}`,
-      '-Dloader.main=mypd.ListDatabases',
+      `-Dloader.main=mypd.${main}`,
       'org.springframework.boot.loader.PropertiesLauncher',
       ...['driver_class_name', 'url', 'username', 'password'].map(k => `${k}='${params[k] || ''}'`),
       `out='${outFile}'`,
@@ -578,6 +578,16 @@ export const listDatabases = (dataSource, config, params = {}) => {
       }).finally(() => deleteFile(outFile));
     });
   });
+};
+
+// 列出连接所在服务器上的数据库
+export const listDatabases = (dataSource, config, params) => {
+  return runJavaTool('ListDatabases', dataSource, config, params);
+};
+
+// 读取各字段在数据库中记录的数据域
+export const listColumnDomains = (dataSource, config, params) => {
+  return runJavaTool('ListColumnDomains', dataSource, config, params);
 };
 
 export const copyFile = (defaultPath, filters) => {

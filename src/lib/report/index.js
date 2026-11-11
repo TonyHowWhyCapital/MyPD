@@ -10,6 +10,7 @@ import {
 import {
   ALIGNS, alignOf, setColumnAlign, nextAlign, applyAligns,
 } from './align';
+import { columnLabel, originalLabel, setColumnLabel } from './rename';
 import { renderMarkdown } from './markdown';
 import { renderHtml } from './html';
 import { renderDocx } from './docx';
@@ -19,6 +20,7 @@ export {
   resolveWidths, columnPercents, setColumnWidth,
   dragColumn, widthsOf, applyWidths, clearWidths, hasWidths,
   ALIGNS, alignOf, setColumnAlign, nextAlign, applyAligns,
+  columnLabel, originalLabel, setColumnLabel,
 };
 
 const KINDS = ['document', 'list'];
@@ -126,6 +128,7 @@ const buildListTable = (template, dataSources, lang) => {
     sectionId: sec.id,
     keys: multi ? [null, ...tables[0].table.keys] : tables[0].table.keys,
     aligns: multi ? ['left', ...tables[0].table.aligns] : tables[0].table.aligns,
+    renamed: multi ? ['', ...tables[0].table.renamed] : tables[0].table.renamed,
   }];
 };
 

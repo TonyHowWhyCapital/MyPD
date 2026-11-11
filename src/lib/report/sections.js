@@ -2,6 +2,7 @@ import _ from 'lodash';
 import { _transform } from '../utils';
 import { labelOf } from './labels';
 import { resolveAligns } from './align';
+import { columnLabel, originalLabel } from './rename';
 
 const yes = v => (v ? 'Y' : '');
 const str = v => (v === undefined || v === null ? '' : String(v));
@@ -213,10 +214,10 @@ const heading = (section, ctx, fallbackKey) => {
 
 const tableBuild = (def, type) => (ds, section, ctx) => {
   const cols = resolveColumns(def, section);
-  const headers = cols.map(c => labelOf(c, ctx.lang));
+  const headers = cols.map(c => columnLabel(section, c, ctx.lang));
   const source = def.summary ? [countOf(ds)] : def.rows(ds);
   const rows = def.summary
-    ? cols.map(c => [labelOf(c, ctx.lang), str(source[0][c])])
+    ? cols.map(c => [columnLabel(section, c, ctx.lang), str(source[0][c])])
     : source.map((r, n) => cells(cols, r, n));
   return [
     ...heading(section, ctx, `section.${type}`),
@@ -225,7 +226,12 @@ const tableBuild = (def, type) => (ds, section, ctx) => {
       headers: def.summary ? [labelOf('item', ctx.lang), labelOf('value', ctx.lang)] : headers,
       rows,
       widths: def.summary ? null : resolveWidths(def, section),
-      ...(def.summary ? {} : { sectionId: section.id, keys: cols, aligns: resolveAligns(cols, section) }),
+      ...(def.summary ? {} : {
+        sectionId: section.id,
+        keys: cols,
+        aligns: resolveAligns(cols, section),
+        renamed: cols.map(c => originalLabel(section, c, ctx.lang)),
+      }),
     },
   ];
 };
@@ -253,7 +259,7 @@ export const sectionTypes = {
     defaultColumns: ['defKey', 'defName', 'type', 'len', 'scale', 'primaryKey', 'notNull', 'comment'],
     build: (ds, section, ctx) => {
       const cols = resolveColumns(sectionTypes.entityDetail, section);
-      const headers = cols.map(c => labelOf(c, ctx.lang));
+      const headers = cols.map(c => columnLabel(section, c, ctx.lang));
       return [
         ...heading(section, ctx, 'section.entityDetail'),
         ..._.flatMap(ds.entities || [], (e) => [
@@ -267,6 +273,7 @@ export const sectionTypes = {
             sectionId: section.id,
             keys: cols,
             aligns: resolveAligns(cols, section),
+            renamed: cols.map(c => originalLabel(section, c, ctx.lang)),
           },
         ]),
       ];

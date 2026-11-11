@@ -83,6 +83,7 @@ export default React.memo(({ prefix, draft, lang, onChange, onSave }) => {
               onChange={columns => patchSection(i, { columns })}
               onWidths={widths => patchSection(i, { widths })}
               onAligns={aligns => patchSection(i, { aligns })}
+              onLabels={labels => patchSection(i, { labels })}
             />
           </div>}
         </div>;

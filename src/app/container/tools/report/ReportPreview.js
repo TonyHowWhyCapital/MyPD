@@ -10,6 +10,9 @@ import { getPrefix } from '../../../../lib/prefixUtil';
 const MAX_ROWS = 50;
 const percentText = p => `${Math.round(p)}%`;
 
+const original = (block, i) => ((block.renamed || [])[i]
+  ? FormatMessage.string({ id: 'report.originalName', data: { name: block.renamed[i] } }) : undefined);
+
 const Table = ({ cls, block, onDrag, onAlign }) => {
   const aligns = block.aligns || [];
   const percents = columnPercents(block.widths, block.headers.length);
@@ -21,7 +24,7 @@ const Table = ({ cls, block, onDrag, onAlign }) => {
       </colgroup>
       <thead>
         <tr>{block.headers.map((h, i) => <th key={i}>
-          {h}
+          <span title={original(block, i)} className={original(block, i) ? 'renamed' : ''}>{h}</span>
           {block.keys && block.keys[i] && <Icon
             type={`fa-align-${aligns[i]}`}
             title={FormatMessage.string({ id: 'report.alignTip' })}

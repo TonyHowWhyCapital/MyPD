@@ -1626,6 +1626,8 @@ export default {
     "columns": "列",
     "columnOrderTip": "拖拽或點選箭頭調整列的順序",
     "widthAuto": "自動",
+    "renameTip": "修改列名，清空則恢復原名稱",
+    "originalName": "原名稱：{name}",
     "alignTip": "內容對齊方式，點選在靠左、居中、靠右之間切換",
     "widthTip": "列寬佔表格寬度的百分比（1-100），留空為自動；對 docx 與 html 生效",
     "text": "文字內容",

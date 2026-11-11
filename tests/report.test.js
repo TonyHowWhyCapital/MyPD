@@ -413,3 +413,32 @@ describe('report column alignment', () => {
     expect(buildReport(template(), [ds, ds], { lang: 'en' }).blocks[0].aligns[0]).toBe('left');
   });
 });
+
+describe('report column names', () => {
+  const { setColumnLabel, columnLabel, originalLabel, labelOf } = require('../src/lib/report');
+  const ds = { name: 'm', entities: [{ id: 'a', defKey: 'A', defName: 'n', fields: [{ id: '1', defKey: 'x' }] }] };
+  const template = (type, labels) => ({
+    defName: 't', kind: 'document', sections: [sectionOf(type, { columns: ['defKey', 'defName'], labels })],
+  });
+  const tableOf = doc => doc.blocks.find(b => b.type === 'table');
+  test('a renamed column shows its own header and remembers the original', () => {
+    const table = tableOf(buildReport(template('entityDetail', { defKey: 'Column code' }), [ds], { lang: 'en' }));
+    expect(table.headers[0]).toBe('Column code');
+    expect(table.renamed[0]).toBe(labelOf('defKey', 'en'));
+    expect(table.renamed[1]).toBe('');
+    expect(table.headers[1]).toBe(labelOf('defName', 'en'));
+  });
+  test('flat lists and several models follow it too', () => {
+    const list = { ...template('entityList', { defName: 'Title' }), kind: 'list' };
+    const table = tableOf(buildReport(list, [ds, ds], { lang: 'en' }));
+    expect(table.headers).toEqual([labelOf('model', 'en'), labelOf('defKey', 'en'), 'Title']);
+    expect(table.renamed).toEqual(['', '', labelOf('defName', 'en')]);
+  });
+  test('clearing the text or typing the original restores it', () => {
+    expect(setColumnLabel({}, 'defKey', '  Key code  ', 'en')).toEqual({ defKey: 'Key code' });
+    expect(setColumnLabel({ labels: { defKey: 'Code' } }, 'defKey', ' ', 'en')).toEqual({});
+    expect(setColumnLabel({ labels: { defKey: 'Code' } }, 'defKey', labelOf('defKey', 'en'), 'en')).toEqual({});
+    expect(columnLabel({ labels: { defKey: '' } }, 'defKey', 'en')).toBe(labelOf('defKey', 'en'));
+    expect(originalLabel({}, 'defKey', 'en')).toBe('');
+  });
+});

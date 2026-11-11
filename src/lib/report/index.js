@@ -4,6 +4,9 @@ import {
   resolveWidths, columnPercents, setColumnWidth,
 } from './sections';
 import { labelOf } from './labels';
+import {
+  dragColumn, widthsOf, applyWidths, clearWidths, hasWidths,
+} from './resize';
 import { renderMarkdown } from './markdown';
 import { renderHtml } from './html';
 import { renderDocx } from './docx';
@@ -11,6 +14,7 @@ import { renderDocx } from './docx';
 export {
   sectionTypes, resolveColumns, toggleColumn, moveColumn, labelOf, renderMarkdown, renderHtml, renderDocx,
   resolveWidths, columnPercents, setColumnWidth,
+  dragColumn, widthsOf, applyWidths, clearWidths, hasWidths,
 };
 
 const KINDS = ['document', 'list'];
@@ -115,6 +119,8 @@ const buildListTable = (template, dataSources, lang) => {
     headers: multi ? [labelOf('model', lang), ...headers] : headers,
     rows,
     widths: multi ? [null, ...widths] : widths,
+    sectionId: sec.id,
+    keys: multi ? [null, ...tables[0].table.keys] : tables[0].table.keys,
   }];
 };
 

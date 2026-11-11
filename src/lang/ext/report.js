@@ -38,6 +38,9 @@ export default {
       preview: '预览',
       export: '导出',
       previewTitle: '报告预览',
+      previewTip: '拖拽表头的列分隔线即可调整列宽，同一章节的表格会一起调整。调整结果写入当前模板，保存模板后才会保留。',
+      previewReset: '恢复自动列宽',
+      previewRows: '预览只显示前 {count} 行，共 {total} 行',
       close: '关闭',
       exportFail: '导出失败',
       error: {
@@ -92,6 +95,9 @@ export default {
       preview: 'Preview',
       export: 'Export',
       previewTitle: 'Report preview',
+      previewTip: 'Drag the line between two header cells to resize columns. Tables of one section change together. The result goes into the current template, save the template to keep it.',
+      previewReset: 'Back to automatic widths',
+      previewRows: 'The preview shows the first {count} of {total} rows',
       close: 'Close',
       exportFail: 'Export failed',
       error: {

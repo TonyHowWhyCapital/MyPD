@@ -71,6 +71,7 @@ export default React.memo(({ prefix, dataSource, getDataSource, updateDataSource
       template={draft}
       getDataSource={getDataSource}
       lang={lang}
+      onTemplateChange={setDraft}
     />}
   </div>;
 });

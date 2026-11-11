@@ -1641,6 +1641,9 @@ export default {
     "preview": "預覽",
     "export": "匯出",
     "previewTitle": "報告預覽",
+    "previewTip": "拖拽表頭的列分隔線即可調整列寬，同一章節的表格會一起調整。調整結果寫入當前模板，儲存模板後才會保留。",
+    "previewReset": "恢復自動列寬",
+    "previewRows": "預覽只顯示前 {count} 行，共 {total} 行",
     "close": "關閉",
     "exportFail": "匯出失敗",
     "error": {

@@ -3,11 +3,12 @@ import { FormatMessage, Button, Select, Icon, Message, Download, openModal } fro
 import { buildReport, renderReport } from '../../../../lib/report';
 import { openProjectFilePath, readJsonPromise } from '../../../../lib/middle';
 import { getPrefix } from '../../../../lib/prefixUtil';
+import ReportPreview from './ReportPreview';
 
 const Option = Select.Option;
 const FORMATS = ['docx', 'html', 'markdown', 'csv'];
 
-export default React.memo(({ prefix, template, getDataSource, lang }) => {
+export default React.memo(({ prefix, template, getDataSource, lang, onTemplateChange }) => {
   const currentPrefix = getPrefix(prefix);
   const [extras, setExtras] = useState([]);
   const [format, setFormat] = useState('docx');
@@ -21,18 +22,14 @@ export default React.memo(({ prefix, template, getDataSource, lang }) => {
       }
     });
   };
-  const build = () => {
-    const models = [getDataSource(), ...extras.map(e => e.data)];
-    return buildReport(template, models, { lang });
-  };
+  const allModels = () => [getDataSource(), ...extras.map(e => e.data)];
+  const build = () => buildReport(template, allModels(), { lang });
   const preview = () => {
-    const doc = build();
-    const asHtml = format === 'html';
-    const previewFormat = ['html', 'csv'].includes(format) ? format : 'markdown';
-    const { data } = renderReport(doc, previewFormat);
-    const modal = openModal(asHtml
-      ? <iframe title='report' sandbox='' srcDoc={data} style={{ width: '100%', height: '70vh', border: 'none' }}/>
-      : <pre style={{ margin: 0, maxHeight: '70vh', overflow: 'auto', whiteSpace: 'pre-wrap' }}>{data}</pre>, {
+    // docx and html honour column widths, so their preview is the one that can be resized.
+    const laidOut = ['docx', 'html'].includes(format);
+    const modal = openModal(laidOut
+      ? <ReportPreview prefix={prefix} template={template} models={allModels()} lang={lang} onChange={onTemplateChange}/>
+      : <pre style={{ margin: 0, maxHeight: '70vh', overflow: 'auto', whiteSpace: 'pre-wrap' }}>{renderReport(build(), format).data}</pre>, {
       title: FormatMessage.string({ id: 'report.previewTitle' }),
       bodyStyle: { width: '80%' },
       buttons: [<Button key='close' onClick={() => modal.close()}><FormatMessage id='report.close'/></Button>],

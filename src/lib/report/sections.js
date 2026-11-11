@@ -224,6 +224,7 @@ const tableBuild = (def, type) => (ds, section, ctx) => {
       headers: def.summary ? [labelOf('item', ctx.lang), labelOf('value', ctx.lang)] : headers,
       rows,
       widths: def.summary ? null : resolveWidths(def, section),
+      ...(def.summary ? {} : { sectionId: section.id, keys: cols }),
     },
   ];
 };
@@ -262,6 +263,8 @@ export const sectionTypes = {
             headers,
             rows: (e.fields || []).map((f, n) => cells(cols, fieldRow(ds, e, f), n)),
             widths: resolveWidths(sectionTypes.entityDetail, section),
+            sectionId: section.id,
+            keys: cols,
           },
         ]),
       ];

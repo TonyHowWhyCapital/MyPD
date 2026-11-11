@@ -334,3 +334,48 @@ describe('report column widths', () => {
     expect(doc.blocks[0].widths).toEqual([null, 10, null, null]);
   });
 });
+
+describe('report column widths from the preview', () => {
+  const {
+    dragColumn, widthsOf, applyWidths, clearWidths, hasWidths, columnPercents,
+  } = require('../src/lib/report');
+  const tpl = () => getDefaultReportTemplates('zh')[0];
+  test('table blocks name their section and columns', () => {
+    const doc = buildReport(tpl(), [demo], { lang: 'zh' });
+    const tables = doc.blocks.filter(b => b.type === 'table');
+    const detail = tables.filter(t => t.sectionId === 'default-document-entityDetail');
+    expect(detail.length).toBeGreaterThan(1);
+    detail.forEach(t => expect(t.keys.length).toBe(t.headers.length));
+    // The summary is a fixed two column table and cannot be resized.
+    expect(tables[0].sectionId).toBeUndefined();
+  });
+  test('multi model list leaves the model column without a key', () => {
+    const doc = buildReport(getDefaultReportTemplates('zh')[1], [demo, demo], { lang: 'zh' });
+    expect(doc.blocks[0].keys[0]).toBeNull();
+    expect(doc.blocks[0].keys.length).toBe(doc.blocks[0].headers.length);
+  });
+  test('dragging a border moves width between two neighbours', () => {
+    expect(dragColumn([25, 25, 50], 0, 10)).toEqual([35, 15, 50]);
+    expect(dragColumn([25, 25, 50], 0, 40)).toEqual([47, 3, 50]);
+    expect(dragColumn([25, 25, 50], 1, -40)).toEqual([25, 3, 72]);
+    expect(dragColumn([25, 25, 50], 2, 10)).toEqual([25, 25, 50]);
+    // A column already below the minimum is not forced wider.
+    expect(dragColumn([2, 48, 50], 0, -5)).toEqual([2, 48, 50]);
+  });
+  test('stored widths are whole and add up to 100', () => {
+    const widths = widthsOf(['a', 'b', 'c'], [33.333, 33.333, 33.334]);
+    expect(Object.values(widths).reduce((s, n) => s + n, 0)).toBe(100);
+    expect(Object.values(widths).every(Number.isInteger)).toBe(true);
+    expect(widthsOf([null, 'a', 'b'], [20, 30, 50])).toEqual({ a: 30, b: 50 });
+  });
+  test('the dragged layout comes back from the template', () => {
+    const next = applyWidths(tpl(), 'default-document-entityDetail',
+      widthsOf(['defKey', 'defName', 'type', 'len', 'scale', 'primaryKey', 'notNull', 'comment'],
+        [30, 20, 10, 5, 5, 5, 5, 20]));
+    expect(hasWidths(next)).toBe(true);
+    const table = buildReport(next, [demo], { lang: 'zh' }).blocks
+      .find(b => b.sectionId === 'default-document-entityDetail');
+    expect(columnPercents(table.widths, table.headers.length)).toEqual([30, 20, 10, 5, 5, 5, 5, 20]);
+    expect(hasWidths(clearWidths(next))).toBe(false);
+  });
+});

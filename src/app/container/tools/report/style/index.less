@@ -127,4 +127,91 @@
   &-actions > span {
     margin-right: 6px;
   }
+  &-preview {
+    &-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12px;
+      margin-bottom: 8px;
+      > span:first-child {
+        opacity: 0.75;
+      }
+    }
+    &-scroll {
+      height: 66vh;
+      overflow: auto;
+      padding: 12px;
+      background: rgba(128, 128, 128, 0.25);
+    }
+    // Always paper coloured, whatever the app theme, like the exported file.
+    &-paper {
+      width: 760px;
+      margin: 0 auto;
+      padding: 24px 40px;
+      background: #fff;
+      color: #222;
+      line-height: 1.5;
+      h1 {
+        border-bottom: 2px solid #444;
+        padding-bottom: 8px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 8px 0 20px;
+        font-size: 13px;
+        &.sized {
+          table-layout: fixed;
+          th, td {
+            word-break: break-all;
+          }
+        }
+      }
+      th, td {
+        border: 1px solid #bbb;
+        padding: 4px 8px;
+        text-align: left;
+        vertical-align: top;
+        white-space: pre-wrap;
+      }
+      th {
+        position: relative;
+        background: #f0f2f5;
+        user-select: none;
+        > small {
+          display: block;
+          font-weight: normal;
+          font-size: 11px;
+          color: #888;
+          min-height: 14px;
+        }
+      }
+    }
+    &-handle {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: -5px;
+      width: 9px;
+      z-index: 1;
+      cursor: col-resize;
+      &:hover {
+        background: rgba(24, 144, 255, 0.45);
+      }
+    }
+    &-toc {
+      list-style: none;
+      padding-left: 0;
+    }
+    &-more {
+      color: #777;
+      font-size: 12px;
+      margin: -14px 0 16px;
+    }
+    h1 + &-more {
+      margin: 0 0 12px;
+    }
+  }
 }

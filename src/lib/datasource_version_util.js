@@ -1,6 +1,7 @@
 // 删除表 表更名 增加字段 删除字段 修改字段
 
 import _ from 'lodash/object';
+import {remarkSetting} from './remark';
 import {_getDefaultTemplate, _transform, _getTemplateString, _getDataByChanges} from './utils';
 
 const refactorEntityFields = (fields, currentDataSource, db) => {
@@ -159,6 +160,7 @@ export const getMessageByChanges = (changes, dataSource, lang) => {
     return _getTemplateString(codeTemplate.message || _getDefaultTemplate(code, 'message', dataSource, lang), {
       changes,
       separator: sqlSeparator,
+      remarkSeparator: remarkSetting(dataSource).separator,
     }, false, dataSource, code);
   } catch (e) {
     return JSON.stringify(e.message, null, 2);

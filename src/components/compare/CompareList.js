@@ -20,6 +20,7 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import _ from 'lodash/object';
 import {connectDB, getLogPath, showItemInFolder, extractFile} from '../../lib/middle';
 import {getPrefix} from '../../lib/prefixUtil';
+import {remarkSetting, namedByRemark} from '../../lib/remark';
 import {
     getEmptyEntity,
     validateItem,
@@ -170,8 +171,7 @@ export default React.memo(forwardRef(({prefix, style, dataSource, config, empty,
                 const newMetaData = data.body.map((d) => {
                     return {
                         ...d,
-                        defName: d?.defName?.split(';')[0] || '',
-                        comment: d.comment || d?.defName?.split(';')[1] || '',
+                        ...namedByRemark(d, remarkSetting(dataSource)),
                     };
                 });
                 postWorkerFuc('dataSourceVersion.simplePackageChanges', true, [
@@ -408,8 +408,7 @@ export default React.memo(forwardRef(({prefix, style, dataSource, config, empty,
                             return {
                                 ...f,
                                 id: Math.uuid(),
-                                defName: f?.defName?.split(';')[0] || '',
-                                comment: f.comment || f?.defName?.split(';')[1] || '',
+                                ...namedByRemark(f, remarkSetting(dataSource)),
                             };
                         });
                         return {

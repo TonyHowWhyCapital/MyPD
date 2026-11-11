@@ -4,10 +4,12 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeList as List } from 'react-window';
 import {getPrefix} from '../../../../lib/prefixUtil';
 import {connectDB,  getLogPath, showItemInFolder} from '../../../../lib/middle';
+import {remarkSetting, namedByRemark} from '../../../../lib/remark';
 
 export default React.memo(({prefix, dataSource, config, selectedTable,
                              onOk, onClose, currentDb, dbData}) => {
   const currentPrefix = getPrefix(prefix);
+  const remark = remarkSetting(dataSource);
   const [success, setSuccess] = useState([]);
   const [leaveSuccess, setLeaveSuccess] = useState([]);
   const [fail, setFail] = useState([]);
@@ -36,14 +38,12 @@ export default React.memo(({prefix, dataSource, config, selectedTable,
             if (dbData.flag === 'LOWCASE') {
               return {
                 ...d,
-                defName: currentTable?.defName?.split(';')[0] || '',
-                comment: currentTable?.comment || currentTable?.defName?.split(';')[1] || '',
+                ...namedByRemark(currentTable, remark),
                 group,
                 fields: (d.fields || []).map(f => ({
                   ...f,
                   defKey: f.defKey?.toLocaleLowerCase(),
-                  defName: f?.defName?.split(';')[0] || '',
-                  comment: f.comment || f?.defName?.split(';')[1] || '',
+                  ...namedByRemark(f, remark),
                   primaryKey: !!f.primaryKey,
                   notNull: !!f.notNull,
                 })),
@@ -52,14 +52,12 @@ export default React.memo(({prefix, dataSource, config, selectedTable,
             } else if (dbData.flag === 'UPPERCASE') {
               return {
                 ...d,
-                defName: currentTable?.defName?.split(';')[0] || '',
-                comment: currentTable?.comment || currentTable?.defName?.split(';')[1] || '',
+                ...namedByRemark(currentTable, remark),
                 group,
                 fields: (d.fields || []).map(f => ({
                   ...f,
                   defKey: f.defKey?.toLocaleUpperCase(),
-                  defName: f?.defName?.split(';')[0] || '',
-                  comment: f.comment || f?.defName?.split(';')[1] || '',
+                  ...namedByRemark(f, remark),
                   primaryKey: !!f.primaryKey,
                   notNull: !!f.notNull,
                 })),
@@ -68,13 +66,11 @@ export default React.memo(({prefix, dataSource, config, selectedTable,
             }
             return {
               ...d,
-              defName: currentTable?.defName?.split(';')[0] || '',
-              comment: currentTable?.comment || currentTable?.defName?.split(';')[1] || '',
+              ...namedByRemark(currentTable, remark),
               group,
               fields: (d.fields || []).map(f => ({
                 ...f,
-                defName: f?.defName?.split(';')[0] || '',
-                comment: f.comment || f?.defName?.split(';')[1] || '',
+                ...namedByRemark(f, remark),
                 primaryKey: !!f.primaryKey,
                 notNull: !!f.notNull,
               })),

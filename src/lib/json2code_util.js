@@ -6,6 +6,7 @@ import { Message, FormatMessage } from '../components';
 import { separator } from '../../profile';
 import {getDefaultTemplate, transform} from './datasource_util';
 import {platform} from './middle';
+import {remarkSetting} from './remark';
 import {
   _camel, _getAllDataSQLByFilter,
   _getDataByChanges,
@@ -567,7 +568,8 @@ const generateIncreaseSql = (dataSource, group, dataTable, code, templateShow) =
   const templateData = {
     [name]: tempDataTable,
     group,
-    separator: sqlSeparator
+    separator: sqlSeparator,
+    remarkSeparator: remarkSetting(dataSource).separator,
   };
   if (!templateShow) {
     const dataTypeSupports = (dataSource.profile?.dataTypeSupports || []).filter(t => t.id === code)[0]

@@ -851,7 +851,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     'profile.default.entityInitProperties', 'profile.sql.delimiter', 'profile.generatorDoc.docTemplate',
   'profile.relationFieldSize', 'profile.uiHint', 'profile.relationType', 'profile.extProps',
     'profile.headers',
-    'profile.DDLToggleCase'];
+    'profile.DDLToggleCase', 'profile.sql.remarkSplit', 'profile.sql.remarkSeparator'];
   const importConfig = () => {
     Upload('application/json', (d) => {
       const data = JSON.parse(d);

@@ -6,6 +6,7 @@ import _ from 'lodash';
 import doT from 'dot';
 import {separator} from '../../profile';
 import {firstUp} from './string';
+import {remarkSetting, joinRemark} from './remark';
 import './Math';
 
 export const demoGroup = [{defKey: "DEFAULT_GROUP", defName: "默认分组"}];
@@ -726,6 +727,10 @@ export const _getTemplateString = (template, templateData, isDemo, dataSource , 
         if(args.length<=2)return args[0];
         const datas = [];
         const delimter = args[args.length-1];
+        // 模板以 join(名称, 说明, ';') 组合数据库备注，分隔符改由项目设置决定
+        if (args.length === 3 && delimter === ';' && templateData.remarkSeparator) {
+            return joinRemark(args[0], args[1], templateData.remarkSeparator);
+        }
         for(let i=0;i<args.length-1;i++){
             if(/^\s*$/.test(args[i]))continue;
             datas.push(args[i]);
@@ -823,12 +828,14 @@ export const _getTemplateString = (template, templateData, isDemo, dataSource , 
                 env: _getDefaultEnv(data),
             },
             separator: templateData.sqlSeparator,
+            remarkSeparator: templateData.remarkSeparator,
         })}${_getTemplateString(codeTemplate.createIndex || _getEmptyMessage('createIndex', dataSource, getCode()), {
             [type]: {
                 ...data,
                 env: _getDefaultEnv(data),
             },
             separator: templateData.sqlSeparator,
+            remarkSeparator: templateData.remarkSeparator,
         })}`
     }
     const currentEntityDropDDL = (data, type = 'entity') => {
@@ -837,6 +844,7 @@ export const _getTemplateString = (template, templateData, isDemo, dataSource , 
             [type]: { defKey: isDemo ? demoTable.entity.defKey : data.defKey },
             type,
             separator: templateData.sqlSeparator,
+            remarkSeparator: templateData.remarkSeparator,
         });
     };
     const currentEntityCreateDDL = (data, type = 'entity') => {
@@ -848,6 +856,7 @@ export const _getTemplateString = (template, templateData, isDemo, dataSource , 
                 env: _getDefaultEnv(data),
             },
             separator: templateData.sqlSeparator,
+            remarkSeparator: templateData.remarkSeparator,
         });
     }
     const conf = {
@@ -895,6 +904,7 @@ export const _getDataByChanges = (changes, dataSource, lang = 'zh') => {
         let sqlString = _getTemplateString(codeTemplate.update || _getDefaultTemplate(code, 'update', dataSource, lang), {
             changes,
             separator: sqlSeparator,
+            remarkSeparator: remarkSetting(dataSource).separator,
         }, false, dataSource, code);
         // const DDLToggleCase = dataSource?.profile?.DDLToggleCase || '';
         // if (DDLToggleCase) {
@@ -1541,7 +1551,8 @@ export const _getAllDataSQLByFilter = (data, code, filterTemplate, filterDefKey)
                 group: (dataSource.viewGroups || [])
                     .filter(g => (g[e.groupType] || []).includes(e.id))
                     .map(g => _.pick(g, ['defKey', 'defName'])),
-                separator: sqlSeparator
+                separator: sqlSeparator,
+                remarkSeparator: remarkSetting(dataSource).separator,
             };
             if (tempTemplate.includes('createTable')) {
                 tempTemplate.push('createView');

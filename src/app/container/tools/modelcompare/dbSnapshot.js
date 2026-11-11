@@ -1,4 +1,5 @@
 import {connectDB} from '../../../../lib/middle';
+import {remarkSetting, namedByRemark} from '../../../../lib/remark';
 
 const CHUNK = 15;
 const request = (dataSource, config, properties, command) => new Promise((resolve, reject) => {
@@ -8,13 +9,11 @@ const request = (dataSource, config, properties, command) => new Promise((resolv
   });
 });
 
-const splitName = d => ({
-  defName: d?.defName?.split(';')[0] || '',
-  comment: d.comment || d?.defName?.split(';')[1] || '',
-});
 
 // Same jar commands as the model-vs-database screen. Rejects with {body} on failure.
 export const loadDbSnapshot = async (dataSource, config, conn, onProgress) => {
+  const remark = remarkSetting(dataSource);
+  const splitName = d => namedByRemark(d, remark);
   const tables = await request(dataSource, config, conn.properties, 'DBReverseGetAllTablesList');
   const entities = [];
   for (let i = 0; i < tables.length; i += CHUNK) {

@@ -3,6 +3,7 @@ import React, {useEffect, forwardRef, useImperativeHandle, useRef} from 'react';
 import {Icon, Modal, FormatMessage, Terminal} from 'components';
 import {connectDB, getLogPath, showItemInFolder} from '../../../../lib/middle';
 import {getPrefix} from '../../../../lib/prefixUtil';
+import {connProperties} from './DbSelect';
 
 export default React.memo(forwardRef(({prefix, dataSource, getDbData, config,
                                         parseFinish, parseError}, ref) => {
@@ -10,7 +11,8 @@ export default React.memo(forwardRef(({prefix, dataSource, getDbData, config,
   const dbConn = dataSource?.dbConn || [];
   const parser = () => {
     const dbData = getDbData();
-    const properties = (dbConn.filter(d => d.defKey === dbData.defKey)[0] || {})?.properties || {};
+    const conn = dbConn.filter(d => d.defKey === dbData.defKey)[0];
+    const properties = connProperties(conn, dbData.database);
     parserRef.current = connectDB(dataSource, config, properties, 'DBReverseGetAllTablesList', (data) => {
       if (data.status === 'FAILED') {
         const termReady = (term) => {

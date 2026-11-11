@@ -1,7 +1,7 @@
 import React, {useState, useMemo, useRef} from 'react';
 import {Step, Button, FormatMessage, openModal} from 'components';
 
-import DbSelect from './DbSelect';
+import DbSelect, {connProperties} from './DbSelect';
 import ParseDb from './ParseDb';
 import DealData from './DealData';
 import DealProgress from './DealProgress';
@@ -27,6 +27,9 @@ export default React.memo(({prefix, dataSource, dataChange, config, onClose, onO
   };
   const dbChange = (e, name) => {
     dbData[name] = e.target.value;
+    if (name === 'defKey') {
+      dbData.database = '';
+    }
   };
   const getDbData = () => {
     return dbData;
@@ -51,11 +54,12 @@ export default React.memo(({prefix, dataSource, dataChange, config, onClose, onO
       modal && modal.close();
       //onClose && onClose();
     };
+    const currentConn = dbConn.filter(d => d.defKey === dbData.defKey)[0];
     const selectedTable = dealDataRef.current.getData()
         .reduce((a, b) => a.concat(b.fields.map(f => ({...f, group: b.id}))), []);
     modal = openModal(<DealProgress
       dbData={dbData}
-      currentDb={dbConn.filter(d => d.defKey === dbData.defKey)[0]}
+      currentDb={{...currentConn, properties: connProperties(currentConn, dbData.database)}}
       dataSource={dataSource}
       config={config}
       selectedTable={selectedTable}
@@ -78,6 +82,7 @@ export default React.memo(({prefix, dataSource, dataChange, config, onClose, onO
           content: <DbSelect
             prefix={prefix}
             dataSource={dataSource}
+            config={config}
             dbChange={dbChange}
           />,
           key: 1,

@@ -1322,6 +1322,13 @@ export default {
     "noneSelected": "請選擇一個連線",
     "imported": "已匯入連線"
   },
+  "dbDatabase": {
+    "label": "資料庫",
+    "loading": "正在讀取資料庫清單…",
+    "reload": "重新讀取",
+    "failed": "讀取資料庫清單失敗：",
+    "none": "連線未指定資料庫，將使用伺服器的預設資料庫，建議在此選擇。"
+  },
   "dbObject": {
     "title": "資料庫物件",
     "types": {

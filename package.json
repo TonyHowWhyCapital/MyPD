@@ -5,6 +5,7 @@
   "scripts": {
     "test": "jest",
     "lang:zhTW": "node bin/gen-lang-zhtw.js",
+    "build:javatools": "javac --release 8 -d public/jar/tools scripts/java/mypd/ListDatabases.java",
     "electron": "electron ./src/main",
     "start": "node bin/start.js",
     "build": "node bin/build.js",

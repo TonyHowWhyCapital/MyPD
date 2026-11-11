@@ -552,6 +552,34 @@ export const connectDB = (dataSource, config, params = {}, cmd, cb) => {
     });
 };
 
+// 列出连接所在服务器上的数据库，使用引擎 jar 自带的驱动加载 build/jar/tools 下的小工具
+export const listDatabases = (dataSource, config, params = {}) => {
+  return new Promise((res, rej) => {
+    const jar = ipcRenderer.sendSync('jarPath');
+    const outFile = `${execJarOut}${moment().unix()}-databases.json`;
+    const javaHome = config?.javaHome || _.get(dataSource, 'profile.javaHome', '');
+    const args = [
+      '-Dfile.encoding=utf-8',
+      '-cp', jar,
+      `-Dloader.path=${path.join(path.dirname(jar), 'tools')}${path.sep}`,
+      '-Dloader.main=mypd.ListDatabases',
+      'org.springframework.boot.loader.PropertiesLauncher',
+      ...['driver_class_name', 'url', 'username', 'password'].map(k => `${k}='${params[k] || ''}'`),
+      `out='${outFile}'`,
+    ];
+    if (params.customer_driver) {
+      args.unshift(`-Xbootclasspath/a:${params.customer_driver}`);
+    }
+    execFile(javaHome ? path.join(javaHome, 'bin', 'java') : 'java', args, (error, stdout, stderr) => {
+      readJsonPromise(outFile).then((d) => {
+        d.status === 'SUCCESS' ? res(d.body) : rej(new Error(d.body));
+      }).catch(() => {
+        rej(new Error(`${stderr || error?.message || stdout}`.trim()));
+      }).finally(() => deleteFile(outFile));
+    });
+  });
+};
+
 export const copyFile = (defaultPath, filters) => {
   return new Promise((res, rej) => {
     dialog.showSaveDialog({

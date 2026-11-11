@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import {
-  FormatMessage, Button, Input, Select, Text,
+  FormatMessage, Button, Input, Select, Text, openModal,
 } from 'components';
 import { sectionTypes, labelOf } from '../../../../lib/report';
 import { getPrefix } from '../../../../lib/prefixUtil';
 import ColumnPicker from './ColumnPicker';
+import ColumnDesigner from './ColumnDesigner';
 
 const Option = Select.Option;
 
-export default React.memo(({ prefix, draft, lang, onChange, onSave }) => {
+export default React.memo(({
+  prefix, draft, lang, getDataSource, onChange, onSave,
+}) => {
   const currentPrefix = getPrefix(prefix);
   const [newType, setNewType] = useState('entityList');
   if (!draft) {
@@ -19,6 +22,21 @@ export default React.memo(({ prefix, draft, lang, onChange, onSave }) => {
   const setSections = sections => onChange({ ...draft, sections });
   const patchSection = (index, patch) => {
     setSections(draft.sections.map((s, i) => (i === index ? { ...s, ...patch } : s)));
+  };
+  const design = (index) => {
+    const section = draft.sections[index];
+    const modal = openModal(<ColumnDesigner
+      prefix={prefix}
+      section={section}
+      def={sectionTypes[section.type]}
+      dataSource={getDataSource()}
+      lang={lang}
+      onChange={patch => patchSection(index, patch)}
+    />, {
+      title: `${FormatMessage.string({ id: 'report.designTitle' })} - ${section.title || labelOf(`section.${section.type}`, lang)}`,
+      bodyStyle: { width: '88%' },
+      buttons: [<Button key='close' onClick={() => modal.close()}><FormatMessage id='report.close'/></Button>],
+    });
   };
   const move = (index, delta) => {
     const target = index + delta;
@@ -55,6 +73,8 @@ export default React.memo(({ prefix, draft, lang, onChange, onSave }) => {
           <div className={`${currentPrefix}-report-section-head`}>
             <strong>{labelOf(`section.${s.type}`, lang)}</strong>
             <span>
+              {def && def.columns.length > 0 && !def.summary
+                && <a onClick={() => design(i)}><FormatMessage id='report.design'/></a>}
               <a onClick={() => move(i, -1)}><FormatMessage id='report.moveUp'/></a>
               <a onClick={() => move(i, 1)}><FormatMessage id='report.moveDown'/></a>
               <a onClick={() => setSections(draft.sections.filter((_, idx) => idx !== i))}><FormatMessage id='report.remove'/></a>

@@ -16,7 +16,7 @@ import { renderHtml } from './html';
 import { renderDocx } from './docx';
 
 export {
-  sectionTypes, resolveColumns, toggleColumn, moveColumn, labelOf, renderMarkdown, renderHtml, renderDocx,
+  sectionTypes, buildSection, resolveColumns, toggleColumn, moveColumn, labelOf, renderMarkdown, renderHtml, renderDocx,
   resolveWidths, columnPercents, setColumnWidth,
   dragColumn, widthsOf, applyWidths, clearWidths, hasWidths,
   ALIGNS, alignOf, setColumnAlign, nextAlign, applyAligns,

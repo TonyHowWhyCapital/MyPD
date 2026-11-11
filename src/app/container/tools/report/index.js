@@ -65,7 +65,14 @@ export default React.memo(({ prefix, dataSource, getDataSource, updateDataSource
       onCopy={copy}
       onDelete={remove}
     />
-    <TemplateEditor prefix={prefix} draft={draft} lang={lang} onChange={setDraft} onSave={save}/>
+    <TemplateEditor
+      prefix={prefix}
+      draft={draft}
+      lang={lang}
+      getDataSource={getDataSource}
+      onChange={setDraft}
+      onSave={save}
+    />
     {draft && <GeneratePanel
       prefix={prefix}
       template={draft}

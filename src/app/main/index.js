@@ -80,7 +80,7 @@ import { imgAll } from '../../lib/generatefile/img';
 import {compareVersion} from '../../lib/update';
 import {notify} from '../../lib/subscribe';
 import {READING} from '../../lib/variable';
-import {isPdmFile, createPdm} from '../../lib/pdm';
+import {isPdmFile, createPdm, remarksAsComments} from '../../lib/pdm';
 import {pickNewGroups} from '../../components/listgroupselect/newGroup';
 import LogicEntity from '../container/logicentity';
 
@@ -1007,7 +1007,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     try {
       const xml = createPdm({
         ...dataSourceRef.current,
-        entities: data.map(e => ({...e, id: e.id || Math.uuid()})),
+        entities: remarksAsComments(data).map(e => ({...e, id: e.id || Math.uuid()})),
       }, {name: conn.defName, dbId: conn.type});
       saveFile(xml, [{name: 'PDM', extensions: ['pdm']}],
         p => (/\.pdm$/i.test(p) ? p : `${p}.pdm`),

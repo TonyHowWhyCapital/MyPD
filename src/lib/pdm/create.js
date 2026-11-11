@@ -160,6 +160,13 @@ const addSymbols = (xml, entities) => {
 };
 
 // Builds a new model file from tables. `entityIds` limits it to chosen tables.
+// The reverse engine hands a database remark over as the display name. A PDM keeps
+// remarks in Comment, so tables and columns without a comment get the remark there.
+export const remarksAsComments = (entities) => {
+  const fill = o => (o.comment || !o.defName ? o : { ...o, comment: o.defName });
+  return (entities || []).map(e => ({ ...fill(e), fields: (e.fields || []).map(fill) }));
+};
+
 export const createPdm = (dataSource, { name, dbId, entityIds, now, user = 'MyPD' } = {}) => {
   const supports = dataSource.profile?.dataTypeSupports || [];
   const db = supports.find(s => s.id === dbId) || supports.find(s => s.id === dataSource.profile?.default?.db);

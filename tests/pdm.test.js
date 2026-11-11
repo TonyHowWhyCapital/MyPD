@@ -241,6 +241,24 @@ describe('creating a pdm file from tables', () => {
     expect(orders.indexes).toMatchObject([{ defKey: 'ix_orders_buyer', unique: true, fields: [{ fieldDefKey: orders.fields[2].id }] }]);
   });
 
+  test('database remarks handed over as names are also written as comments', () => {
+    const { remarksAsComments } = require('../src/lib/pdm');
+    const reversed = remarksAsComments([{
+      id: 'r1', defKey: 'broker', defName: '券商主檔', comment: '',
+      fields: [
+        newField('rf1', 'merge_date', { defName: '合併日期', comment: '' }),
+        newField('rf2', 'note', { defName: '備註', comment: '自由填寫' }),
+        newField('rf3', 'code', { defName: '', comment: '' }),
+      ],
+      indexes: [],
+    }]);
+    const table = open(createPdm({ ...project, entities: reversed }, { dbId: dbId('SQLServer') })).entities[0];
+    expect([table.defName, table.comment]).toEqual(['券商主檔', '券商主檔']);
+    expect(table.fields.map(f => [f.defKey, f.defName, f.comment])).toEqual([
+      ['merge_date', '合併日期', '合併日期'], ['note', '備註', '自由填寫'], ['code', 'code', ''],
+    ]);
+  });
+
   test('resolves column types for the chosen database', () => {
     const ds = open(createPdm(project, { dbId: dbId('ORACLE') }));
     expect(ds.entities[0].fields[2].type).toBe(stringMapping[dbId('ORACLE')]);

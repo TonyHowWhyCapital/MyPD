@@ -25,7 +25,10 @@ export default React.memo(({
     <table className={percents ? 'sized' : ''}>
       {percents && <colgroup>{percents.map((p, i) => <col key={i} style={{ width: `${p}%` }}/>)}</colgroup>}
       <thead>
-        <tr>{table.headers.map((h, i) => <th key={i}>
+        <tr>{table.headers.map((h, i) => <th
+          key={i}
+          style={table.keys ? { textAlign: table.headAligns[i], ...cssOf(table.headStyles[i]) } : undefined}
+        >
           <span
             className={renamed[i] ? 'renamed' : ''}
             title={renamed[i] ? FormatMessage.string({ id: 'report.originalName', data: { name: renamed[i] } }) : undefined}

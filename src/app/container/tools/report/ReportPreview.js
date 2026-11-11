@@ -23,7 +23,10 @@ const Table = ({ cls, block, onDrag, onAlign }) => {
         {block.headers.map((h, i) => <col key={i} style={{ width: percents ? `${percents[i]}%` : '' }}/>)}
       </colgroup>
       <thead>
-        <tr>{block.headers.map((h, i) => <th key={i}>
+        <tr>{block.headers.map((h, i) => <th
+          key={i}
+          style={{ textAlign: (block.headAligns || [])[i], ...cssOf((block.headStyles || [])[i]) }}
+        >
           <span title={original(block, i)} className={original(block, i) ? 'renamed' : ''}>{h}</span>
           {block.keys && block.keys[i] && <Icon
             type={`fa-align-${aligns[i]}`}

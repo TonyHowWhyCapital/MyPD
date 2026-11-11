@@ -31,13 +31,17 @@ const hex = c => c.slice(1).toUpperCase();
 // Run properties in the order the schema lists them.
 const runOf = s => (s ? `${s.bold ? '<w:b/>' : ''}${s.italic ? '<w:i/>' : ''}${s.color ? `<w:color w:val="${hex(s.color)}"/>` : ''}${s.size ? `<w:sz w:val="${s.size * 2}"/>` : ''}${s.underline ? '<w:u w:val="single"/>' : ''}` : '');
 
-const table = (headers, rows, widths, aligns = [], styles = []) => {
+const table = (headers, rows, {
+  widths, aligns, styles, headAligns, headStyles,
+}) => {
   const percents = columnPercents(widths, headers.length);
   const even = Math.floor(TABLE_WIDTH / Math.max(headers.length, 1));
   const widthOf = i => (percents ? Math.round(TABLE_WIDTH * percents[i] / 100) : even);
-  const fillOf = (head, i) => (head ? 'E7EAF0' : styles[i] && styles[i].fill && hex(styles[i].fill));
+  const lookOf = (head, i) => ((head ? headStyles : styles) || [])[i] || (head ? { bold: true } : null);
+  const fillOf = (head, i) => (lookOf(head, i) && lookOf(head, i).fill ? hex(lookOf(head, i).fill) : head && 'E7EAF0');
+  const alignOf = (head, i) => (head ? (headAligns || [])[i] || 'center' : (aligns || [])[i]);
   const shade = fill => (fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>` : '');
-  const cell = (text, head, i) => `<w:tc><w:tcPr><w:tcW w:w="${widthOf(i)}" w:type="dxa"/>${shade(fillOf(head, i))}</w:tcPr>${para(text, { bold: head, align: head ? 'center' : aligns[i], run: head ? '' : runOf(styles[i]) })}</w:tc>`;
+  const cell = (text, head, i) => `<w:tc><w:tcPr><w:tcW w:w="${widthOf(i)}" w:type="dxa"/>${shade(fillOf(head, i))}</w:tcPr>${para(text, { align: alignOf(head, i), run: runOf(lookOf(head, i)) })}</w:tc>`;
   const grid = headers.map((h, i) => `<w:gridCol w:w="${widthOf(i)}"/>`).join('');
   const head = `<w:tr><w:trPr><w:tblHeader/></w:trPr>${headers.map((h, i) => cell(h, true, i)).join('')}</w:tr>`;
   const body = rows.map(r => `<w:tr>${r.map((c, i) => cell(c, false, i)).join('')}</w:tr>`).join('');
@@ -65,7 +69,7 @@ export const buildDocumentXml = (doc) => {
     else if (b.type === 'toc') {
       body.push(para(labelOf('contents', lang), { bold: true }));
       headings.forEach(h => body.push(para(h.text, { indent: 360 * (h.level - 1) })));
-    } else if (b.type === 'table' && b.headers.length) body.push(table(b.headers, b.rows, b.widths, b.aligns, b.styles));
+    } else if (b.type === 'table' && b.headers.length) body.push(table(b.headers, b.rows, b));
   });
   const sect = '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr>';
   return `${XML}<w:document ${NS}><w:body>${body.join('')}${sect}</w:body></w:document>`;

@@ -1,34 +1,44 @@
-// The look of a column's cells: size, weight, colours. Headers keep the report's own look.
+// The look of a column: size, weight, colours. Its cells and its header are styled apart,
+// `part` is 'cell' or 'head'. A header starts out bold, a cell plain.
 export const FONT_SIZES = [8, 9, 10, 10.5, 11, 12, 14, 16, 18, 20, 24];
 const HEX = /^#[0-9a-f]{6}$/i;
 const FLAGS = ['bold', 'italic', 'underline'];
 
-// Keeps only what is valid and set, so an untouched column stores nothing.
-export const cleanStyle = (style) => {
+const BASE = { cell: {}, head: { bold: true } };
+const STORE = { cell: 'styles', head: 'headStyles' };
+const baseOf = part => BASE[part] || BASE.cell;
+export const styleStore = part => STORE[part] || STORE.cell;
+
+// Keeps only what is valid and differs from the starting look, so an untouched column
+// stores nothing.
+export const cleanStyle = (style, base = {}) => {
   const s = style || {};
   const out = {};
   if (FONT_SIZES.includes(Number(s.size))) out.size = Number(s.size);
-  FLAGS.forEach((f) => { if (s[f] === true) out[f] = true; });
+  FLAGS.forEach((f) => { if (typeof s[f] === 'boolean' && s[f] !== !!base[f]) out[f] = s[f]; });
   ['color', 'fill'].forEach((c) => { if (HEX.test(s[c] || '')) out[c] = s[c].toLowerCase(); });
   return out;
 };
 
-export const styleOf = (section, key) => cleanStyle(((section && section.styles) || {})[key]);
+// What the template stores for the column, and the look that results from it.
+export const styleOf = (section, key, part = 'cell') => cleanStyle(
+  ((section && section[styleStore(part)]) || {})[key], baseOf(part),
+);
+export const lookOf = (section, key, part = 'cell') => ({ ...baseOf(part), ...styleOf(section, key, part) });
 
-export const setColumnStyle = (section, key, change) => {
-  const { [key]: dropped, ...rest } = section.styles || {};
-  const next = cleanStyle({ ...styleOf(section, key), ...change });
+export const setColumnStyle = (section, key, change, part = 'cell') => {
+  const { [key]: dropped, ...rest } = section[styleStore(part)] || {};
+  const next = cleanStyle({ ...lookOf(section, key, part), ...change }, baseOf(part));
   return Object.keys(next).length ? { ...rest, [key]: next } : rest;
 };
 
-export const resolveStyles = (cols, section) => cols.map((c) => {
-  const s = styleOf(section, c);
-  return Object.keys(s).length ? s : null;
-});
+// null for a column left as it is, so the renderers keep their own default.
+export const resolveStyles = (cols, section, part = 'cell') => cols.map(c => (
+  Object.keys(styleOf(section, c, part)).length ? lookOf(section, c, part) : null));
 
 const CSS = [
   ['fontSize', 'font-size', s => s.size && `${s.size}pt`],
-  ['fontWeight', 'font-weight', s => s.bold && 'bold'],
+  ['fontWeight', 'font-weight', s => (s.bold === true && 'bold') || (s.bold === false && 'normal')],
   ['fontStyle', 'font-style', s => s.italic && 'italic'],
   ['textDecoration', 'text-decoration', s => s.underline && 'underline'],
   ['color', 'color', s => s.color],

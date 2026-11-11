@@ -1627,7 +1627,7 @@ export default {
     "widthAuto": "自動",
     "design": "版面設計",
     "designTitle": "列版面設計",
-    "designTip": "點選列可在右側調整屬性，拖拽表頭調整順序，拖拽表頭之間的分隔線調整寬度。",
+    "designTip": "點選表頭或內容可在右側分別調整屬性，拖拽表頭調整順序，拖拽表頭之間的分隔線調整寬度。",
     "designColumns": "列選擇",
     "designProps": "屬性",
     "designPick": "請在左側點選一個列，或在上方勾選要顯示的列",
@@ -1639,6 +1639,10 @@ export default {
     "propAlign": "對齊",
     "propReset": "恢復預設",
     "propDefault": "預設",
+    "part": {
+      "cell": "欄位內容",
+      "head": "抬頭"
+    },
     "propSize": "字號",
     "propFont": "字形",
     "propColor": "文字顏色",

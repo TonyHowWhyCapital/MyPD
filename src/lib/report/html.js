@@ -33,7 +33,9 @@ export const renderHtml = (doc) => {
       return `<nav class="toc"><strong>${escapeHtml(labelOf('contents', lang))}</strong><ul>${items.join('')}</ul></nav>`;
     }
     if (b.type === 'table') {
-      const head = b.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('');
+      const headCss = i => [(b.headAligns || [])[i] && b.headAligns[i] !== 'center' ? `text-align:${b.headAligns[i]}` : '',
+        cssText((b.headStyles || [])[i])].filter(Boolean).join(';');
+      const head = b.headers.map((h, i) => `<th${headCss(i) ? ` style="${headCss(i)}"` : ''}>${escapeHtml(h)}</th>`).join('');
       const aligns = b.aligns || [];
       const styles = (b.styles || []).map(cssText);
       const td = i => `<td${aligns[i] && aligns[i] !== 'left' ? ` class="${aligns[i]}"` : ''}${styles[i] ? ` style="${styles[i]}"` : ''}>`;

@@ -472,3 +472,42 @@ describe('report column style', () => {
     expect(buildDocumentXml(doc)).not.toContain('<w:sz ');
   });
 });
+
+describe('report header style', () => {
+  const {
+    setColumnStyle, setColumnAlign, lookOf, alignOf, labelOf, renderHtml: html,
+  } = require('../src/lib/report');
+  const { buildDocumentXml } = require('../src/lib/report/docx');
+  const ds = { name: 'm', entities: [{ id: 'a', defKey: 'A', defName: 'n', fields: [{ id: '1', defKey: 'x' }] }] };
+  const template = extra => ({
+    defName: 't', kind: 'list', sections: [sectionOf('entityList', { columns: ['defKey', 'defName'], ...extra })],
+  });
+  test('a header starts bold and centred, only a change is stored', () => {
+    expect(lookOf({}, 'defKey', 'head')).toEqual({ bold: true });
+    expect(alignOf({}, 'defKey', 'head')).toBe('center');
+    expect(setColumnStyle({}, 'defKey', { bold: true }, 'head')).toEqual({});
+    expect(setColumnStyle({}, 'defKey', { bold: false, fill: '#DDEEFF' }, 'head')).toEqual({ defKey: { bold: false, fill: '#ddeeff' } });
+    expect(setColumnAlign({}, 'defKey', 'center', 'head')).toEqual({});
+    expect(setColumnAlign({}, 'defKey', 'left', 'head')).toEqual({ defKey: 'left' });
+  });
+  test('header and cells are styled apart', () => {
+    const doc = buildReport(template({
+      headStyles: { defKey: { bold: false, color: '#ffffff', fill: '#336699' } },
+      headAligns: { defKey: 'left' },
+      styles: { defKey: { italic: true } },
+    }), [ds], { lang: 'en' });
+    const out = html(doc);
+    expect(out).toContain('<th style="text-align:left;font-weight:normal;color:#ffffff;background-color:#336699">');
+    expect(out).toContain(`<th>${labelOf('defName', 'en')}</th>`);
+    expect(out).toContain('<td style="font-style:italic">A</td>');
+    const xml = buildDocumentXml(doc);
+    expect(xml).toContain('w:fill="336699"/></w:tcPr><w:p><w:r><w:rPr><w:color w:val="FFFFFF"/></w:rPr>');
+    expect(xml.match(/w:fill="E7EAF0"/g).length).toBe(1);
+    expect(xml.match(/<w:jc w:val="center"\/>/g).length).toBe(1);
+  });
+  test('an untouched header renders as before', () => {
+    const doc = buildReport(template(), [ds], { lang: 'en' });
+    expect(html(doc)).toContain(`<th>${labelOf('defKey', 'en')}</th>`);
+    expect(buildDocumentXml(doc)).toContain('w:fill="E7EAF0"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr>');
+  });
+});

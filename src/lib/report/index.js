@@ -8,11 +8,11 @@ import {
   dragColumn, widthsOf, applyWidths, clearWidths, hasWidths,
 } from './resize';
 import {
-  ALIGNS, alignOf, setColumnAlign, nextAlign, applyAligns,
+  ALIGNS, alignOf, setColumnAlign, nextAlign, applyAligns, alignStore,
 } from './align';
 import { columnLabel, originalLabel, setColumnLabel } from './rename';
 import {
-  FONT_SIZES, styleOf, setColumnStyle, cssOf,
+  FONT_SIZES, styleOf, lookOf, setColumnStyle, cssOf, styleStore,
 } from './style';
 import { renderMarkdown } from './markdown';
 import { renderHtml } from './html';
@@ -24,7 +24,7 @@ export {
   dragColumn, widthsOf, applyWidths, clearWidths, hasWidths,
   ALIGNS, alignOf, setColumnAlign, nextAlign, applyAligns,
   columnLabel, originalLabel, setColumnLabel,
-  FONT_SIZES, styleOf, setColumnStyle, cssOf,
+  FONT_SIZES, styleOf, lookOf, setColumnStyle, cssOf, styleStore, alignStore,
 };
 
 const KINDS = ['document', 'list'];
@@ -134,6 +134,8 @@ const buildListTable = (template, dataSources, lang) => {
     aligns: multi ? ['left', ...tables[0].table.aligns] : tables[0].table.aligns,
     renamed: multi ? ['', ...tables[0].table.renamed] : tables[0].table.renamed,
     styles: multi ? [null, ...tables[0].table.styles] : tables[0].table.styles,
+    headAligns: multi ? ['center', ...tables[0].table.headAligns] : tables[0].table.headAligns,
+    headStyles: multi ? [null, ...tables[0].table.headStyles] : tables[0].table.headStyles,
   }];
 };
 

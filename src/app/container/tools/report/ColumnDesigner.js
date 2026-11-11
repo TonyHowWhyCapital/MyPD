@@ -53,8 +53,9 @@ const Sheet = ({
       <tr>{table.headers.map((h, i) => <th
         key={table.keys[i]}
         className={picked(i)}
+        style={{ textAlign: table.headAligns[i], ...cssOf(table.headStyles[i]) }}
         draggable
-        onClick={() => onSelect(table.keys[i])}
+        onClick={() => onSelect(table.keys[i], 'head')}
         onDragStart={e => e.dataTransfer.setData('text/plain', table.keys[i])}
         onDragOver={e => e.preventDefault()}
         onDrop={(e) => { e.preventDefault(); onMove(e.dataTransfer.getData('text/plain'), i); }}
@@ -70,7 +71,7 @@ const Sheet = ({
         key={i}
         className={picked(i)}
         style={{ textAlign: table.aligns[i], ...cssOf(table.styles[i]) }}
-        onClick={() => onSelect(table.keys[i])}
+        onClick={() => onSelect(table.keys[i], 'cell')}
       >{c}</td>)}</tr>)}
     </tbody>
   </table>;
@@ -84,6 +85,7 @@ export default ({
   const cls = `${getPrefix(prefix)}-report-design`;
   const [sec, setSec] = useState(section);
   const [selected, setSelected] = useState(resolveColumns(def, section)[0]);
+  const [part, setPart] = useState('cell');
   const patch = (change) => {
     const next = { ...sec, ...change };
     setSec(next);
@@ -94,6 +96,8 @@ export default ({
       aligns: next.aligns,
       labels: next.labels,
       styles: next.styles,
+      headAligns: next.headAligns,
+      headStyles: next.headStyles,
     });
   };
   const chosen = resolveColumns(def, sec);
@@ -111,7 +115,7 @@ export default ({
           table={table}
           chosen={chosen}
           selected={selected}
-          onSelect={setSelected}
+          onSelect={(key, to) => { setSelected(key); to && setPart(to); }}
           onMove={(key, to) => { patch({ columns: moveColumn(def, sec, key, to) }); setSelected(key); }}
           onResize={widths => patch({ widths })}
         />
@@ -134,7 +138,7 @@ export default ({
       </div>
       <div className={`${cls}-panel`}>
         <strong><FormatMessage id='report.designProps'/></strong>
-        <ColumnProperties cls={cls} def={def} section={sec} lang={lang} selected={selected} patch={patch}/>
+        <ColumnProperties cls={cls} def={def} section={sec} lang={lang} selected={selected} part={part} onPart={setPart} patch={patch}/>
       </div>
     </div>
   </div>;

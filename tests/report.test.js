@@ -379,3 +379,37 @@ describe('report column widths from the preview', () => {
     expect(hasWidths(clearWidths(next))).toBe(false);
   });
 });
+
+describe('report column alignment', () => {
+  const { setColumnAlign, alignOf, nextAlign, renderHtml: html, renderMarkdown: md } = require('../src/lib/report');
+  const { buildDocumentXml } = require('../src/lib/report/docx');
+  const ds = { name: 'm', entities: [{ id: 'a', defKey: 'A', defName: 'n', fields: [{ id: '1', defKey: 'x', primaryKey: true, len: 9 }] }] };
+  const template = aligns => ({
+    defName: 't', kind: 'list',
+    sections: [sectionOf('fieldList', { columns: ['seq', 'defKey', 'len', 'primaryKey'], aligns })],
+  });
+  test('text is left, numbers right, flags and the running number centred', () => {
+    expect(buildReport(template(), [ds], { lang: 'en' }).blocks[0].aligns)
+      .toEqual(['center', 'left', 'right', 'center']);
+  });
+  test('a column can be set, and a default choice is not stored', () => {
+    expect(setColumnAlign({}, 'defKey', 'right')).toEqual({ defKey: 'right' });
+    expect(setColumnAlign({ aligns: { defKey: 'right' } }, 'defKey', 'left')).toEqual({});
+    expect(setColumnAlign({}, 'defKey', 'justify')).toEqual({});
+    expect(alignOf({ aligns: { len: 'left' } }, 'len')).toBe('left');
+    expect(['left', 'center', 'right'].map(nextAlign)).toEqual(['center', 'right', 'left']);
+    expect(buildReport(template({ defKey: 'right' }), [ds], { lang: 'en' }).blocks[0].aligns[1]).toBe('right');
+  });
+  test('every format follows it, with centred headers', () => {
+    const doc = buildReport(template(), [ds], { lang: 'en' });
+    expect(html(doc)).toContain('<tr><td class="center">1</td><td>x</td><td class="right">9</td><td class="center">Y</td></tr>');
+    expect(html(doc)).toContain('th{background:#f0f2f5;text-align:center}');
+    expect(md(doc)).toContain('| :---: | --- | ---: | :---: |');
+    const xml = buildDocumentXml(doc);
+    expect(xml.match(/<w:jc w:val="center"\/>/g).length).toBe(6);
+    expect(xml.match(/<w:jc w:val="right"\/>/g).length).toBe(1);
+  });
+  test('the model column of a multi model list is left', () => {
+    expect(buildReport(template(), [ds, ds], { lang: 'en' }).blocks[0].aligns[0]).toBe('left');
+  });
+});

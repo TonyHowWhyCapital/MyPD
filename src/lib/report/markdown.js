@@ -1,5 +1,6 @@
 import { labelOf } from './labels';
 
+const RULES = { center: ':---:', right: '---:' };
 const cell = v => String(v).replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>');
 
 export const collectHeadings = doc => doc.blocks.filter(b => b.type === 'heading');
@@ -17,7 +18,7 @@ export const renderMarkdown = (doc) => {
       collectHeadings(doc).forEach(h => out.push(`${'  '.repeat(h.level - 1)}- ${h.text}`));
       out.push('');
     } else if (b.type === 'table' && b.headers.length) {
-      out.push(`| ${b.headers.map(cell).join(' | ')} |`, `| ${b.headers.map(() => '---').join(' | ')} |`);
+      out.push(`| ${b.headers.map(cell).join(' | ')} |`, `| ${b.headers.map((h, i) => RULES[(b.aligns || [])[i]] || '---').join(' | ')} |`);
       b.rows.forEach(r => out.push(`| ${r.map(cell).join(' | ')} |`));
       out.push('');
     }

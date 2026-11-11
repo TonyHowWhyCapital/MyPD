@@ -1,7 +1,8 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Button, FormatMessage } from 'components';
+import { Button, FormatMessage, Icon } from 'components';
 import {
   buildReport, labelOf, columnPercents, dragColumn, widthsOf, applyWidths, clearWidths, hasWidths,
+  nextAlign, setColumnAlign,
 } from '../../../../lib/report';
 import { getPrefix } from '../../../../lib/prefixUtil';
 
@@ -9,7 +10,8 @@ import { getPrefix } from '../../../../lib/prefixUtil';
 const MAX_ROWS = 50;
 const percentText = p => `${Math.round(p)}%`;
 
-const Table = ({ cls, block, onDrag }) => {
+const Table = ({ cls, block, onDrag, onAlign }) => {
+  const aligns = block.aligns || [];
   const percents = columnPercents(block.widths, block.headers.length);
   const rows = block.rows.slice(0, MAX_ROWS);
   return <React.Fragment>
@@ -20,13 +22,18 @@ const Table = ({ cls, block, onDrag }) => {
       <thead>
         <tr>{block.headers.map((h, i) => <th key={i}>
           {h}
+          {block.keys && block.keys[i] && <Icon
+            type={`fa-align-${aligns[i]}`}
+            title={FormatMessage.string({ id: 'report.alignTip' })}
+            onClick={() => onAlign(block, i)}
+          />}
           {block.sectionId && <small>{percents ? percentText(percents[i]) : ''}</small>}
           {block.sectionId && i < block.headers.length - 1
             && <span className={`${cls}-handle`} onMouseDown={e => onDrag(e, block, i)}/>}
         </th>)}</tr>
       </thead>
       <tbody>
-        {rows.map((r, n) => <tr key={n}>{r.map((c, i) => <td key={i}>{c}</td>)}</tr>)}
+        {rows.map((r, n) => <tr key={n}>{r.map((c, i) => <td key={i} style={{ textAlign: aligns[i] || 'left' }}>{c}</td>)}</tr>)}
       </tbody>
     </table>
     {block.rows.length > MAX_ROWS && <div className={`${cls}-more`}>
@@ -35,7 +42,7 @@ const Table = ({ cls, block, onDrag }) => {
   </React.Fragment>;
 };
 
-const Blocks = React.memo(({ cls, doc, onDrag }) => {
+const Blocks = ({ cls, doc, onDrag, onAlign }) => {
   const headings = doc.blocks.filter(b => b.type === 'heading');
   return doc.blocks.map((b, n) => {
     if (b.type === 'heading') {
@@ -49,9 +56,9 @@ const Blocks = React.memo(({ cls, doc, onDrag }) => {
         {headings.map((h, i) => <li key={i} style={{ marginLeft: (h.level - 1) * 16 }}>{h.text}</li>)}
       </ul>;
     }
-    return b.type === 'table' ? <Table key={n} cls={cls} block={b} onDrag={onDrag}/> : null;
+    return b.type === 'table' ? <Table key={n} cls={cls} block={b} onDrag={onDrag} onAlign={onAlign}/> : null;
   });
-});
+};
 
 // The report as it will be laid out in docx and html. Dragging a header border resizes
 // every table of that section and writes the widths back into the template.
@@ -94,6 +101,14 @@ export default ({
     document.addEventListener('mousemove', move);
     document.addEventListener('mouseup', up);
   };
+  const onAlign = (block, i) => {
+    const key = block.keys[i];
+    update({
+      ...tpl,
+      sections: tpl.sections.map(s => (s.id === block.sectionId
+        ? { ...s, aligns: setColumnAlign(s, key, nextAlign(block.aligns[i])) } : s)),
+    });
+  };
   return <div className={cls}>
     <div className={`${cls}-bar`}>
       <span><FormatMessage id='report.previewTip'/></span>
@@ -105,7 +120,7 @@ export default ({
       <div className={`${cls}-paper`} ref={paper}>
         <h1>{doc.title}</h1>
         <div className={`${cls}-more`}>{labelOf('generatedTime', lang)}: {doc.generatedTime}</div>
-        <Blocks cls={cls} doc={doc} onDrag={onDrag}/>
+        <Blocks cls={cls} doc={doc} onDrag={onDrag} onAlign={onAlign}/>
       </div>
     </div>
   </div>;

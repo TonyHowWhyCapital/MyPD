@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import { _transform } from '../utils';
 import { labelOf } from './labels';
+import { resolveAligns } from './align';
 
 const yes = v => (v ? 'Y' : '');
 const str = v => (v === undefined || v === null ? '' : String(v));
@@ -224,7 +225,7 @@ const tableBuild = (def, type) => (ds, section, ctx) => {
       headers: def.summary ? [labelOf('item', ctx.lang), labelOf('value', ctx.lang)] : headers,
       rows,
       widths: def.summary ? null : resolveWidths(def, section),
-      ...(def.summary ? {} : { sectionId: section.id, keys: cols }),
+      ...(def.summary ? {} : { sectionId: section.id, keys: cols, aligns: resolveAligns(cols, section) }),
     },
   ];
 };
@@ -265,6 +266,7 @@ export const sectionTypes = {
             widths: resolveWidths(sectionTypes.entityDetail, section),
             sectionId: section.id,
             keys: cols,
+            aligns: resolveAligns(cols, section),
           },
         ]),
       ];

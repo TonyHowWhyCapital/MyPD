@@ -1,12 +1,12 @@
 import React, { useRef } from 'react';
-import { Checkbox, FormatMessage } from 'components';
+import { Checkbox, FormatMessage, Icon } from 'components';
 import {
-  labelOf, resolveColumns, toggleColumn, moveColumn, setColumnWidth,
+  labelOf, resolveColumns, toggleColumn, moveColumn, setColumnWidth, alignOf, setColumnAlign, nextAlign,
 } from '../../../../lib/report';
 
 // Chosen columns come first, in report order. They can be dragged or nudged with the arrows.
 export default React.memo(({
-  currentPrefix, def, section, lang, onChange, onWidths,
+  currentPrefix, def, section, lang, onChange, onWidths, onAligns,
 }) => {
   const dragging = useRef('');
   const chosen = resolveColumns(def, section);
@@ -42,6 +42,10 @@ export default React.memo(({
         onDragStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
         onChange={e => onWidths(setColumnWidth(section, key, e.target.value))}
       /><i>%</i>
+      <a
+        title={FormatMessage.string({id: 'report.alignTip'})}
+        onClick={() => onAligns(setColumnAlign(section, key, nextAlign(alignOf(section, key))))}
+      ><Icon type={`fa-align-${alignOf(section, key)}`}/></a>
       <a className={index === 0 ? 'disabled' : ''} onClick={() => move(key, index - 1)}>‹</a>
       <a
         className={index === chosen.length - 1 ? 'disabled' : ''}

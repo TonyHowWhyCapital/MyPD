@@ -7,6 +7,9 @@ import { labelOf } from './labels';
 import {
   dragColumn, widthsOf, applyWidths, clearWidths, hasWidths,
 } from './resize';
+import {
+  ALIGNS, alignOf, setColumnAlign, nextAlign, applyAligns,
+} from './align';
 import { renderMarkdown } from './markdown';
 import { renderHtml } from './html';
 import { renderDocx } from './docx';
@@ -15,6 +18,7 @@ export {
   sectionTypes, resolveColumns, toggleColumn, moveColumn, labelOf, renderMarkdown, renderHtml, renderDocx,
   resolveWidths, columnPercents, setColumnWidth,
   dragColumn, widthsOf, applyWidths, clearWidths, hasWidths,
+  ALIGNS, alignOf, setColumnAlign, nextAlign, applyAligns,
 };
 
 const KINDS = ['document', 'list'];
@@ -121,6 +125,7 @@ const buildListTable = (template, dataSources, lang) => {
     widths: multi ? [null, ...widths] : widths,
     sectionId: sec.id,
     keys: multi ? [null, ...tables[0].table.keys] : tables[0].table.keys,
+    aligns: multi ? ['left', ...tables[0].table.aligns] : tables[0].table.aligns,
   }];
 };
 

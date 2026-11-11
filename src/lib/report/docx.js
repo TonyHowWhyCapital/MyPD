@@ -15,8 +15,9 @@ const XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
 const runs = (text, rPr = '') => String(text).split(/\r?\n/).map((line, i) =>
   `<w:r>${rPr ? `<w:rPr>${rPr}</w:rPr>` : ''}${i ? '<w:br/>' : ''}<w:t xml:space="preserve">${esc(line)}</w:t></w:r>`).join('');
 
-const para = (text, { style, bold, indent } = {}) => {
-  const pPr = `${style ? `<w:pStyle w:val="${style}"/>` : ''}${indent ? `<w:ind w:left="${indent}"/>` : ''}`;
+const para = (text, { style, bold, indent, align } = {}) => {
+  const jc = align && align !== 'left' ? `<w:jc w:val="${align}"/>` : '';
+  const pPr = `${style ? `<w:pStyle w:val="${style}"/>` : ''}${indent ? `<w:ind w:left="${indent}"/>` : ''}${jc}`;
   return `<w:p>${pPr ? `<w:pPr>${pPr}</w:pPr>` : ''}${runs(text, bold ? '<w:b/>' : '')}</w:p>`;
 };
 
@@ -24,11 +25,11 @@ const BORDER = ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']
   .map(s => `<w:${s} w:val="single" w:sz="4" w:space="0" w:color="999999"/>`).join('');
 
 const TABLE_WIDTH = 9000;
-const table = (headers, rows, widths) => {
+const table = (headers, rows, widths, aligns = []) => {
   const percents = columnPercents(widths, headers.length);
   const even = Math.floor(TABLE_WIDTH / Math.max(headers.length, 1));
   const widthOf = i => (percents ? Math.round(TABLE_WIDTH * percents[i] / 100) : even);
-  const cell = (text, head, i) => `<w:tc><w:tcPr><w:tcW w:w="${widthOf(i)}" w:type="dxa"/>${head ? '<w:shd w:val="clear" w:color="auto" w:fill="E7EAF0"/>' : ''}</w:tcPr>${para(text, { bold: head })}</w:tc>`;
+  const cell = (text, head, i) => `<w:tc><w:tcPr><w:tcW w:w="${widthOf(i)}" w:type="dxa"/>${head ? '<w:shd w:val="clear" w:color="auto" w:fill="E7EAF0"/>' : ''}</w:tcPr>${para(text, { bold: head, align: head ? 'center' : aligns[i] })}</w:tc>`;
   const grid = headers.map((h, i) => `<w:gridCol w:w="${widthOf(i)}"/>`).join('');
   const head = `<w:tr><w:trPr><w:tblHeader/></w:trPr>${headers.map((h, i) => cell(h, true, i)).join('')}</w:tr>`;
   const body = rows.map(r => `<w:tr>${r.map((c, i) => cell(c, false, i)).join('')}</w:tr>`).join('');
@@ -56,7 +57,7 @@ export const buildDocumentXml = (doc) => {
     else if (b.type === 'toc') {
       body.push(para(labelOf('contents', lang), { bold: true }));
       headings.forEach(h => body.push(para(h.text, { indent: 360 * (h.level - 1) })));
-    } else if (b.type === 'table' && b.headers.length) body.push(table(b.headers, b.rows, b.widths));
+    } else if (b.type === 'table' && b.headers.length) body.push(table(b.headers, b.rows, b.widths, b.aligns));
   });
   const sect = '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr>';
   return `${XML}<w:document ${NS}><w:body>${body.join('')}${sect}</w:body></w:document>`;

@@ -10,7 +10,8 @@ h1.title{border-bottom:2px solid #444;padding-bottom:8px}
 .meta{color:#777;font-size:13px}
 table{border-collapse:collapse;width:100%;margin:8px 0 20px;font-size:14px}
 th,td{border:1px solid #bbb;padding:4px 8px;text-align:left;vertical-align:top;white-space:pre-wrap}
-th{background:#f0f2f5}
+th{background:#f0f2f5;text-align:center}
+td.center{text-align:center}td.right{text-align:right}
 table.sized{table-layout:fixed}table.sized th,table.sized td{word-break:break-all}
 nav.toc ul{list-style:none;padding-left:0}
 nav.toc li.l2{margin-left:16px}nav.toc li.l3{margin-left:32px}nav.toc li.l4{margin-left:48px}`;
@@ -32,7 +33,9 @@ export const renderHtml = (doc) => {
     }
     if (b.type === 'table') {
       const head = b.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('');
-      const rows = b.rows.map(r => `<tr>${r.map(c => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`).join('');
+      const aligns = b.aligns || [];
+      const td = i => (aligns[i] && aligns[i] !== 'left' ? `<td class="${aligns[i]}">` : '<td>');
+      const rows = b.rows.map(r => `<tr>${r.map((c, i) => `${td(i)}${escapeHtml(c)}</td>`).join('')}</tr>`).join('');
       const percents = columnPercents(b.widths, b.headers.length);
       const cols = percents
         ? `<colgroup>${percents.map(p => `<col style="width:${p}%">`).join('')}</colgroup>` : '';

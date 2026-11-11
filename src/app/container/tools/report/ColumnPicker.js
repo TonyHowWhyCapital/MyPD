@@ -1,9 +1,13 @@
 import React, { useRef } from 'react';
 import { Checkbox, FormatMessage } from 'components';
-import { labelOf, resolveColumns, toggleColumn, moveColumn } from '../../../../lib/report';
+import {
+  labelOf, resolveColumns, toggleColumn, moveColumn, setColumnWidth,
+} from '../../../../lib/report';
 
 // Chosen columns come first, in report order. They can be dragged or nudged with the arrows.
-export default React.memo(({ currentPrefix, def, section, lang, onChange }) => {
+export default React.memo(({
+  currentPrefix, def, section, lang, onChange, onWidths,
+}) => {
   const dragging = useRef('');
   const chosen = resolveColumns(def, section);
   const rest = def.columns.map(c => c.key).filter(k => !chosen.includes(k));
@@ -27,6 +31,17 @@ export default React.memo(({ currentPrefix, def, section, lang, onChange }) => {
       <Checkbox checked onChange={() => onChange(toggleColumn(def, section, key, false))}>
         {labelOf(key, lang)}
       </Checkbox>
+      <input
+        type='number'
+        min={1}
+        max={100}
+        value={(section.widths || {})[key] || ''}
+        placeholder={FormatMessage.string({id: 'report.widthAuto'})}
+        title={FormatMessage.string({id: 'report.widthTip'})}
+        draggable
+        onDragStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        onChange={e => onWidths(setColumnWidth(section, key, e.target.value))}
+      /><i>%</i>
       <a className={index === 0 ? 'disabled' : ''} onClick={() => move(key, index - 1)}>‹</a>
       <a
         className={index === chosen.length - 1 ? 'disabled' : ''}

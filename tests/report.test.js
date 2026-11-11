@@ -284,3 +284,53 @@ describe('report column order and running number', () => {
     expect(moveColumn(def, { columns: [] }, 'comment', 0)).toEqual(['comment', 'defKey', 'defName']);
   });
 });
+
+describe('report column widths', () => {
+  const { columnPercents, setColumnWidth, renderHtml: html } = require('../src/lib/report');
+  const { buildDocumentXml } = require('../src/lib/report/docx');
+  const ds = { name: 'm', entities: [{ id: 'a', defKey: 'A', defName: 'n', fields: [{ id: '1', defKey: 'x' }] }] };
+  const template = widths => ({
+    defName: 't', kind: 'list', sections: [sectionOf('entityList', { columns: ['seq', 'defKey', 'defName'], widths })],
+  });
+
+  test('unset columns share what the set ones leave', () => {
+    expect(columnPercents([10, null, null], 3)).toEqual([10, 45, 45]);
+    expect(columnPercents([null, null], 2)).toBeNull();
+    expect(columnPercents(undefined, 2)).toBeNull();
+  });
+
+  test('widths that overflow are scaled to fit the table', () => {
+    expect(columnPercents([80, 80], 2)).toEqual([50, 50]);
+    expect(columnPercents([20, 20], 2)).toEqual([50, 50]);
+    const squeezed = columnPercents([100, null], 2);
+    expect(squeezed[0] + squeezed[1]).toBeCloseTo(100);
+    expect(squeezed[1]).toBeGreaterThanOrEqual(3);
+  });
+
+  test('a width is kept only when it is a whole percent from 1 to 100', () => {
+    expect(setColumnWidth({ widths: { a: 5 } }, 'b', '30')).toEqual({ a: 5, b: 30 });
+    expect(setColumnWidth({ widths: { a: 5 } }, 'a', '')).toEqual({});
+    expect(setColumnWidth({}, 'a', '250')).toEqual({});
+  });
+
+  test('html and docx lay the table out by the template widths, in column order', () => {
+    const doc = buildReport(template({ seq: 10, defName: 60 }), [ds], { lang: 'en' });
+    expect(doc.blocks[0].widths).toEqual([10, null, 60]);
+    expect(html(doc)).toContain('<col style="width:10%"><col style="width:30%"><col style="width:60%">');
+    const xml = buildDocumentXml(doc);
+    expect(xml).toContain('<w:gridCol w:w="900"/><w:gridCol w:w="2700"/><w:gridCol w:w="5400"/>');
+    expect(xml).toContain('<w:tblLayout w:type="fixed"/>');
+  });
+
+  test('a template without widths renders as before', () => {
+    const doc = buildReport(template(undefined), [ds], { lang: 'en' });
+    expect(html(doc)).not.toContain('<colgroup>');
+    expect(buildDocumentXml(doc)).toContain('<w:gridCol w:w="3000"/>');
+    expect(buildDocumentXml(doc)).not.toContain('tblLayout');
+  });
+
+  test('the model column added for several models stays automatic', () => {
+    const doc = buildReport(template({ seq: 10 }), [ds, ds], { lang: 'en' });
+    expect(doc.blocks[0].widths).toEqual([null, 10, null, null]);
+  });
+});

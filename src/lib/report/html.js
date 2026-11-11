@@ -1,4 +1,5 @@
 import { labelOf } from './labels';
+import { columnPercents } from './sections';
 
 export const escapeHtml = v => String(v)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -10,6 +11,7 @@ h1.title{border-bottom:2px solid #444;padding-bottom:8px}
 table{border-collapse:collapse;width:100%;margin:8px 0 20px;font-size:14px}
 th,td{border:1px solid #bbb;padding:4px 8px;text-align:left;vertical-align:top;white-space:pre-wrap}
 th{background:#f0f2f5}
+table.sized{table-layout:fixed}table.sized th,table.sized td{word-break:break-all}
 nav.toc ul{list-style:none;padding-left:0}
 nav.toc li.l2{margin-left:16px}nav.toc li.l3{margin-left:32px}nav.toc li.l4{margin-left:48px}`;
 
@@ -31,7 +33,10 @@ export const renderHtml = (doc) => {
     if (b.type === 'table') {
       const head = b.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('');
       const rows = b.rows.map(r => `<tr>${r.map(c => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`).join('');
-      return `<table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
+      const percents = columnPercents(b.widths, b.headers.length);
+      const cols = percents
+        ? `<colgroup>${percents.map(p => `<col style="width:${p}%">`).join('')}</colgroup>` : '';
+      return `<table${percents ? ' class="sized"' : ''}>${cols}<thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
     }
     return '';
   }).join('\n');

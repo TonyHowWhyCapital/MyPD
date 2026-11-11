@@ -1,5 +1,6 @@
 import { zipStore } from './zip';
 import { labelOf } from './labels';
+import { columnPercents } from './sections';
 
 // Strip characters XML 1.0 forbids, then escape the markup characters.
 const esc = v => String(v)
@@ -22,13 +23,16 @@ const para = (text, { style, bold, indent } = {}) => {
 const BORDER = ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']
   .map(s => `<w:${s} w:val="single" w:sz="4" w:space="0" w:color="999999"/>`).join('');
 
-const table = (headers, rows) => {
-  const width = Math.floor(9000 / Math.max(headers.length, 1));
-  const cell = (text, head) => `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/>${head ? '<w:shd w:val="clear" w:color="auto" w:fill="E7EAF0"/>' : ''}</w:tcPr>${para(text, { bold: head })}</w:tc>`;
-  const grid = headers.map(() => `<w:gridCol w:w="${width}"/>`).join('');
-  const head = `<w:tr><w:trPr><w:tblHeader/></w:trPr>${headers.map(h => cell(h, true)).join('')}</w:tr>`;
-  const body = rows.map(r => `<w:tr>${r.map(c => cell(c, false)).join('')}</w:tr>`).join('');
-  return `<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>${BORDER}</w:tblBorders></w:tblPr><w:tblGrid>${grid}</w:tblGrid>${head}${body}</w:tbl><w:p/>`;
+const TABLE_WIDTH = 9000;
+const table = (headers, rows, widths) => {
+  const percents = columnPercents(widths, headers.length);
+  const even = Math.floor(TABLE_WIDTH / Math.max(headers.length, 1));
+  const widthOf = i => (percents ? Math.round(TABLE_WIDTH * percents[i] / 100) : even);
+  const cell = (text, head, i) => `<w:tc><w:tcPr><w:tcW w:w="${widthOf(i)}" w:type="dxa"/>${head ? '<w:shd w:val="clear" w:color="auto" w:fill="E7EAF0"/>' : ''}</w:tcPr>${para(text, { bold: head })}</w:tc>`;
+  const grid = headers.map((h, i) => `<w:gridCol w:w="${widthOf(i)}"/>`).join('');
+  const head = `<w:tr><w:trPr><w:tblHeader/></w:trPr>${headers.map((h, i) => cell(h, true, i)).join('')}</w:tr>`;
+  const body = rows.map(r => `<w:tr>${r.map((c, i) => cell(c, false, i)).join('')}</w:tr>`).join('');
+  return `<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>${BORDER}</w:tblBorders>${percents ? '<w:tblLayout w:type="fixed"/>' : ''}</w:tblPr><w:tblGrid>${grid}</w:tblGrid>${head}${body}</w:tbl><w:p/>`;
 };
 
 const heading = level => `<w:style w:type="paragraph" w:styleId="Heading${level}"><w:name w:val="heading ${level}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120"/><w:outlineLvl w:val="${level - 1}"/></w:pPr><w:rPr><w:b/><w:sz w:val="${36 - level * 4}"/></w:rPr></w:style>`;
@@ -52,7 +56,7 @@ export const buildDocumentXml = (doc) => {
     else if (b.type === 'toc') {
       body.push(para(labelOf('contents', lang), { bold: true }));
       headings.forEach(h => body.push(para(h.text, { indent: 360 * (h.level - 1) })));
-    } else if (b.type === 'table' && b.headers.length) body.push(table(b.headers, b.rows));
+    } else if (b.type === 'table' && b.headers.length) body.push(table(b.headers, b.rows, b.widths));
   });
   const sect = '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr>';
   return `${XML}<w:document ${NS}><w:body>${body.join('')}${sect}</w:body></w:document>`;

@@ -154,6 +154,38 @@ export const resolveColumns = (def, section) => {
   return chosen.length ? chosen : def.defaultColumns;
 };
 
+// Width of each resolved column as a percent of the table, null where the template sets
+// none. Kept as the template wrote it. `columnPercents` turns it into a full layout.
+export const resolveWidths = (def, section) => {
+  const widths = section.widths || {};
+  return resolveColumns(def, section).map((c) => {
+    const n = Number(widths[c]);
+    return n >= 1 && n <= 100 ? n : null;
+  });
+};
+
+// Percents for every column, adding up to 100. Columns without a width share what the
+// others leave, and never get less than MIN_SHARE each.
+const MIN_SHARE = 3;
+export const columnPercents = (widths, count) => {
+  const list = Array.from({ length: count }, (v, i) => (widths && widths[i]) || null);
+  if (!list.some(Boolean)) {
+    return null;
+  }
+  const free = list.filter(w => !w).length;
+  const fixed = list.reduce((sum, w) => sum + (w || 0), 0);
+  const room = free ? Math.max(100 - free * MIN_SHARE, 1) : 100;
+  const scale = fixed > room || !free ? room / fixed : 1;
+  const share = free ? (100 - fixed * scale) / free : 0;
+  return list.map(w => Math.round((w ? w * scale : share) * 100) / 100);
+};
+
+export const setColumnWidth = (section, key, value) => {
+  const n = Math.round(Number(value));
+  const { [key]: dropped, ...rest } = section.widths || {};
+  return n >= 1 && n <= 100 ? { ...rest, [key]: n } : rest;
+};
+
 // Template editing. The stored order of `columns` is the order in the report.
 export const toggleColumn = (def, section, key, checked) => {
   const current = resolveColumns(def, section).filter(c => c !== key);
@@ -187,7 +219,12 @@ const tableBuild = (def, type) => (ds, section, ctx) => {
     : source.map((r, n) => cells(cols, r, n));
   return [
     ...heading(section, ctx, `section.${type}`),
-    { type: 'table', headers: def.summary ? [labelOf('item', ctx.lang), labelOf('value', ctx.lang)] : headers, rows },
+    {
+      type: 'table',
+      headers: def.summary ? [labelOf('item', ctx.lang), labelOf('value', ctx.lang)] : headers,
+      rows,
+      widths: def.summary ? null : resolveWidths(def, section),
+    },
   ];
 };
 
@@ -220,7 +257,12 @@ export const sectionTypes = {
         ..._.flatMap(ds.entities || [], (e) => [
           { type: 'heading', level: ctx.level + 1, text: entityTitle(e) },
           ...(e.comment ? [{ type: 'paragraph', text: str(e.comment) }] : []),
-          { type: 'table', headers, rows: (e.fields || []).map((f, n) => cells(cols, fieldRow(ds, e, f), n)) },
+          {
+            type: 'table',
+            headers,
+            rows: (e.fields || []).map((f, n) => cells(cols, fieldRow(ds, e, f), n)),
+            widths: resolveWidths(sectionTypes.entityDetail, section),
+          },
         ]),
       ];
     },

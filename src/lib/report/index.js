@@ -1,6 +1,7 @@
 import '../Math';
 import {
   sectionTypes, buildSection, resolveColumns, toggleColumn, moveColumn, SEQ,
+  resolveWidths, columnPercents, setColumnWidth,
 } from './sections';
 import { labelOf } from './labels';
 import { renderMarkdown } from './markdown';
@@ -9,6 +10,7 @@ import { renderDocx } from './docx';
 
 export {
   sectionTypes, resolveColumns, toggleColumn, moveColumn, labelOf, renderMarkdown, renderHtml, renderDocx,
+  resolveWidths, columnPercents, setColumnWidth,
 };
 
 const KINDS = ['document', 'list'];
@@ -107,7 +109,13 @@ const buildListTable = (template, dataSources, lang) => {
   const seqAt = resolveColumns(sectionTypes[sec.type], sec).indexOf(SEQ);
   const rows = tables.flatMap(({ table, name }) => table.rows.map(r => (multi ? [name, ...r] : r)))
     .map((r, n) => (seqAt < 0 ? r : r.map((v, i) => (i === seqAt + (multi ? 1 : 0) ? String(n + 1) : v))));
-  return [{ type: 'table', headers: multi ? [labelOf('model', lang), ...headers] : headers, rows }];
+  const widths = tables[0].table.widths || [];
+  return [{
+    type: 'table',
+    headers: multi ? [labelOf('model', lang), ...headers] : headers,
+    rows,
+    widths: multi ? [null, ...widths] : widths,
+  }];
 };
 
 export const buildReport = (template, dataSources, options = {}) => {

@@ -1625,6 +1625,8 @@ export default {
     "sectionTitle": "章節標題",
     "columns": "列",
     "columnOrderTip": "拖拽或點選箭頭調整列的順序",
+    "widthAuto": "自動",
+    "widthTip": "列寬佔表格寬度的百分比（1-100），留空為自動；對 docx 與 html 生效",
     "text": "文字內容",
     "save": "儲存模板",
     "saved": "模板已儲存",

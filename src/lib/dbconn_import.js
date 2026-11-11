@@ -84,8 +84,18 @@ export const parseNavicat = (xml) => {
   }));
 };
 
+const dbxConnection = (config) => {
+  return config && config.name ? connection('dbx', config.name, config.db_type, {
+    host: config.host || '',
+    port: config.port || '',
+    database: config.database || '',
+    username: config.username || '',
+    password: typeof config.password === 'string' ? config.password : '',
+  }) : null;
+};
+
 // rows: [{config_json}] from the connections table of a DBX data file.
-// DBX keeps passwords encrypted with its own key, so they are not imported.
+// DBX keeps the passwords of that file encrypted with its own key, so they stay empty.
 export const parseDbxRows = (rows) => {
   return (rows || []).map((row) => {
     let config;
@@ -94,13 +104,23 @@ export const parseDbxRows = (rows) => {
     } catch (e) {
       config = null;
     }
-    return config && config.name ? connection('dbx', config.name, config.db_type, {
-      host: config.host || '',
-      port: config.port || '',
-      database: config.database || '',
-      username: config.username || '',
-    }) : null;
+    return dbxConnection(config && { ...config, password: '' });
   }).filter(c => c);
+};
+
+// DBX's unencrypted export: {connections: [...]}; a password is kept when the export has one.
+export const parseDbxJson = (text) => {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    data = null;
+  }
+  const list = Array.isArray(data) ? data : data?.connections;
+  if (!Array.isArray(list)) {
+    throw new Error('Invalid DBX connection file');
+  }
+  return list.map(dbxConnection).filter(c => c);
 };
 
 // A connection can be imported when the project has a matching database type.

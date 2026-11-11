@@ -1,9 +1,9 @@
 import React, {useState} from 'react';
-import {Button, Checkbox, FormatMessage} from 'components';
+import {Button, Radio, FormatMessage} from 'components';
 import {
   openFileOrDirPath, readNormalFile, readDbxConnections, getDbxDefaultFile,
 } from '../../../lib/middle';
-import {parseNavicat, parseDbxRows, resolveType} from '../../../lib/dbconn_import';
+import {parseNavicat, parseDbxRows, parseDbxJson, resolveType} from '../../../lib/dbconn_import';
 import {getPrefix} from '../../../lib/prefixUtil';
 import {SimpleGrid} from '../../../components/gridview';
 
@@ -15,9 +15,12 @@ const sources = {
     read: file => readNormalFile(file).then(data => parseNavicat(data.toString())),
   },
   dbx: {
-    filters: [{name: 'DBX', extensions: ['db']}],
+    filters: [{name: 'DBX', extensions: ['json', 'db']}],
     defaultPath: () => getDbxDefaultFile(),
-    read: file => readDbxConnections(file).then(parseDbxRows),
+    // a .json file is DBX's own unencrypted export, anything else is its data file
+    read: file => (/\.json$/i.test(file)
+      ? readNormalFile(file).then(data => parseDbxJson(data.toString()))
+      : readDbxConnections(file).then(parseDbxRows)),
   },
 };
 
@@ -32,20 +35,15 @@ export default React.memo(({prefix, dataSource, onChange}) => {
     const {filters, defaultPath, read} = sources[source];
     openFileOrDirPath(filters, ['openFile'], defaultPath ? {defaultPath: defaultPath()} : {})
       .then(file => read(file).then((conns) => {
-        const checked = conns.filter(c => resolveType(c, dataSource)).map(c => c.id);
-        update({source, file, conns, checked, error: ''});
+        update({source, file, conns, checked: [], error: ''});
       }).catch((err) => {
         update({source, file, conns: [], checked: [], error: err.message || `${err}`});
       }));
   };
-  const toggle = (id, checked) => {
-    update({
-      ...state,
-      checked: checked ? state.checked.concat(id) : state.checked.filter(c => c !== id),
-    });
+  // only one connection is imported at a time
+  const choose = (c) => {
+    resolveType(c, dataSource) && update({...state, checked: [c.id]});
   };
-  const selectable = state.conns.filter(c => resolveType(c, dataSource));
-  const allChecked = selectable.length > 0 && selectable.every(c => state.checked.includes(c.id));
   return <div className={`${currentPrefix}-dbconnect-import`}>
     <div className={`${currentPrefix}-dbconnect-import-source`}>
       <Button onClick={() => pick('navicat')}><FormatMessage id='dbConnImport.navicat'/></Button>
@@ -57,7 +55,7 @@ export default React.memo(({prefix, dataSource, onChange}) => {
     {state.error && <div className={`${currentPrefix}-dbconnect-import-error`}>
       <FormatMessage id='dbConnImport.readError'/>{state.error}
     </div>}
-    {state.source === 'dbx' && state.conns.length > 0
+    {state.source === 'dbx' && state.conns.length > 0 && !state.conns.some(c => c.password)
       && <div className={`${currentPrefix}-dbconnect-import-tip`}>
         <FormatMessage id='dbConnImport.dbxPassword'/>
       </div>}
@@ -67,24 +65,16 @@ export default React.memo(({prefix, dataSource, onChange}) => {
       className={`${currentPrefix}-dbconnect-import-list`}
       rows={state.conns}
       rowKey={c => c.id}
-      rowProps={c => ({ style: { opacity: resolveType(c, dataSource) ? 1 : 0.48 } })}
+      rowProps={c => ({
+        style: resolveType(c, dataSource) ? { cursor: 'pointer' } : { opacity: 0.48 },
+        onClick: () => choose(c),
+      })}
       columns={[
         {
           key: 'check',
           fixed: true,
-          title: <Checkbox
-            checked={allChecked}
-            disable={selectable.length === 0}
-            onChange={e => update({
-              ...state,
-              checked: e.target.checked ? selectable.map(c => c.id) : [],
-            })}
-          />,
-          render: c => <Checkbox
-            checked={state.checked.includes(c.id)}
-            disable={!resolveType(c, dataSource)}
-            onChange={e => toggle(c.id, e.target.checked)}
-          />,
+          title: '',
+          render: c => <Radio checked={state.checked.includes(c.id)} onChange={() => choose(c)}/>,
         },
         { key: 'name', title: text('name'), sort: c => c.name, render: c => c.name },
         {

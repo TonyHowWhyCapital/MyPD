@@ -1308,7 +1308,7 @@ export default {
   "dbConnImport": {
     "title": "匯入資料庫連線",
     "navicat": "選擇 Navicat 連線檔案 (.ncx)",
-    "dbx": "選擇 DBX 資料檔案 (dbx.db)",
+    "dbx": "選擇 DBX 連線檔案 (.json / dbx.db)",
     "noFile": "尚未選擇檔案",
     "name": "連線名",
     "type": "資料庫",
@@ -1316,11 +1316,11 @@ export default {
     "database": "資料庫名",
     "username": "使用者名稱",
     "unsupported": "（不支援）",
-    "empty": "請先選擇要匯入的配置檔案，再勾選要匯入的連線。",
-    "dbxPassword": "DBX 的密碼以其自有金鑰加密儲存，無法匯入，匯入後請自行填寫密碼。",
+    "empty": "請先選擇要匯入的配置檔案，再選擇一個要匯入的連線。",
+    "dbxPassword": "此檔案沒有可讀取的密碼（dbx.db 的密碼已加密，.json 匯出時未包含密碼），匯入後請自行填寫密碼。",
     "readError": "讀取失敗：",
-    "noneSelected": "請至少勾選一個連線",
-    "imported": "已匯入 {count} 個連線"
+    "noneSelected": "請選擇一個連線",
+    "imported": "已匯入連線"
   },
   "dbObject": {
     "title": "資料庫物件",

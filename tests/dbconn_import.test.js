@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import {
-  parseNavicat, parseDbxRows, toDbConn, importDbConns, resolveType, decodeNavicatPassword,
+  parseNavicat, parseDbxRows, parseDbxJson, toDbConn, importDbConns, resolveType, decodeNavicatPassword,
 } from '../src/lib/dbconn_import';
 import base from '../src/lib/template/empty.json';
 
@@ -93,5 +93,34 @@ describe('adding imported connections to a project', () => {
 
   test('a project without connections starts a new list', () => {
     expect(importDbConns(undefined, parseNavicat(ncx).slice(0, 1), base)).toHaveLength(1);
+  });
+});
+
+describe('dbx json export', () => {
+  const file = JSON.stringify({
+    connections: [
+      { name: 'Plain', db_type: 'sqlserver', host: 'h', port: 1433, username: 'sa', password: 'pw', database: 'IPC' },
+      { name: 'NoPass', db_type: 'mysql', host: 'm', port: 3306, username: 'u', password: '', database: '' },
+      { db_type: 'mysql' },
+    ],
+    layout: {},
+  });
+
+  test('reads connections and keeps a password the export contains', () => {
+    const conns = parseDbxJson(file);
+    expect(conns).toHaveLength(2);
+    expect(conns[0]).toMatchObject({ name: 'Plain', kind: 'sqlserver', password: 'pw', database: 'IPC' });
+    expect(conns[1].password).toBe('');
+    expect(toDbConn(conns[0], base).properties).toMatchObject({ url: 'jdbc:sqlserver://h:1433;DatabaseName=IPC', password: 'pw' });
+  });
+
+  test('accepts a bare list and rejects other files', () => {
+    expect(parseDbxJson(JSON.stringify([{ name: 'A', db_type: 'postgres' }]))).toHaveLength(1);
+    expect(() => parseDbxJson('{"tables": []}')).toThrow(/Invalid DBX connection file/);
+    expect(() => parseDbxJson('not json')).toThrow(/Invalid DBX connection file/);
+  });
+
+  test('a data file row never carries a password', () => {
+    expect(parseDbxRows([{ config_json: { name: 'X', db_type: 'mysql', password: 'cipher' } }])[0].password).toBe('');
   });
 });

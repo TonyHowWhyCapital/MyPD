@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import {
-  FormatMessage, Button, Input, Select, Text, Checkbox,
+  FormatMessage, Button, Input, Select, Text,
 } from 'components';
 import { sectionTypes, labelOf } from '../../../../lib/report';
 import { getPrefix } from '../../../../lib/prefixUtil';
+import ColumnPicker from './ColumnPicker';
 
 const Option = Select.Option;
 
@@ -25,13 +26,6 @@ export default React.memo(({ prefix, draft, lang, onChange, onSave }) => {
     const next = draft.sections.slice();
     [next[index], next[target]] = [next[target], next[index]];
     setSections(next);
-  };
-  const toggleColumn = (index, key, checked) => {
-    const def = sectionTypes[draft.sections[index].type];
-    const own = draft.sections[index].columns || [];
-    const current = own.length ? own : def.defaultColumns;
-    const picked = checked ? current.concat(key) : current.filter(c => c !== key);
-    patchSection(index, { columns: def.columns.map(c => c.key).filter(k => picked.includes(k)) });
   };
   const addSection = () => {
     const section = { id: Math.uuid(), type: newType, title: '', columns: [], options: {} };
@@ -57,7 +51,6 @@ export default React.memo(({ prefix, draft, lang, onChange, onSave }) => {
     <div className={`${currentPrefix}-report-sections`}>
       {draft.sections.map((s, i) => {
         const def = sectionTypes[s.type];
-        const checked = s.columns && s.columns.length ? s.columns : (def?.defaultColumns || []);
         return <div key={s.id} className={`${currentPrefix}-report-section`}>
           <div className={`${currentPrefix}-report-section-head`}>
             <strong>{labelOf(`section.${s.type}`, lang)}</strong>
@@ -82,13 +75,13 @@ export default React.memo(({ prefix, draft, lang, onChange, onSave }) => {
           </div>}
           {def && def.columns.length > 0 && <div className={`${currentPrefix}-report-row`}>
             <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.columns'/></span>
-            <span className={`${currentPrefix}-report-columns`}>
-              {def.columns.map(c => <Checkbox
-                key={c.key}
-                checked={checked.includes(c.key)}
-                onChange={e => toggleColumn(i, c.key, e.target.checked)}
-              >{labelOf(c.key, lang)}</Checkbox>)}
-            </span>
+            <ColumnPicker
+              currentPrefix={currentPrefix}
+              def={def}
+              section={s}
+              lang={lang}
+              onChange={columns => patchSection(i, { columns })}
+            />
           </div>}
         </div>;
       })}

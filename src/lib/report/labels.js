@@ -4,6 +4,7 @@ import zhTW from './labels.zhTW';
 const LABELS = {
   zhTW,
   zh: {
+    seq: '序号',
     defKey: '代码',
     defName: '名称',
     comment: '说明',
@@ -78,6 +79,7 @@ const LABELS = {
     'tpl.newList': '新建清单报告',
   },
   en: {
+    seq: 'No.',
     defKey: 'Code',
     defName: 'Name',
     comment: 'Comment',

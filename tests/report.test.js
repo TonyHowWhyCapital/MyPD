@@ -241,3 +241,46 @@ describe('template storage and validation', () => {
     expect(tables(doc).map(t => t.rows.length)).toEqual([0, 0]);
   });
 });
+
+describe('report column order and running number', () => {
+  const { sectionTypes, toggleColumn, moveColumn } = require('../src/lib/report');
+  const ds = {
+    name: 'm',
+    entities: [
+      { id: 'a', defKey: 'A', fields: [{ id: '1', defKey: 'x' }, { id: '2', defKey: 'y' }] },
+      { id: 'b', defKey: 'B', fields: [{ id: '3', defKey: 'z' }] },
+    ],
+  };
+  const tables = doc => doc.blocks.filter(b => b.type === 'table');
+
+  test('columns come out in the stored order', () => {
+    const doc = buildReport({ defName: 't', kind: 'list', sections: [sectionOf('entityList', { columns: ['comment', 'defKey'] })] }, [ds], { lang: 'en' });
+    expect(tables(doc)[0].headers).toEqual(['Comment', 'Code']);
+  });
+
+  test('the running number restarts for every table', () => {
+    const doc = buildReport({ defName: 't', kind: 'document', sections: [sectionOf('entityDetail', { columns: ['seq', 'defKey'] })] }, [ds], { lang: 'en' });
+    expect(tables(doc).map(t => t.rows)).toEqual([[['1', 'x'], ['2', 'y']], [['1', 'z']]]);
+    expect(tables(doc)[0].headers).toEqual(['No.', 'Code']);
+  });
+
+  test('a list over several models numbers the merged table continuously', () => {
+    const doc = buildReport({ defName: 't', kind: 'list', sections: [sectionOf('entityList', { columns: ['seq', 'defKey'] })] }, [ds, ds], { lang: 'en' });
+    expect(tables(doc)[0].rows.map(r => r[1])).toEqual(['1', '2', '3', '4']);
+  });
+
+  test('existing templates do not gain the number column', () => {
+    const doc = buildReport({ defName: 't', kind: 'list', sections: [sectionOf('entityList')] }, [ds], { lang: 'en' });
+    expect(tables(doc)[0].headers).not.toContain('No.');
+  });
+
+  test('checking appends, the number goes first, moving reorders', () => {
+    const def = sectionTypes.entityList;
+    const section = { columns: ['defKey', 'defName'] };
+    expect(toggleColumn(def, section, 'comment', true)).toEqual(['defKey', 'defName', 'comment']);
+    expect(toggleColumn(def, section, 'seq', true)).toEqual(['seq', 'defKey', 'defName']);
+    expect(toggleColumn(def, section, 'defKey', false)).toEqual(['defName']);
+    expect(moveColumn(def, section, 'defName', 0)).toEqual(['defName', 'defKey']);
+    expect(moveColumn(def, { columns: [] }, 'comment', 0)).toEqual(['comment', 'defKey', 'defName']);
+  });
+});

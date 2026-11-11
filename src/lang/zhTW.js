@@ -1624,6 +1624,7 @@ export default {
     "remove": "移除",
     "sectionTitle": "章節標題",
     "columns": "列",
+    "columnOrderTip": "拖拽或點選箭頭調整列的順序",
     "text": "文字內容",
     "save": "儲存模板",
     "saved": "模板已儲存",

@@ -105,10 +105,15 @@ const countOf = (ds) => {
 };
 
 const keys = arr => arr.map(key => ({ key }));
+// A running number that restarts with every table. It is offered first but off by default.
+export const SEQ = 'seq';
+const cells = (cols, row, n) => cols.map(c => (c === SEQ ? String(n + 1) : str(row[c])));
 const FIELD_COLS = ['defKey', 'defName', 'type', 'len', 'scale', 'primaryKey', 'notNull', 'autoIncrement', 'defaultValue', 'comment', 'domain'];
 
 // rows(ds) feeds every flat type. build() wraps them as one table behind an optional heading.
-const flat = (columns, defaultColumns, rows) => ({ flat: true, columns: keys(columns), defaultColumns, rows });
+const flat = (columns, defaultColumns, rows) => ({
+  flat: true, columns: keys([SEQ, ...columns]), defaultColumns, rows,
+});
 
 const tableTypes = {
   modelSummary: {
@@ -149,6 +154,25 @@ export const resolveColumns = (def, section) => {
   return chosen.length ? chosen : def.defaultColumns;
 };
 
+// Template editing. The stored order of `columns` is the order in the report.
+export const toggleColumn = (def, section, key, checked) => {
+  const current = resolveColumns(def, section).filter(c => c !== key);
+  if (!checked) {
+    return current;
+  }
+  return key === SEQ ? [key, ...current] : [...current, key];
+};
+
+export const moveColumn = (def, section, key, toIndex) => {
+  const current = resolveColumns(def, section);
+  if (!current.includes(key)) {
+    return current;
+  }
+  const rest = current.filter(c => c !== key);
+  const at = Math.max(0, Math.min(toIndex, rest.length));
+  return [...rest.slice(0, at), key, ...rest.slice(at)];
+};
+
 const heading = (section, ctx, fallbackKey) => {
   const text = section.title || (fallbackKey ? labelOf(fallbackKey, ctx.lang) : '');
   return text && !ctx.flatOnly ? [{ type: 'heading', level: ctx.level, text }] : [];
@@ -160,7 +184,7 @@ const tableBuild = (def, type) => (ds, section, ctx) => {
   const source = def.summary ? [countOf(ds)] : def.rows(ds);
   const rows = def.summary
     ? cols.map(c => [labelOf(c, ctx.lang), str(source[0][c])])
-    : source.map(r => cols.map(c => str(r[c])));
+    : source.map((r, n) => cells(cols, r, n));
   return [
     ...heading(section, ctx, `section.${type}`),
     { type: 'table', headers: def.summary ? [labelOf('item', ctx.lang), labelOf('value', ctx.lang)] : headers, rows },
@@ -186,7 +210,7 @@ export const sectionTypes = {
   },
   entityDetail: {
     flat: false,
-    columns: keys(FIELD_COLS),
+    columns: keys([SEQ, ...FIELD_COLS]),
     defaultColumns: ['defKey', 'defName', 'type', 'len', 'scale', 'primaryKey', 'notNull', 'comment'],
     build: (ds, section, ctx) => {
       const cols = resolveColumns(sectionTypes.entityDetail, section);
@@ -196,7 +220,7 @@ export const sectionTypes = {
         ..._.flatMap(ds.entities || [], (e) => [
           { type: 'heading', level: ctx.level + 1, text: entityTitle(e) },
           ...(e.comment ? [{ type: 'paragraph', text: str(e.comment) }] : []),
-          { type: 'table', headers, rows: (e.fields || []).map(f => { const r = fieldRow(ds, e, f); return cols.map(c => r[c]); }) },
+          { type: 'table', headers, rows: (e.fields || []).map((f, n) => cells(cols, fieldRow(ds, e, f), n)) },
         ]),
       ];
     },

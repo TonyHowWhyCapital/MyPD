@@ -1,6 +1,7 @@
 // 此文件由 bin/gen-lang-zhtw.js 生成，请勿手工修改
 /* eslint-disable */
 export default {
+  "seq": "序號",
   "defKey": "程式碼",
   "defName": "名稱",
   "comment": "說明",

@@ -1,11 +1,15 @@
 import '../Math';
-import { sectionTypes, buildSection, resolveColumns } from './sections';
+import {
+  sectionTypes, buildSection, resolveColumns, toggleColumn, moveColumn, SEQ,
+} from './sections';
 import { labelOf } from './labels';
 import { renderMarkdown } from './markdown';
 import { renderHtml } from './html';
 import { renderDocx } from './docx';
 
-export { sectionTypes, resolveColumns, labelOf, renderMarkdown, renderHtml, renderDocx };
+export {
+  sectionTypes, resolveColumns, toggleColumn, moveColumn, labelOf, renderMarkdown, renderHtml, renderDocx,
+};
 
 const KINDS = ['document', 'list'];
 const newId = () => Math.uuid();
@@ -99,7 +103,10 @@ const buildListTable = (template, dataSources, lang) => {
   }).filter(t => t.table);
   if (!tables.length) return [];
   const headers = tables[0].table.headers;
-  const rows = tables.flatMap(({ table, name }) => table.rows.map(r => (multi ? [name, ...r] : r)));
+  // The models end up in one table, so the running number continues across them.
+  const seqAt = resolveColumns(sectionTypes[sec.type], sec).indexOf(SEQ);
+  const rows = tables.flatMap(({ table, name }) => table.rows.map(r => (multi ? [name, ...r] : r)))
+    .map((r, n) => (seqAt < 0 ? r : r.map((v, i) => (i === seqAt + (multi ? 1 : 0) ? String(n + 1) : v))));
   return [{ type: 'table', headers: multi ? [labelOf('model', lang), ...headers] : headers, rows }];
 };
 

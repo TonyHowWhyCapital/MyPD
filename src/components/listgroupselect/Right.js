@@ -4,13 +4,24 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { VariableSizeGrid as Grid } from 'react-window';
 import {sortRows, toggleSort} from '../../lib/grid_util';
 import {SortMark} from '../gridview';
+import {NEW_GROUP, openNewGroup} from './newGroup';
 
 const Option = Select.Option;
 const nameOf = d => d.defName || d.defKey;
 
+// one flat list: the Select only reads its direct children
+const groupOptions = (groups, canAdd) => groups.map((g) => {
+  return <Option value={g.id} key={g.id}>
+    {`${g.defName}${g.defKey ? `(${g.defKey})` : ''}`}
+  </Option>;
+}).concat(canAdd ? <Option value={NEW_GROUP} key={NEW_GROUP}>
+  {FormatMessage.string({id: 'groupNew.option'})}
+</Option> : []);
+
 const Item = React.memo(({prefix, d, onGroupChange, defaultSelected,
                            allowClear, notAllowEmpty, currentGroup, i, checked,
-                           checkBoxChange, group, batchSelection, style, columnIndex}) => {
+                           checkBoxChange, group, batchSelection, style, columnIndex,
+                           canAddGroup}) => {
   const bgClass = `${prefix}-listselect-right-item-bg`;
   if(columnIndex === 0) {
     return <span className={i % 2 === 0 ? bgClass : ''} style={style}>{i + 1}</span>;
@@ -52,19 +63,43 @@ const Item = React.memo(({prefix, d, onGroupChange, defaultSelected,
       notAllowEmpty={notAllowEmpty}
       onChange={e => onGroupChange(e, d.id)}
       >
-      {
-          currentGroup.map((g) => {
-            return <Option value={g.id} key={g.id}>
-              {`${g.defName}${g.defKey ? `(${g.defKey})` : ''}`}
-            </Option>;
-          })
-        }
+      {groupOptions(currentGroup, canAddGroup)}
     </Select>
   </span>;
 });
 
+// The group chooser of the batch dialog; it shows a group as soon as it is created.
+const GroupPicker = ({prefix, allowClear, notAllowEmpty, currentGroup, onAddGroup, onChange}) => {
+  const [groups, setGroups] = useState(currentGroup);
+  const [value, setValue] = useState('');
+  const choose = (next) => {
+    setValue(next);
+    onChange(next);
+  };
+  const change = (e) => {
+    if (e.target.value !== NEW_GROUP) {
+      choose(e.target.value);
+      return;
+    }
+    openNewGroup({
+      groups,
+      onCreated: (g) => {
+        onAddGroup(g);
+        setGroups(pre => pre.concat(g));
+        choose(g.id);
+      },
+    });
+  };
+  return <div className={`${prefix}-listselect-pick-group`}>
+    <Select value={value} allowClear={allowClear} notAllowEmpty={notAllowEmpty} onChange={change}>
+      {groupOptions(groups, !!onAddGroup)}
+    </Select>
+  </div>;
+};
+
 export default React.memo(({prefix, newData, onRemove, allowClear,
-                             onGroupChange, notAllowEmpty, currentGroup, defaultSelected}) => {
+                             onGroupChange, notAllowEmpty, currentGroup, defaultSelected,
+                             onAddGroup}) => {
   const [checked, setChecked] = useState([]);
   const [dataGroup, setDataGroup] = useState([]);
   const [batchSelection, setBatchSelection] = useState(false);
@@ -83,6 +118,20 @@ export default React.memo(({prefix, newData, onRemove, allowClear,
     });
     onGroupChange && onGroupChange(e, keys);
   };
+  // a row picked "new group": create it first, then put the row in it
+  const chooseGroup = (e, key) => {
+    if (e.target.value !== NEW_GROUP) {
+      _onGroupChange(e, key);
+      return;
+    }
+    openNewGroup({
+      groups: currentGroup,
+      onCreated: (g) => {
+        onAddGroup(g);
+        _onGroupChange({target: {value: g.id}}, key);
+      },
+    });
+  };
   const checkBoxChange = (e, key) => {
     setChecked((pre) => {
       if (!e.target.checked) {
@@ -94,9 +143,6 @@ export default React.memo(({prefix, newData, onRemove, allowClear,
   const onPicker = () => {
     let modal;
     let group = '';
-    const currentChange = (e) => {
-      group = e.target.value;
-    };
     const onOK = () => {
       if (!group) {
         if (!currentGroup.some(g => g.id === '')) {
@@ -124,22 +170,14 @@ export default React.memo(({prefix, newData, onRemove, allowClear,
     const onCancel = () => {
       modal && modal.close();
     };
-    modal = openModal(<div className={`${prefix}-listselect-pick-group`}>
-      <Select
-        defaultValue=''
-        allowClear={allowClear}
-        notAllowEmpty={notAllowEmpty}
-        onChange={e => currentChange(e, checked)}
-      >
-        {
-          currentGroup.map((g) => {
-            return <Option value={g.id} key={g.id}>
-              {`${g.defName}${g.defKey ? `(${g.defKey})` : ''}`}
-            </Option>;
-          })
-        }
-      </Select>
-    </div>, {
+    modal = openModal(<GroupPicker
+      prefix={prefix}
+      allowClear={allowClear}
+      notAllowEmpty={notAllowEmpty}
+      currentGroup={currentGroup}
+      onAddGroup={onAddGroup}
+      onChange={(value) => { group = value; }}
+    />, {
       title: FormatMessage.string({id: 'components.listSelect.group'}),
       buttons: [
         <Button key='onOK' onClick={onOK} type='primary'>
@@ -282,7 +320,8 @@ export default React.memo(({prefix, newData, onRemove, allowClear,
                               i={rowIndex}
                               allowClear={allowClear}
                               notAllowEmpty={notAllowEmpty}
-                              onGroupChange={_onGroupChange}
+                              onGroupChange={chooseGroup}
+                              canAddGroup={!!onAddGroup}
                               prefix={prefix}
                               columnIndex={columnIndex}
                               d={data}

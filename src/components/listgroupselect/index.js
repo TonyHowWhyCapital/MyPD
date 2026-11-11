@@ -9,7 +9,8 @@ import {unRepeated} from '../../lib/array_util';
 
 export default React.memo(forwardRef(({allowClear = false, notAllowEmpty = true,
                                         data, groups, prefix, formatResult, arrayData, repeatTitle,
-                                        defaultSelected = [], originGroups = []}, ref) => {
+                                        defaultSelected = [], originGroups = [],
+                                        allowAddGroup}, ref) => {
   const tempSelected = unRepeated(defaultSelected);
   const searchDataRef = useRef([]);
   const currentPrefix = getPrefix(prefix);
@@ -19,6 +20,11 @@ export default React.memo(forwardRef(({allowClear = false, notAllowEmpty = true,
             .filter(d => groups.findIndex(g => g.id === d.id) < 0)
             .map(g => ({...g, fields: []})));
   },[groups]);
+  // groups created here; they reach the project through getData (marked isNew)
+  const [addedGroups, setAddedGroups] = useState([]);
+  const allGroups = useMemo(() => currentGroup.concat(addedGroups), [currentGroup, addedGroups]);
+  const allGroupsRef = useRef(allGroups);
+  allGroupsRef.current = allGroups;
   const currentData = arrayData || groups.reduce((a, b) => a.concat(b.fields), [groups]);
   const findPreGroup = (p) => {
     const id = currentData.find(c => c.defKey === p.defKey)?.id;
@@ -56,13 +62,17 @@ export default React.memo(forwardRef(({allowClear = false, notAllowEmpty = true,
   }, [newDataKeys]);
   const checkedRef = useRef(null);
   checkedRef.current = checked;
-  const importDataRef = useRef([...newData]);
-  importDataRef.current = [...newData];
+  // groups chosen on the right; kept apart so a re-render does not drop them
+  const chosenGroupRef = useRef({});
+  const withChosenGroup = () => newData.map(f => (f.id in chosenGroupRef.current
+    ? {...f, group: chosenGroupRef.current[f.id]} : f));
+  const importDataRef = useRef(null);
+  importDataRef.current = withChosenGroup();
   useImperativeHandle(ref, () => {
     return {
       getData: () => {
         const current = importDataRef.current.filter(f => checkedRef.current.includes(f.id));
-        return currentGroup.map((g) => {
+        return allGroupsRef.current.map((g) => {
           const currentFields = current
               .filter(c => c.group === g.id)
               .map(c => _.omit(c, ['group']));
@@ -89,16 +99,10 @@ export default React.memo(forwardRef(({allowClear = false, notAllowEmpty = true,
     }
   };
   const _onGroupChange = (e, id) => {
-    const ids = [].concat(id);
-    importDataRef.current = importDataRef.current.map((f) => {
-      if (ids.includes(f.id)) {
-        return {
-          ...f,
-          group: e.target.value,
-        };
-      }
-      return f;
+    [].concat(id).forEach((i) => {
+      chosenGroupRef.current[i] = e.target.value;
     });
+    importDataRef.current = withChosenGroup();
   };
   const onRemove = (keys) => {
     setChecked((pre) => {
@@ -139,7 +143,8 @@ export default React.memo(forwardRef(({allowClear = false, notAllowEmpty = true,
       />
       <Right
         defaultSelected={tempSelected}
-        currentGroup={currentGroup}
+        currentGroup={allGroups}
+        onAddGroup={allowAddGroup ? g => setAddedGroups(pre => pre.concat(g)) : undefined}
         newData={checkNewData}
         prefix={currentPrefix}
         onGroupChange={_onGroupChange}

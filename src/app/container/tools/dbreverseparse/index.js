@@ -1,5 +1,6 @@
 import React, {useState, useMemo, useRef} from 'react';
 import {Step, Button, FormatMessage, openModal} from 'components';
+import {pickNewGroups} from '../../../../components/listgroupselect/newGroup';
 
 import DbSelect, {connProperties} from './DbSelect';
 import ParseDb from './ParseDb';
@@ -55,7 +56,8 @@ export default React.memo(({prefix, dataSource, dataChange, config, onClose, onO
       //onClose && onClose();
     };
     const currentConn = dbConn.filter(d => d.defKey === dbData.defKey)[0];
-    const selectedTable = dealDataRef.current.getData()
+    const groups = dealDataRef.current.getData();
+    const selectedTable = groups
         .reduce((a, b) => a.concat(b.fields.map(f => ({...f, group: b.id}))), []);
     modal = openModal(<DealProgress
       dbData={dbData}
@@ -63,7 +65,7 @@ export default React.memo(({prefix, dataSource, dataChange, config, onClose, onO
       dataSource={dataSource}
       config={config}
       selectedTable={selectedTable}
-      onOk={data => onOk(data, dbData.defKey)}
+      onOk={data => onOk(data, dbData.defKey, pickNewGroups(groups))}
       onClose={onCloseModal}
     />,  {
       header: <div />,

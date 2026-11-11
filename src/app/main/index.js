@@ -81,6 +81,7 @@ import {compareVersion} from '../../lib/update';
 import {notify} from '../../lib/subscribe';
 import {READING} from '../../lib/variable';
 import {isPdmFile, createPdm} from '../../lib/pdm';
+import {pickNewGroups} from '../../components/listgroupselect/newGroup';
 import LogicEntity from '../container/logicentity';
 
 const TabItem = Tab.TabItem;
@@ -582,7 +583,11 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
                       group: b.id,
                     }))), []);
             restProps.openLoading();
-            mergeDataSource(dataSourceRef.current, newData, importData, true, (d) => {
+            const newGroups = pickNewGroups(importPdRef.current.getData());
+            mergeDataSource(dataSourceRef.current, {
+              ...newData,
+              viewGroups: (newData.viewGroups || []).concat(newGroups),
+            }, importData, true, (d) => {
               if(d) {
                 injectDataSource(d, modal);
               } else {
@@ -757,7 +762,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
                       ..._.omit(g, 'fields'),
                       refEntities: g.fields.map(f => f.id),
                     };
-                  }),
+                  }).concat(pickNewGroups(importPdRef.current.getData())),
             }, calcDomain(importData, null, finallyDomains), true, (d) => {
               if(d) {
                 injectDataSource(d, modal);
@@ -997,7 +1002,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       return result;
     });
   };
-  const reverseToPdm = (data, dbKey) => {
+  const reverseToPdm = (data, dbKey, addToProject) => {
     const conn = (dataSourceRef.current?.dbConn || []).find(d => d.defKey === dbKey) || {};
     try {
       const xml = createPdm({
@@ -1007,11 +1012,15 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       saveFile(xml, [{name: 'PDM', extensions: ['pdm']}],
         p => (/\.pdm$/i.test(p) ? p : `${p}.pdm`),
         {defaultPath: `${conn.defName || 'model'}.pdm`}).then(({filePath}) => {
-        Message.success({
-          title: FormatMessage.string({
-            id: 'pdm.created',
-            data: {count: data.length, path: filePath},
-          }),
+        Modal.confirm({
+          title: FormatMessage.string({id: 'pdm.addToProjectTitle'}),
+          message: <div style={{whiteSpace: 'pre-wrap', maxWidth: 520, wordBreak: 'break-all'}}>
+            {FormatMessage.string({
+              id: 'pdm.addToProject',
+              data: {count: data.length, path: filePath},
+            })}
+          </div>,
+          onOk: addToProject,
         });
       }).catch((err) => {
         err?.message && Modal.error({
@@ -1036,13 +1045,9 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       const onClose = () => {
         modal && modal.close();
       };
-      const onOk = (data, dbKey) => {
-        if (toPdm) {
-          reverseToPdm(data, dbKey);
-          return;
-        }
+      const addToProject = (data, dbKey, newGroups) => {
         restProps.openLoading();
-        mergeDataSource(dataSourceRef.current, {},
+        mergeDataSource(dataSourceRef.current, {viewGroups: newGroups || []},
             calcDomain(data, dbKey, dataSourceRef.current.domains || []), true, (d) => {
               if(d) {
                 injectDataSource(d, modal);
@@ -1051,6 +1056,13 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
               }
               restProps.closeLoading();
             });
+      };
+      const onOk = (data, dbKey, newGroups) => {
+        if (toPdm) {
+          reverseToPdm(data, dbKey, () => addToProject(data, dbKey, newGroups));
+          return;
+        }
+        addToProject(data, dbKey, newGroups);
       };
       modal = openModal(<DbReverseParse
         openLoading={restProps.openLoading}

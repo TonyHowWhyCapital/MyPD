@@ -47,6 +47,7 @@ export default React.memo(forwardRef(({data, dataSource, customerData,
       data={customerData || calcData()}
       arrayData={entities}
       groups={viewGroups}
+      allowAddGroup
       originGroups={dataSource.viewGroups || []}
     />
   </div>;

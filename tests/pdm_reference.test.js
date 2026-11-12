@@ -88,4 +88,49 @@ describe('references of a pdm file follow the lines drawn in the diagrams', () =
     });
     expect(saved).toBe(xml);
   });
+  test('how many rows the child may have is kept and can be changed', () => {
+    expect(lines(open(xml))[0].relation).toBe('1:n');
+    const saved = save(xml, (ds) => { lines(ds)[0].relation = '1:1,n'; });
+    expect(saved).toContain('<a:Cardinality>1..*</a:Cardinality>');
+    expect(count(saved, 'o:Reference')).toBe(1);
+    const after = open(saved);
+    expect(lines(after)[0].relation).toBe('1:1,n');
+    expect(after.entities.find(e => e.id === ids.emp).correlations[0].myRows).toBe('1,n');
+    expect(applyDataSourceToPdm(saved, after)).toBe(saved);
+  });
+
+  test('lines covering a key of several columns become one reference', () => {
+    const field = (id, defKey, rest = {}) => ({
+      id, defKey, defName: defKey, comment: '', type: 'INT4', len: '', scale: '', primaryKey: false,
+      notNull: false, autoIncrement: false, defaultValue: '', domain: '', baseType: '', ...rest,
+    });
+    const saved = save(xml, (ds) => {
+      const table = (id, defKey, fields) => ({ ...ds.entities[0], id, defKey, defName: defKey, indexes: [], correlations: [], fields });
+      ds.entities.push(table('stock', 'STOCK', [
+        field('s1', 'MARKET', { primaryKey: true, notNull: true }), field('s2', 'CODE', { primaryKey: true, notNull: true })]));
+      ds.entities.push(table('quote', 'QUOTE', [
+        field('q0', 'ID', { primaryKey: true, notNull: true }), field('q1', 'MARKET'), field('q2', 'CODE')]));
+      const cells = ds.diagrams[0].canvasData.cells;
+      cells.push({ id: 'n-s', shape: 'table', position: { x: 0, y: 500 }, originKey: 'stock' });
+      cells.push({ id: 'n-q', shape: 'table', position: { x: 600, y: 500 }, originKey: 'quote' });
+      [['s1', 'q1'], ['s2', 'q2']].forEach(([from, to]) => cells.push({
+        id: `l-${from}`, shape: 'erdRelation', relation: '1:n',
+        source: { cell: 'n-s', port: `${from}%out` }, target: { cell: 'n-q', port: `${to}%in` },
+      }));
+    });
+    expect(count(saved, 'o:Reference')).toBe(2);
+    expect(count(saved, 'o:ReferenceJoin')).toBe(3);
+    expect(count(saved, 'o:ReferenceSymbol')).toBe(2);
+    const after = open(saved);
+    expect(after.entities.find(e => e.defKey === 'QUOTE').correlations).toHaveLength(2);
+    expect(lines(after)).toHaveLength(3);
+    expect(applyDataSourceToPdm(saved, after)).toBe(saved);
+    // taking one of the two lines away leaves the reference alone
+    const one = _.cloneDeep(after);
+    const cells = one.diagrams[0].canvasData.cells;
+    const quote = cells.find(c => c.originKey === after.entities.find(e => e.defKey === 'QUOTE').id).id;
+    const drop = cells.find(c => c.shape === 'erdRelation' && c.target.cell === quote).id;
+    one.diagrams[0].canvasData.cells = cells.filter(c => c.id !== drop);
+    expect(applyDataSourceToPdm(saved, one)).toBe(saved);
+  });
 });

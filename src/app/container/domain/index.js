@@ -140,6 +140,33 @@ export default React.memo(({prefix, dataSource, data, dataChange}) => {
         />
       </span>
     </div>
+    <div className={`${currentPrefix}-form-item`}>
+      <span className={`${currentPrefix}-form-item-label`} title={FormatMessage.string({id: 'domain.defaultValue'})}>
+        <FormatMessage id='domain.defaultValue'/>
+      </span>
+      <span className={`${currentPrefix}-form-item-component`}>
+        <Input defaultValue={data.defaultValue || ''} onChange={e => onChange(e, 'defaultValue')}/>
+      </span>
+    </div>
+    <div className={`${currentPrefix}-form-item`}>
+      <span className={`${currentPrefix}-form-item-label`} title={FormatMessage.string({id: 'domain.notNull'})}>
+        <FormatMessage id='domain.notNull'/>
+      </span>
+      <span className={`${currentPrefix}-form-item-component`}>
+        <Checkbox
+          defaultChecked={!!data.notNull}
+          onChange={e => dataChange && dataChange(e.target.checked, 'notNull')}
+        />
+      </span>
+    </div>
+    <div className={`${currentPrefix}-form-item`}>
+      <span className={`${currentPrefix}-form-item-label`} title={FormatMessage.string({id: 'domain.comment'})}>
+        <FormatMessage id='domain.comment'/>
+      </span>
+      <span className={`${currentPrefix}-form-item-component`}>
+        <Input defaultValue={data.comment || ''} onChange={e => onChange(e, 'comment')}/>
+      </span>
+    </div>
   </div>;
 });
 

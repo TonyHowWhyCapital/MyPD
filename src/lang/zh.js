@@ -617,6 +617,9 @@ export default {
         update: '版本变更代码',
     },
     domain: {
+        defaultValue: '默认值',
+        notNull: '不为空',
+        comment: '备注',
         defKey: '数据域代码',
         defName: '显示名称',
         applyFor: '数据类型',

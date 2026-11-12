@@ -1,8 +1,10 @@
 import '../Math';
 import { elements, child, value, insert, encode } from './xml';
-import { readReferences, refTarget } from './read';
 import {
-  MODEL_ORDER, find, build, ensureCollection, remove,
+  readReferences, refTarget, rowsOf, cardinalityOf,
+} from './read';
+import {
+  MODEL_ORDER, find, build, ensureCollection, setAttribute, remove,
 } from './edit';
 
 // Writing gives new tables and columns the ids of the file. The references of the project
@@ -12,7 +14,7 @@ export const originIds = dataSource => (dataSource.entities || []).map(e => ({
   fields: (e.fields || []).map(f => [f.id, f.sourceId]),
 }));
 
-const finalIds = (dataSource, origin) => {
+export const finalIds = (dataSource, origin) => {
   const map = {};
   (dataSource.entities || []).forEach((e, i) => {
     origin[i].ids.concat(e.id).filter(id => id).forEach((id) => { map[id] = e.id; });
@@ -23,13 +25,12 @@ const finalIds = (dataSource, origin) => {
   return map;
 };
 
-const keyOf = r => [r.child, r.childField, r.parent, r.parentField].join('|').toUpperCase();
+const keyOf = (r, join = r) => [r.child, join.childField, r.parent, join.parentField].join('|').toUpperCase();
 
 // A reference hangs on a key of the parent table, here its primary key.
-const parentKey = (ctx, table, column) => {
+const primaryKey = (ctx, table) => {
   const key = refTarget(ctx, table, 'c:PrimaryKey');
-  const columns = elements(child(key, 'c:Key.Columns')).map(c => c.attrs.Ref || c.attrs.Id);
-  return key && columns.includes(column.attrs.Id) ? key : null;
+  return key ? { key, columns: elements(child(key, 'c:Key.Columns')).map(c => c.attrs.Ref || c.attrs.Id) } : null;
 };
 
 const stamp = ctx => [
@@ -48,9 +49,9 @@ const freeName = (ctx) => {
   return `Reference_${n}`;
 };
 
-// The same shape the modeling tool writes: many rows of the child for one of the parent,
-// changes and deletions of the parent restricted.
-const create = (ctx, { parent, child: childTable, parentColumn, childColumn, key }) => {
+// The same shape the modeling tool writes, with changes and deletions of the parent
+// restricted. `joins` pairs a column of the parent with one of the child.
+const create = (ctx, { parent, child: childTable, key, joins, rows }) => {
   const name = freeName(ctx);
   const nodes = build(ctx, [
     `<o:Reference Id="${ctx.nextId()}">`,
@@ -58,7 +59,7 @@ const create = (ctx, { parent, child: childTable, parentColumn, childColumn, key
     `<a:Name>${name}</a:Name>`,
     `<a:Code>${name}</a:Code>`,
     ...stamp(ctx),
-    '<a:Cardinality>0..*</a:Cardinality>',
+    `<a:Cardinality>${cardinalityOf(rows)}</a:Cardinality>`,
     '<a:UpdateConstraint>1</a:UpdateConstraint>',
     '<a:DeleteConstraint>1</a:DeleteConstraint>',
     '<c:ParentTable>',
@@ -71,16 +72,18 @@ const create = (ctx, { parent, child: childTable, parentColumn, childColumn, key
     `<o:Key Ref="${key.attrs.Id}"/>`,
     '</c:ParentKey>',
     '<c:Joins>',
-    `<o:ReferenceJoin Id="${ctx.nextId()}">`,
-    `<a:ObjectID>${Math.uuid().toUpperCase()}</a:ObjectID>`,
-    ...stamp(ctx),
-    '<c:Object1>',
-    `<o:Column Ref="${parentColumn.attrs.Id}"/>`,
-    '</c:Object1>',
-    '<c:Object2>',
-    `<o:Column Ref="${childColumn.attrs.Id}"/>`,
-    '</c:Object2>',
-    '</o:ReferenceJoin>',
+    ...joins.reduce((lines, join) => lines.concat([
+      `<o:ReferenceJoin Id="${ctx.nextId()}">`,
+      `<a:ObjectID>${Math.uuid().toUpperCase()}</a:ObjectID>`,
+      ...stamp(ctx),
+      '<c:Object1>',
+      `<o:Column Ref="${join.parentColumn.attrs.Id}"/>`,
+      '</c:Object1>',
+      '<c:Object2>',
+      `<o:Column Ref="${join.childColumn.attrs.Id}"/>`,
+      '</c:Object2>',
+      '</o:ReferenceJoin>',
+    ]), []),
     '</c:Joins>',
     '</o:Reference>',
   ]);
@@ -90,7 +93,8 @@ const create = (ctx, { parent, child: childTable, parentColumn, childColumn, key
 
 const MANY = ['n', '0,n', '1,n'];
 
-// Which end of a drawn line is the parent: the one that is not "many".
+// Which end of a drawn line is the parent: the one that is not "many". `rows` says how
+// many rows the child may have.
 const relationOf = (cell, tableOf, ids) => {
   const [from = '', to = ''] = `${cell.relation || ''}`.split(':');
   const end = side => ({
@@ -103,10 +107,10 @@ const relationOf = (cell, tableOf, ids) => {
     || (MANY.includes(from) && MANY.includes(to))) {
     return null;
   }
-  const [parent, many] = MANY.includes(from) ? [target, source] : [source, target];
+  const [parent, many, rows] = MANY.includes(from) ? [target, source, from] : [source, target, to];
   const id = v => ids[v] || v;
   return {
-    parent: id(parent.table), parentField: id(parent.field), child: id(many.table), childField: id(many.field),
+    parent: id(parent.table), parentField: id(parent.field), child: id(many.table), childField: id(many.field), rows,
   };
 };
 
@@ -171,33 +175,67 @@ const addSymbol = (ctx, diagramId, reference, parent, childTable) => {
   insert(symbols, nodes, elements(symbols)[0], ctx.eol);
 };
 
+// Lines between the same two tables that together cover the parent's whole key are one
+// reference over several columns. Any other line is a reference of its own.
+const grouped = (ctx, lines) => {
+  const pairs = lines.reduce((map, line) => {
+    const pair = `${line.relation.parent}|${line.relation.child}`;
+    return { ...map, [pair]: (map[pair] || []).concat(line) };
+  }, {});
+  return Object.keys(pairs).reduce((all, pair) => {
+    const group = pairs[pair];
+    const parent = find(ctx, group[0].relation.parent, 'o:Table');
+    const pk = parent && primaryKey(ctx, parent);
+    const columns = group.map(l => (find(ctx, l.relation.parentField, 'o:Column') || { attrs: {} }).attrs.Id);
+    const whole = pk && pk.columns.length > 1 && columns.length === pk.columns.length
+      && pk.columns.every(c => columns.includes(c));
+    return all.concat(whole ? [group] : group.map(line => [line]));
+  }, []);
+};
+
 // Brings the references of the file in line with the lines drawn in the diagrams of the
-// project. A reference goes only when its line was taken out of a diagram that is still
-// there, so one the file holds without a line, or of a diagram not in the project, stays.
-export const syncReferences = (ctx, before, after, origin) => {
-  const now = drawn(after, finalIds(after, origin));
+// project. A reference goes only when its lines were taken out of a diagram that still
+// shows both tables, so one the file holds without a line, or of a diagram not in the
+// project, stays.
+export const syncReferences = (ctx, before, after, ids) => {
+  const now = drawn(after, ids);
   const was = drawn(before);
-  const kept = id => (after.diagrams || []).some(d => d.id === id);
-  const existing = readReferences(ctx);
-  existing.forEach((r) => {
-    const old = was.get(keyOf(r));
-    if (old && !now.has(keyOf(r)) && old.diagrams.some(kept)) {
+  // Taking a table off a diagram takes its lines along; that is not deleting the reference.
+  const shows = (diagramId, r) => {
+    const diagram = (after.diagrams || []).find(d => d.id === diagramId);
+    const tables = (diagram?.canvasData?.cells || []).filter(c => c.shape === 'table')
+      .map(c => ids[c.originKey] || c.originKey);
+    return tables.includes(r.parent) && tables.includes(r.child);
+  };
+  const have = new Set();
+  readReferences(ctx).forEach((r) => {
+    const keys = r.joins.map(join => keyOf(r, join));
+    const lines = keys.map(k => now.get(k)).filter(l => l);
+    const old = keys.map(k => was.get(k)).filter(l => l);
+    if (lines.length === 0 && old.some(l => l.diagrams.some(id => shows(id, r)))) {
       remove(ctx, r.el);
-    }
-  });
-  const have = new Set(existing.map(keyOf));
-  now.forEach(({ relation: r, diagrams }, key) => {
-    if (have.has(key)) {
       return;
     }
+    keys.forEach(k => have.add(k));
+    if (lines.length > 0 && cardinalityOf(lines[0].relation.rows) !== cardinalityOf(rowsOf(r.cardinality))) {
+      setAttribute(ctx, r.el, 'a:Cardinality', cardinalityOf(lines[0].relation.rows));
+    }
+  });
+  const fresh = [...now.keys()].filter(k => !have.has(k)).map(k => now.get(k));
+  grouped(ctx, fresh).forEach((group) => {
+    const r = group[0].relation;
     const parent = find(ctx, r.parent, 'o:Table');
     const childTable = find(ctx, r.child, 'o:Table');
-    const parentColumn = find(ctx, r.parentField, 'o:Column');
-    const childColumn = find(ctx, r.childField, 'o:Column');
-    const pk = parent && parentColumn && parentKey(ctx, parent, parentColumn);
-    if (pk && childTable && childColumn) {
-      const reference = create(ctx, { parent, child: childTable, parentColumn, childColumn, key: pk });
-      diagrams.forEach(id => addSymbol(ctx, id, reference, parent, childTable));
+    const pk = parent && primaryKey(ctx, parent);
+    const joins = group.map(line => ({
+      parentColumn: find(ctx, line.relation.parentField, 'o:Column'),
+      childColumn: find(ctx, line.relation.childField, 'o:Column'),
+    }));
+    if (pk && childTable && joins.every(j => j.parentColumn && j.childColumn
+      && pk.columns.includes(j.parentColumn.attrs.Id))) {
+      const reference = create(ctx, { parent, child: childTable, key: pk.key, joins, rows: r.rows });
+      [...new Set(group.reduce((all, line) => all.concat(line.diagrams), []))]
+        .forEach(id => addSymbol(ctx, id, reference, parent, childTable));
     }
   });
 };

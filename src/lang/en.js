@@ -615,6 +615,9 @@ export default {
         update: 'update',
     },
     domain: {
+        defaultValue: 'Default value',
+        notNull: 'Not null',
+        comment: 'Comment',
         defKey: 'DomainCode',
         defName: 'DomainName',
         applyFor: 'ApplyForDataType',

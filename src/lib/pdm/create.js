@@ -194,5 +194,6 @@ export const createPdm = (dataSource, {
     entities,
     domains: (dataSource.domains || []).filter(d => kept.has(d.id)),
   }, { now: time, user });
-  return addSymbols(xml, entities);
+  // Tables the project placed in diagrams of its own are already where they belong.
+  return /<o:TableSymbol /.test(xml) ? xml : addSymbols(xml, entities);
 };

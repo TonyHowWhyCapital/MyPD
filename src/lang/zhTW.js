@@ -622,6 +622,9 @@ export default {
     "update": "版本變更程式碼"
   },
   "domain": {
+    "defaultValue": "預設值",
+    "notNull": "不為空",
+    "comment": "備註",
     "defKey": "資料域程式碼",
     "defName": "顯示名稱",
     "applyFor": "資料型別",

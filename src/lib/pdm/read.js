@@ -2,7 +2,7 @@ import { parseXml, elements, child, value, walk } from './xml';
 
 const SIGNATURE = 'PDM_DATA_MODEL_XML';
 // Diagram units in the file are much finer than canvas pixels, and y grows upwards.
-const CANVAS_SCALE = 24;
+export const CANVAS_SCALE = 24;
 
 const dbMatchers = [
   [/mysql|maria/i, 'MYSQL'],
@@ -97,6 +97,9 @@ const readDomains = (doc, base, dbId) => {
       len: dataType.len,
       scale: dataType.scale,
       uiHint: '',
+      defaultValue: value(el, 'a:DefaultValue'),
+      notNull: value(el, 'a:PhysicalDomain.Mandatory') === '1',
+      comment: value(el, 'a:Comment'),
     };
   });
   return { domains, mappings };
@@ -165,22 +168,37 @@ const readEntity = (doc, el, createEntity, domains, mappings, dbId) => {
   };
 };
 
+// How many rows of the child one row of the parent may have, in the words of the file
+// and in those of the project.
+const ROWS = { '0..*': 'n', '1..*': '1,n', '0..1': '0,1', '1..1': '1' };
+export const rowsOf = cardinality => ROWS[cardinality] || 'n';
+export const cardinalityOf = (rows) => {
+  return Object.keys(ROWS).find(c => ROWS[c] === (rows === '0,n' ? 'n' : rows)) || '0..*';
+};
+
+// A reference over several columns has one join for each pair of them.
 export const readReferences = (doc) => {
   return collect(doc, 'c:References', 'o:Reference').map((el) => {
-    const join = elements(child(el, 'c:Joins'), 'o:ReferenceJoin')[0];
     const parent = refTarget(doc, el, 'c:ParentTable');
     const childTable = refTarget(doc, el, 'c:ChildTable');
-    const parentColumn = refTarget(doc, join, 'c:Object1');
-    const childColumn = refTarget(doc, join, 'c:Object2');
-    if (!parent || !childTable || !parentColumn || !childColumn) {
+    const joins = elements(child(el, 'c:Joins'), 'o:ReferenceJoin').map(join => ({
+      el: join,
+      parentColumn: refTarget(doc, join, 'c:Object1'),
+      childColumn: refTarget(doc, join, 'c:Object2'),
+    })).filter(j => j.parentColumn && j.childColumn).map(j => ({
+      el: j.el,
+      parentField: objectId(j.parentColumn),
+      childField: objectId(j.childColumn),
+    }));
+    if (!parent || !childTable || joins.length === 0) {
       return null;
     }
     return {
       el,
       parent: objectId(parent),
       child: objectId(childTable),
-      parentField: objectId(parentColumn),
-      childField: objectId(childColumn),
+      cardinality: value(el, 'a:Cardinality'),
+      joins,
     };
   }).filter(r => r);
 };
@@ -219,15 +237,15 @@ const readDiagrams = (doc, references) => {
       if (!reference || !parentSymbol || !childSymbol) {
         return null;
       }
-      return {
-        id: cellId(s),
+      return reference.joins.map((join, n) => ({
+        id: n === 0 ? cellId(s) : `${cellId(s)}-${n}`,
         shape: 'erdRelation',
-        source: { cell: cellId(parentSymbol.s), port: `${reference.parentField}%out` },
-        target: { cell: cellId(childSymbol.s), port: `${reference.childField}%in` },
-        relation: '1:n',
+        source: { cell: cellId(parentSymbol.s), port: `${join.parentField}%out` },
+        target: { cell: cellId(childSymbol.s), port: `${join.childField}%in` },
+        relation: `1:${rowsOf(reference.cardinality)}`,
         fillColor: '#ACDAFC',
-      };
-    }).filter(e => e);
+      }));
+    }).filter(e => e).reduce((all, e) => all.concat(e), []);
     return {
       id: objectId(el),
       defKey: value(el, 'a:Code'),
@@ -277,14 +295,14 @@ export const pdmToDataSource = (xml, base, { createEntity = defaultEntity } = {}
   const references = readReferences(doc);
   references.forEach((r) => {
     const entity = entities.find(e => e.id === r.child);
-    entity.correlations.push({
-      myField: r.childField,
+    r.joins.forEach(join => entity.correlations.push({
+      myField: join.childField,
       refEntity: r.parent,
-      refField: r.parentField,
-      myRows: 'n',
+      refField: join.parentField,
+      myRows: rowsOf(r.cardinality),
       refRows: '1',
       innerType: '',
-    });
+    }));
   });
   return {
     ...base,

@@ -1392,6 +1392,8 @@ export default {
     "delete": "刪除",
     "save": "儲存",
     "empty": "暫無物件，請點選新增",
+    "search": "搜尋程式碼或名稱",
+    "noMatch": "沒有符合的物件",
     "selectOne": "請選擇或新增一個物件",
     "saved": "儲存成功",
     "defKey": "程式碼",
@@ -1504,6 +1506,12 @@ export default {
     "overwriteTitle": "確定覆蓋？",
     "overwriteMessage": "{name}",
     "unsaved": "未儲存"
+  },
+  "toolGroup": {
+    "compare": "比較與分析",
+    "edit": "編輯與管理",
+    "output": "輸出",
+    "view": "顯示"
   },
   "impact": {
     "title": "影響分析",

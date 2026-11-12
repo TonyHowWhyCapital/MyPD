@@ -27,7 +27,10 @@ export default React.memo(({
   const [dbId, setDbId] = useState(dataSource.profile?.default?.db || supports[0]?.id);
   const objects = dataSource.dbObjects || [];
   const types = getDbObjectTypeList();
-  const shown = objects.filter(o => filter === 'all' || o.type === filter);
+  const [keyword, setKeyword] = useState('');
+  const word = keyword.trim().toLowerCase();
+  const shown = objects.filter(o => (filter === 'all' || o.type === filter)
+    && (!word || `${o.defKey || ''} ${o.defName || ''}`.toLowerCase().includes(word)));
   const entities = (dataSource.entities || []).concat(dataSource.views || []);
   const def = draft && dbObjectTypes[draft.type];
   const entity = draft && entities.find(e => e.id === draft.refEntity);
@@ -101,9 +104,16 @@ export default React.memo(({
     </div>
     <div className={`${currentPrefix}-dbobject-objects`}>
       <div className={`${currentPrefix}-dbobject-objects-head`}>
+        <Input
+          placeholder={FormatMessage.string({id: 'dbObject.search'})}
+          value={keyword}
+          onChange={e => setKeyword(e.target.value)}
+        />
         <Button type='primary' onClick={add}><FormatMessage id='dbObject.add'/></Button>
       </div>
-      {shown.length === 0 && <div><FormatMessage id='dbObject.empty'/></div>}
+      {shown.length === 0 && <div className={`${currentPrefix}-dbobject-objects-none`}>
+        <FormatMessage id={word ? 'dbObject.noMatch' : 'dbObject.empty'}/>
+      </div>}
       {shown.map(o => <div
         key={o.id}
         className={!isNew && draft?.id === o.id ? `${currentPrefix}-dbobject-objects-selected` : ''}

@@ -1280,11 +1280,11 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     });
   };
   const extTools = {
-    impactAnalysis: [ImpactAnalysis, 'impact.title'],
+    impactAnalysis: [ImpactAnalysis, 'impact.title', '70%'],
     modelCompare: [ModelCompare, 'modelCompare.title'],
     dbObject: [DbObject, 'dbObject.title'],
     report: [Report, 'report.title'],
-    entityTemplate: [EntityTemplate, 'entityTemplate.title'],
+    entityTemplate: [EntityTemplate, 'entityTemplate.title', '70%'],
     modelEdit: [ModelEdit, 'modelEdit.title'],
   };
   const openExtTool = (key) => {
@@ -1292,7 +1292,8 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     // A tool may ask to be consulted before it is closed, e.g. for unsaved changes.
     let guard = null;
     const tryClose = () => (guard ? guard(() => modal && modal.close()) : modal && modal.close());
-    const [Com, title] = extTools[key];
+    // a tool that is a list beside a form takes the narrower of the two window sizes
+    const [Com, title, width = '90%'] = extTools[key];
     modal = openModal(<Com
       onCloseGuard={(fn) => { guard = fn; }}
       dataSource={dataSourceRef.current}
@@ -1302,7 +1303,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       openLoading={restProps.openLoading}
       closeLoading={restProps.closeLoading}
     />, {
-      bodyStyle: { width: '90%' },
+      bodyStyle: { width },
       buttons:  [
         <Button key='cancel' onClick={tryClose}>
           <FormatMessage id='button.close'/>

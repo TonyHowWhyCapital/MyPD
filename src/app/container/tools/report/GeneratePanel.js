@@ -69,8 +69,8 @@ export default React.memo(({ prefix, template, getDataSource, lang, onTemplateCh
     </div>
     <div className={`${currentPrefix}-report-hint`}><FormatMessage id={`report.formatHint.${format}`}/></div>
     <div className={`${currentPrefix}-report-actions`}>
-      <Button onClick={preview}><FormatMessage id='report.preview'/></Button>
       <Button type='primary' onClick={exportReport}><FormatMessage id='report.export'/></Button>
+      <Button onClick={preview}><FormatMessage id='report.preview'/></Button>
     </div>
   </div>;
 });

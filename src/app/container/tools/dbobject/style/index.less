@@ -13,25 +13,24 @@
       cursor: pointer;
       display: flex;
       justify-content: space-between;
-      &:hover {
-        color: @primary-color;
+      &:hover:not([class$='-selected']) {
+        background: @tr-background;
       }
     }
     &-selected {
-      color: @primary-color;
-      font-weight: bold;
+      .tool-list-item-chosen();
     }
   }
   &-objects {
     width: 22%;
     // a long code is cut short, the kind beside it stays whole
-    & > div > span:first-child {
+    & > div:not([class$='-head']) > span:first-child {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       min-width: 0;
     }
-    & > div > span + span {
+    & > div:not([class$='-head']) > span + span {
       flex-shrink: 0;
       margin-left: 8px;
       white-space: nowrap;
@@ -40,7 +39,26 @@
     }
     &-head {
       cursor: default !important;
+      background: none !important;
+      align-items: center;
       border-bottom: 1px solid @primary-border-color;
+      & > * + * {
+        margin-left: 8px;
+        flex-shrink: 0;
+      }
+      & > *:first-child {
+        flex: 1;
+        min-width: 0;
+        input {
+          width: 100%;
+        }
+      }
+    }
+    &-none {
+      display: block !important;
+      cursor: default !important;
+      background: none !important;
+      .tool-empty();
     }
   }
   &-main {

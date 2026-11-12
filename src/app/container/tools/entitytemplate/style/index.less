@@ -10,10 +10,9 @@
     &-item {
       display: flex;
       justify-content: space-between;
-      padding: 4px 6px;
-      cursor: pointer;
+      .tool-list-item();
       &-active {
-        background: rgba(0, 0, 0, 0.08);
+        .tool-list-item-chosen();
       }
     }
   }
@@ -34,12 +33,20 @@
     > * + * {
       margin-left: 8px;
     }
+    > span {
+      white-space: nowrap;
+    }
+    > .@{prefix}-input {
+      flex: 1;
+      min-width: 0;
+      input {
+        width: 100%;
+      }
+    }
   }
   &-grid {
-    width: 100%;
-    border-collapse: collapse;
-    th, td {
-      border: 1px solid #ddd;
+    .tool-table();
+    td {
       padding: 2px 4px;
     }
   }
@@ -50,6 +57,16 @@
     background: transparent;
   }
   &-linked {
-    margin-top: 10px;
+    margin-top: 16px;
+    > * + * {
+      margin-top: 6px;
+    }
+  }
+  &-empty {
+    .tool-empty();
+  }
+  &-heading {
+    .tool-title();
+    margin-bottom: 0;
   }
 }

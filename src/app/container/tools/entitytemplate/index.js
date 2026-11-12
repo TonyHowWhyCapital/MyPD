@@ -131,7 +131,7 @@ export default React.memo(({dataSource, updateDataSource, prefix, onCloseGuard})
         </Select>
         <Button onClick={onFromEntity}><FormatMessage id='entityTemplate.fromEntity'/></Button>
       </div>
-      {templates.length === 0 && <div><FormatMessage id='entityTemplate.empty'/></div>}
+      {templates.length === 0 && <div className={`${currentPrefix}-entity-template-empty`}><FormatMessage id='entityTemplate.empty'/></div>}
       {templates.map(t => (
         <div
           key={t.id}
@@ -190,13 +190,13 @@ export default React.memo(({dataSource, updateDataSource, prefix, onCloseGuard})
         </tbody>
       </table>
       <div className={`${currentPrefix}-entity-template-toolbar`}>
+        <Button type='primary' onClick={onSave}><FormatMessage id='entityTemplate.save'/></Button>
         <Button onClick={addField}>
           <FormatMessage id='entityTemplate.addField'/>
         </Button>
-        <Button type='primary' onClick={onSave}><FormatMessage id='entityTemplate.save'/></Button>
       </div>
       <div className={`${currentPrefix}-entity-template-linked`}>
-        <div><FormatMessage id='entityTemplate.linked'/></div>
+        <div className={`${currentPrefix}-entity-template-heading`}><FormatMessage id='entityTemplate.linked'/></div>
         {linked.length === 0
           ? <div><FormatMessage id='entityTemplate.noLinked'/></div>
           : linked.map(e => <div key={e.id}>{`${e.defKey}(${e.defName || e.defKey})`}</div>)}

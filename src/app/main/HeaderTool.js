@@ -158,62 +158,86 @@ export default React.memo(forwardRef(({currentPrefix, close, iconClick, openModa
           onClick={iconClick}
           dropMenu={[
                    {
-                       icon: <svg className={`${currentPrefix}-svg-icon`} aria-hidden="true">
-                         <use xlinkHref={themeMode === 'themeDay' ? '#icon-yueduye-yejianmoshi' : '#icon-baitian-qing'}/>
-                       </svg>,
-                       key: 'theme',
-                       name: FormatMessage.string({id: `toolbar.${themeMode === 'themeDay' ? 'themeNigh' : 'themeDay'}`}),
+                     key: 'tool-compare',
+                     name: FormatMessage.string({id: 'toolGroup.compare'}),
+                     children: [
+                       {
+                           icon: <svg className={`${currentPrefix}-svg-icon`} aria-hidden="true">
+                             <use xlinkHref='#icon-BOMbijiao'/>
+                           </svg>,
+                           key: 'compareDb',
+                           name: FormatMessage.string({id: 'toolbar.compareDb'}),
+                       },
+                       {
+                           icon: <svg className={`${currentPrefix}-svg-icon`} aria-hidden="true">
+                             <use xlinkHref='#icon-bijiao1'/>
+                           </svg>,
+                           key: 'compareTable',
+                           name: FormatMessage.string({id: 'toolbar.compareTable'}),
+                       },
+                       {
+                           icon: <Icon type='fa-exchange' style={{marginRight: 4}}/>,
+                           key: 'modelCompare',
+                           name: FormatMessage.string({id: 'toolbar.modelCompare'}),
+                       },
+                       {
+                           icon: <Icon type='fa-sitemap' style={{marginRight: 4}}/>,
+                           key: 'impactAnalysis',
+                           name: FormatMessage.string({id: 'toolbar.impactAnalysis'}),
+                       },
+                     ],
                    },
                    {
-                       icon: <svg className={`${currentPrefix}-svg-icon`} aria-hidden="true">
-                         <use xlinkHref='#icon-daxiaoxiezhuanhuan'/>
-                       </svg>,
-                       key: 'toggleCase',
-                       name: FormatMessage.string({id: 'toolbar.toggleCase'}),
+                     key: 'tool-edit',
+                     name: FormatMessage.string({id: 'toolGroup.edit'}),
+                     children: [
+                       {
+                           icon: <Icon type='fa-table' style={{marginRight: 4}}/>,
+                           key: 'modelEdit',
+                           name: FormatMessage.string({id: 'modelEdit.title'}),
+                       },
+                       {
+                           icon: <Icon type='fa-clone' style={{marginRight: 4}}/>,
+                           key: 'entityTemplate',
+                           name: FormatMessage.string({id: 'toolbar.entityTemplate'}),
+                       },
+                       {
+                           icon: <Icon type='fa-cubes' style={{marginRight: 4}}/>,
+                           key: 'dbObject',
+                           name: FormatMessage.string({id: 'toolbar.dbObject'}),
+                       },
+                       {
+                           icon: <svg className={`${currentPrefix}-svg-icon`} aria-hidden="true">
+                             <use xlinkHref='#icon-daxiaoxiezhuanhuan'/>
+                           </svg>,
+                           key: 'toggleCase',
+                           name: FormatMessage.string({id: 'toolbar.toggleCase'}),
+                       },
+                     ],
                    },
                    {
-                       icon: <svg className={`${currentPrefix}-svg-icon`} aria-hidden="true">
-                         <use xlinkHref='#icon-BOMbijiao'/>
-                       </svg>,
-                       key: 'compareDb',
-                       name: FormatMessage.string({id: 'toolbar.compareDb'}),
+                     key: 'tool-output',
+                     name: FormatMessage.string({id: 'toolGroup.output'}),
+                     children: [
+                       {
+                           icon: <Icon type='fa-file-text-o' style={{marginRight: 4}}/>,
+                           key: 'report',
+                           name: FormatMessage.string({id: 'toolbar.report'}),
+                       },
+                     ],
                    },
                    {
-                       icon: <svg className={`${currentPrefix}-svg-icon`} aria-hidden="true">
-                         <use xlinkHref='#icon-bijiao1'/>
-                       </svg>,
-                       key: 'compareTable',
-                       name: FormatMessage.string({id: 'toolbar.compareTable'}),
-                   },
-                   {
-                       icon: <Icon type='fa-sitemap' style={{marginRight: 4}}/>,
-                       key: 'impactAnalysis',
-                       name: FormatMessage.string({id: 'toolbar.impactAnalysis'}),
-                   },
-                   {
-                       icon: <Icon type='fa-exchange' style={{marginRight: 4}}/>,
-                       key: 'modelCompare',
-                       name: FormatMessage.string({id: 'toolbar.modelCompare'}),
-                   },
-                   {
-                       icon: <Icon type='fa-cubes' style={{marginRight: 4}}/>,
-                       key: 'dbObject',
-                       name: FormatMessage.string({id: 'toolbar.dbObject'}),
-                   },
-                   {
-                       icon: <Icon type='fa-file-text-o' style={{marginRight: 4}}/>,
-                       key: 'report',
-                       name: FormatMessage.string({id: 'toolbar.report'}),
-                   },
-                   {
-                       icon: <Icon type='fa-clone' style={{marginRight: 4}}/>,
-                       key: 'entityTemplate',
-                       name: FormatMessage.string({id: 'toolbar.entityTemplate'}),
-                   },
-                   {
-                       icon: <Icon type='fa-table' style={{marginRight: 4}}/>,
-                       key: 'modelEdit',
-                       name: FormatMessage.string({id: 'modelEdit.title'}),
+                     key: 'tool-view',
+                     name: FormatMessage.string({id: 'toolGroup.view'}),
+                     children: [
+                       {
+                           icon: <svg className={`${currentPrefix}-svg-icon`} aria-hidden="true">
+                             <use xlinkHref={themeMode === 'themeDay' ? '#icon-yueduye-yejianmoshi' : '#icon-baitian-qing'}/>
+                           </svg>,
+                           key: 'theme',
+                           name: FormatMessage.string({id: `toolbar.${themeMode === 'themeDay' ? 'themeNigh' : 'themeDay'}`}),
+                       },
+                     ],
                    },
                ]}/>
       </GroupIconGroup>

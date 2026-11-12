@@ -250,15 +250,15 @@ export default {
       },
       part: {
         cell: '欄位內容',
-        head: '抬頭'
+        head: '抬頭',
       },
       propSize: '字型大小',
       propFont: '字型',
       font: {
-        underline: '底線'
+        underline: '底線',
       },
       align: {
-        center: '置中'
+        center: '置中',
       },
       alignTip: '點選切換內容對齊：靠左、置中、靠右',
       currentModel: '目前專案',
@@ -268,8 +268,8 @@ export default {
       error: {
         'kind.invalid': '報告種類無效',
         'section.type.unknown': '存在未知的章節種類',
-        'section.column.unknown': '存在未知的欄位'
-      }
-    }
+        'section.column.unknown': '存在未知的欄位',
+      },
+    },
   },
 };

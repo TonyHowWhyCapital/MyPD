@@ -47,3 +47,41 @@
 @home-background: #F3F5F9; // 欢迎页背景色
 @tr-background: #F5F7FA; // 列表行背景色
 @code-background: #2F3129; // 代码编辑器背景色
+
+// Shared looks of the tool windows: one table, one list row, one empty note, one heading.
+.tool-table() {
+  width: 100%;
+  border-collapse: collapse;
+  th, td {
+    border: 1px solid @primary-border-color;
+    padding: 4px 8px;
+    text-align: left;
+  }
+  th {
+    background: @tr-background;
+    color: @second-font-color;
+    font-weight: bold;
+  }
+}
+.tool-list-item() {
+  padding: 5px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  &:hover {
+    background: @tr-background;
+  }
+}
+.tool-list-item-chosen() {
+  background: @third-primary-color;
+  color: @primary-color;
+}
+.tool-empty() {
+  padding: 24px;
+  text-align: center;
+  color: @third-font-color;
+}
+.tool-title() {
+  margin-bottom: 10px;
+  font-weight: bold;
+  color: @main-font-color;
+}

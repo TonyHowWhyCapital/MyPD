@@ -9,6 +9,12 @@ export default {
       overwriteMessage: '{name}',
       unsaved: '未保存',
     },
+    toolGroup: {
+      compare: '比较与分析',
+      edit: '编辑与管理',
+      output: '输出',
+      view: '显示',
+    },
   },
   en: {
     guard: {
@@ -19,6 +25,12 @@ export default {
       overwriteTitle: 'Overwrite?',
       overwriteMessage: '{name}',
       unsaved: 'Unsaved',
+    },
+    toolGroup: {
+      compare: 'Compare and analyse',
+      edit: 'Edit and manage',
+      output: 'Output',
+      view: 'Display',
     },
   },
 };

@@ -54,7 +54,8 @@
     th {
       position: sticky;
       top: 0;
-      background: #F7F7F7;
+      background: @tr-background;
+      color: @second-font-color;
       z-index: 1;
       &.sortable {
         cursor: pointer;
@@ -84,13 +85,11 @@
     }
   }
   &-hint {
-    color: #999999;
+    color: @third-font-color;
     font-size: 12px;
     a { margin-left: 8px; }
   }
   &-empty {
-    padding: 24px;
-    text-align: center;
-    color: #999999;
+    .tool-empty();
   }
 }

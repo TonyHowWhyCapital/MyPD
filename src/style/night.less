@@ -86,7 +86,8 @@ body[theme='themeNigh'] {
 
   // Everything that floats above the page
   :where(.@{prefix}-modal-content),
-  :where(.@{prefix}-modal-content *),
+  // an editor inside a window keeps its own colours
+  :where(.@{prefix}-modal-content *:not(.ace_editor):not(.ace_editor *):not(.@{prefix}-code-highlight *)),
   :where(.@{prefix}-dropdown-container),
   :where(.@{prefix}-dropdown-container *),
   :where(.@{prefix}-contextmenu-show),
@@ -242,7 +243,13 @@ body[theme='themeNigh'] {
   :where(.current),
   :where(.current *),
   :where(.selected),
-  :where(.selected *) {
+  :where(.selected *),
+  :where([class$='-list-item-active']),
+  :where([class$='-list-item-active'] *),
+  :where([class$='-types-selected']),
+  :where([class$='-types-selected'] *),
+  :where([class$='-objects-selected']),
+  :where([class$='-objects-selected'] *) {
     color: @n-accent !important;
     background-color: @n-selected !important;
   }

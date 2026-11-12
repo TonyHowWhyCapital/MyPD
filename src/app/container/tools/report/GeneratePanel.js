@@ -48,13 +48,19 @@ export default React.memo(({ prefix, template, getDataSource, lang, onTemplateCh
     <div className={`${currentPrefix}-report-title`}><FormatMessage id='report.generate'/></div>
     <div className={`${currentPrefix}-report-label`}><FormatMessage id='report.models'/></div>
     <div className={`${currentPrefix}-report-models`}>
-      <div className={`${currentPrefix}-report-model`}><FormatMessage id='report.currentModel'/></div>
+      <div className={`${currentPrefix}-report-model`}>
+        <span><Icon type='fa-database'/><FormatMessage id='report.currentModel'/></span>
+      </div>
       {extras.map((e, i) => <div key={e.path} className={`${currentPrefix}-report-model`}>
-        <span title={e.path}>{e.data.name || e.path}</span>
-        <a onClick={() => setExtras(extras.filter((_, idx) => idx !== i))}><Icon type='fa-times'/></a>
+        <span title={e.path}><Icon type='fa-file-o'/>{e.data.name || e.path}</span>
+        <a
+          className='danger'
+          title={FormatMessage.string({ id: 'report.removeModel' })}
+          onClick={() => setExtras(extras.filter((_, idx) => idx !== i))}
+        ><Icon type='fa-times'/></a>
       </div>)}
     </div>
-    <Button onClick={addModel}><FormatMessage id='report.addModel'/></Button>
+    <Button onClick={addModel}><Icon type='fa-plus'/> <FormatMessage id='report.addModel'/></Button>
     <div className={`${currentPrefix}-report-row`}>
       <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.format'/></span>
       <Select notAllowEmpty value={format} onChange={e => setFormat(e.target.value)}>

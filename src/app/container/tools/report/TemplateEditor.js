@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  FormatMessage, Button, Input, Select, Text, openModal,
+  FormatMessage, Button, Input, Select, Text, Icon, openModal,
 } from 'components';
 import { sectionTypes, labelOf } from '../../../../lib/report';
 import { getPrefix } from '../../../../lib/prefixUtil';
@@ -17,7 +17,9 @@ export default React.memo(({
   // The report tool is modal, the model cannot change underneath it.
   const dataSource = useMemo(() => getDataSource(), []);
   if (!draft) {
-    return <div className={`${currentPrefix}-report-editor`}><FormatMessage id='report.noSelection'/></div>;
+    return <div className={`${currentPrefix}-report-editor`}>
+      <div className={`${currentPrefix}-report-blank`}><FormatMessage id='report.noSelection'/></div>
+    </div>;
   }
   const isList = draft.kind === 'list';
   const addableTypes = Object.keys(sectionTypes).filter(t => !isList || sectionTypes[t].flat);
@@ -51,63 +53,86 @@ export default React.memo(({
     const section = { id: Math.uuid(), type: newType, title: '', columns: [], options: {} };
     setSections(isList ? [section] : draft.sections.concat(section));
   };
+  const text = id => FormatMessage.string({ id: `report.${id}` });
+  const last = draft.sections.length - 1;
   return <div className={`${currentPrefix}-report-editor`}>
-    <div className={`${currentPrefix}-report-title`}><FormatMessage id='report.editor'/></div>
-    <div className={`${currentPrefix}-report-row`}>
-      <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.name'/></span>
-      <Input value={draft.defName} onChange={e => onChange({ ...draft, defName: e.target.value })}/>
+    <div className={`${currentPrefix}-report-editor-head`}>
+      <span className={`${currentPrefix}-report-title`}><FormatMessage id='report.editor'/></span>
+      <Button type='primary' onClick={onSave}><FormatMessage id='report.save'/></Button>
     </div>
-    <div className={`${currentPrefix}-report-row`}>
-      <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.kind'/></span>
-      <span><FormatMessage id={isList ? 'report.kindList' : 'report.kindDocument'}/></span>
-    </div>
-    <div className={`${currentPrefix}-report-row`}>
-      <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.sections'/></span>
-      <Select notAllowEmpty value={newType} onChange={e => setNewType(e.target.value)}>
-        {addableTypes.map(t => <Option key={t} value={t}>{labelOf(`section.${t}`, lang)}</Option>)}
-      </Select>
-      <Button onClick={addSection}><FormatMessage id='report.addSection'/></Button>
-    </div>
-    <div className={`${currentPrefix}-report-sections`}>
+    <div className={`${currentPrefix}-report-editor-body`}>
+      <div className={`${currentPrefix}-report-row`}>
+        <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.name'/></span>
+        <Input
+          value={draft.defName}
+          onChange={e => onChange({ ...draft, defName: e.target.value })}
+        />
+        <span className={`${currentPrefix}-report-kind`}>
+          <Icon type={isList ? 'fa-list' : 'fa-file-text-o'}/>
+          <FormatMessage id={isList ? 'report.kindList' : 'report.kindDocument'}/>
+        </span>
+      </div>
+      <div className={`${currentPrefix}-report-row`}>
+        <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.sections'/></span>
+        <Select notAllowEmpty value={newType} onChange={e => setNewType(e.target.value)}>
+          {addableTypes.map(t => <Option key={t} value={t}>{labelOf(`section.${t}`, lang)}</Option>)}
+        </Select>
+        <Button onClick={addSection}>
+          <Icon type='fa-plus'/> <FormatMessage id='report.addSection'/>
+        </Button>
+      </div>
+      {draft.sections.length === 0
+        && <div className={`${currentPrefix}-report-blank`}><FormatMessage id='report.sectionEmpty'/></div>}
       {draft.sections.map((s, i) => {
         const def = sectionTypes[s.type];
+        const typeName = labelOf(`section.${s.type}`, lang);
+        const hasTable = def && def.columns.length > 0;
         return <div key={s.id} className={`${currentPrefix}-report-section`}>
           <div className={`${currentPrefix}-report-section-head`}>
-            <strong>{labelOf(`section.${s.type}`, lang)}</strong>
+            <strong><em>{i + 1}</em>{typeName}</strong>
             <span>
-              {def && def.columns.length > 0
-                && <a onClick={() => design(i)}><FormatMessage id='report.design'/></a>}
-              <a onClick={() => move(i, -1)}><FormatMessage id='report.moveUp'/></a>
-              <a onClick={() => move(i, 1)}><FormatMessage id='report.moveDown'/></a>
-              <a onClick={() => setSections(draft.sections.filter((_, idx) => idx !== i))}><FormatMessage id='report.remove'/></a>
+              {hasTable && <a className='primary' onClick={() => design(i)}>
+                <Icon type='fa-columns'/><FormatMessage id='report.design'/>
+              </a>}
+              <a className={i === 0 ? 'disabled' : ''} title={text('moveUp')} onClick={() => move(i, -1)}>
+                <Icon type='fa-arrow-up'/>
+              </a>
+              <a className={i === last ? 'disabled' : ''} title={text('moveDown')} onClick={() => move(i, 1)}>
+                <Icon type='fa-arrow-down'/>
+              </a>
+              <a
+                className='danger'
+                title={text('remove')}
+                onClick={() => setSections(draft.sections.filter((_, idx) => idx !== i))}
+              ><Icon type='fa-trash-o'/></a>
             </span>
           </div>
           <div className={`${currentPrefix}-report-row`}>
             <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.sectionTitle'/></span>
-            <Input value={s.title || ''} onChange={e => patchSection(i, { title: e.target.value })}/>
+            <Input
+              value={s.title || ''}
+              placeholder={FormatMessage.string({ id: 'report.sectionTitleHint', data: { name: typeName } })}
+              onChange={e => patchSection(i, { title: e.target.value })}
+            />
           </div>
           {s.type === 'text' && <div className={`${currentPrefix}-report-row`}>
             <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.text'/></span>
             <Text
               rows={4}
-              style={{ width: '100%' }}
+              style={{ flex: 1 }}
               value={s.options?.text || ''}
               onChange={e => patchSection(i, { options: { ...s.options, text: e.target.value } })}
             />
           </div>}
-          {def && def.columns.length > 0 && <div className={`${currentPrefix}-report-row`}>
-            <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.columns'/></span>
-            <SectionPreview
-              cls={`${currentPrefix}-report-strip`}
-              section={s}
-              dataSource={dataSource}
-              lang={lang}
-              onClick={() => design(i)}
-            />
-          </div>}
+          {hasTable && <SectionPreview
+            cls={`${currentPrefix}-report-strip`}
+            section={s}
+            dataSource={dataSource}
+            lang={lang}
+            onClick={() => design(i)}
+          />}
         </div>;
       })}
     </div>
-    <Button type='primary' onClick={onSave}><FormatMessage id='report.save'/></Button>
   </div>;
 });

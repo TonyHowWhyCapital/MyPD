@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { FormatMessage } from 'components';
+import { FormatMessage, Icon } from 'components';
 import { buildSection, columnPercents, cssOf } from '../../../../lib/report';
 
 const ROWS = 2;
@@ -21,7 +21,8 @@ export default React.memo(({
   const renamed = table.renamed || [];
   // The summary lists its columns as rows, so all of them are shown.
   const rows = table.keys ? table.rows.slice(0, ROWS) : table.rows;
-  return <div className={cls} onClick={onClick} title={FormatMessage.string({ id: 'report.design' })}>
+  return <div className={cls} onClick={onClick}>
+    <span className={`${cls}-go`}><Icon type='fa-pencil'/><FormatMessage id='report.clickToDesign'/></span>
     <table className={percents ? 'sized' : ''}>
       {percents && <colgroup>{percents.map((p, i) => <col key={i} style={{ width: `${p}%` }}/>)}</colgroup>}
       <thead>

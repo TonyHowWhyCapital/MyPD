@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Checkbox, FormatMessage } from 'components';
+import { Checkbox, FormatMessage, Icon } from 'components';
 import {
   resolveColumns, toggleColumn, moveColumn, columnPercents, dragColumn, widthsOf,
   columnLabel, originalLabel, cssOf,
@@ -7,6 +7,7 @@ import {
 import { getPrefix } from '../../../../lib/prefixUtil';
 import ColumnProperties from './ColumnProperties';
 import { sampleTable } from './SectionPreview';
+import './style/design.less';
 
 const SAMPLE_ROWS = 12;
 const text = id => FormatMessage.string({ id: `report.${id}` });
@@ -18,7 +19,7 @@ const Sheet = ({
 }) => {
   if (!table.keys) {
     // The model summary: one row per column.
-    return <table>
+    return <table className='rows'>
       <thead><tr>{table.headers.map((h, i) => <th key={i}>{h}</th>)}</tr></thead>
       <tbody>
         {table.rows.map((r, n) => <tr key={chosen[n]} onClick={() => onSelect(chosen[n])}>
@@ -108,7 +109,11 @@ export default ({
   };
   return <div className={cls}>
     <div className={`${cls}-main`}>
-      <div className={`${cls}-tip`}><FormatMessage id='report.designTip'/></div>
+      <div className={`${cls}-tip`}>
+        <span><Icon type='fa-mouse-pointer'/><FormatMessage id='report.designTip'/></span>
+        {table.keys && <span><Icon type='fa-arrows'/><FormatMessage id='report.designTipMove'/></span>}
+        {table.keys && <span><Icon type='fa-arrows-h'/><FormatMessage id='report.designTipSize'/></span>}
+      </div>
       <div className={`${cls}-paper`}>
         <Sheet
           cls={cls}
@@ -124,8 +129,11 @@ export default ({
     </div>
     <div className={`${cls}-side`}>
       <div className={`${cls}-panel ${cls}-fields`}>
-        <strong><FormatMessage id='report.designColumns'/></strong>
-        {def.columns.map(({ key }) => <div
+        <div className={`${cls}-panel-head`}>
+          <strong><FormatMessage id='report.designColumns'/></strong>
+          <i>{chosen.length} / {def.columns.length}</i>
+        </div>
+        <div className={`${cls}-grid`}>{def.columns.map(({ key }) => <div
           key={key}
           className={`${cls}-field ${key === selected && chosen.includes(key) ? 'picked' : ''}`}
         >
@@ -134,10 +142,9 @@ export default ({
             title={originalLabel(sec, key, lang) && FormatMessage.string({ id: 'report.originalName', data: { name: originalLabel(sec, key, lang) } })}
             onClick={() => (chosen.includes(key) ? setSelected(key) : toggle(key, true))}
           >{columnLabel(sec, key, lang)}</span>
-        </div>)}
+        </div>)}</div>
       </div>
-      <div className={`${cls}-panel`}>
-        <strong><FormatMessage id='report.designProps'/></strong>
+      <div className={`${cls}-panel ${cls}-props`}>
         <ColumnProperties cls={cls} def={def} section={sec} lang={lang} selected={selected} part={part} onPart={setPart} patch={patch}/>
       </div>
     </div>

@@ -117,7 +117,11 @@ export default ({
   };
   return <div className={cls}>
     <div className={`${cls}-bar`}>
-      <span><FormatMessage id='report.previewTip'/></span>
+      <span>
+        <span><Icon type='fa-arrows-h'/><FormatMessage id='report.previewTip'/></span>
+        <span><Icon type='fa-align-left'/><FormatMessage id='report.previewTipAlign'/></span>
+        <span><Icon type='fa-info-circle'/><FormatMessage id='report.previewTipKeep'/></span>
+      </span>
       <Button disable={!hasWidths(tpl)} onClick={() => update(clearWidths(tpl))}>
         <FormatMessage id='report.previewReset'/>
       </Button>

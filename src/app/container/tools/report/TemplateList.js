@@ -19,13 +19,20 @@ export default React.memo(({
         className={`${currentPrefix}-report-list-item ${t.id === selectedId ? `${currentPrefix}-report-list-item-selected` : ''}`}
         onClick={() => onSelect(t.id)}
       >
-        <span>
+        <span title={t.defName}>
           <Icon type={t.kind === 'list' ? 'fa-list' : 'fa-file-text-o'}/>
           <span className={`${currentPrefix}-report-list-item-name`}>{t.defName}</span>
         </span>
         <span>
-          <a onClick={(e) => { e.stopPropagation(); onCopy(t); }}><FormatMessage id='report.copy'/></a>
-          <a onClick={(e) => { e.stopPropagation(); onDelete(t); }}><FormatMessage id='report.delete'/></a>
+          <a
+            title={FormatMessage.string({ id: 'report.copy' })}
+            onClick={(e) => { e.stopPropagation(); onCopy(t); }}
+          ><Icon type='fa-copy'/></a>
+          <a
+            className='danger'
+            title={FormatMessage.string({ id: 'report.delete' })}
+            onClick={(e) => { e.stopPropagation(); onDelete(t); }}
+          ><Icon type='fa-trash-o'/></a>
         </span>
       </div>)}
     </div>

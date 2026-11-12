@@ -58,7 +58,18 @@ var merged = fs.readdirSync(path.join(root, extDir)).filter(function (f) { retur
         return Object.assign(p, load(path.join(extDir, f)).zh);
     }, Object.assign({}, load('src/lang/zh.js')));
 
-var zhTW = deepConvert(merged);
+// 扩展语言包可带 zhTW 块：自动转换的用词不符合台湾习惯时，逐条覆盖
+var deepMerge = function (base, over) {
+    return Object.keys(over || {}).reduce(function (p, k) {
+        var nested = over[k] && typeof over[k] === 'object' && p[k] && typeof p[k] === 'object';
+        p[k] = nested ? deepMerge(Object.assign({}, p[k]), over[k]) : over[k];
+        return p;
+    }, base);
+};
+var zhTW = fs.readdirSync(path.join(root, extDir)).filter(function (f) { return /\.js$/.test(f); }).sort()
+    .reduce(function (p, f) {
+        return deepMerge(p, load(path.join(extDir, f)).zhTW);
+    }, deepConvert(merged));
 zhTW.config.language = Object.assign({}, zhTW.config.language, { zh: '簡體中文', zhTW: '繁體中文', en: 'English' });
 write('src/lang/zhTW.js', zhTW);
 write('src/lib/report/labels.zhTW.js', deepConvert(load('src/lib/report/labels.js').zh));

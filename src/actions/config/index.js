@@ -108,7 +108,8 @@ export const addHistory = (data, cb) => {
       if (index === 0) {
         const tempProjectHistories = [...(d.projectHistories || [])]
           .filter(h => h.path !== data.path); // 移除当前的项目信息
-        tempProjectHistories.unshift(data);
+        // 记下打开时间，首页清单据此显示「最后打开」
+        tempProjectHistories.unshift({ ...data, openedTime: Date.now() });
         return {
           ...d,
           projectHistories: tempProjectHistories,
@@ -134,6 +135,7 @@ export const updateHistory = (oldData, newData) => {
                 name: newData.name || '',
                 avatar: newData.avatar || '',
                 path: newData.path,
+                openedTime: h.openedTime,
               };
             }
             return h;

@@ -20,6 +20,10 @@ const connectDB = json.connectDB;
 const ensureDirectoryExistence = json.ensureDirectoryExistence;
 const dirSplicing = json.dirSplicing;
 const fileExists = json.fileExists;
+const fileStat = json.fileStat;
+const getUiState = json.getUiState;
+const setUiState = json.setUiState;
+const showFileInFolder = json.showFileInFolder;
 const deleteFile = json.deleteFile;
 const dirname = json.dirname;
 const saveFile = json.saveFile;
@@ -69,6 +73,10 @@ export {
   ensureDirectoryExistence,
   dirSplicing,
   fileExists,
+  fileStat,
+  getUiState,
+  setUiState,
+  showFileInFolder,
   deleteFile,
   dirname,
   saveFile,

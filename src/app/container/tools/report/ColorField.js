@@ -1,30 +1,22 @@
 import React, { useState } from 'react';
 import { FormatMessage, Icon } from 'components';
+import { getUiState, setUiState } from '../../../../lib/middle';
 
 const text = id => FormatMessage.string({ id: `report.${id}` });
 const PRESETS = [
   '#000000', '#444444', '#888888', '#c00000', '#e36c09', '#bf9000', '#38761d', '#0b5394', '#674ea7',
   '#ffffff', '#f2f2f2', '#d9d9d9', '#f4cccc', '#fce5cd', '#fff2cc', '#d9ead3', '#cfe2f3', '#d9d2e9',
 ];
-const RECENT_KEY = 'mypd.report.recentColors';
+const RECENT_KEY = 'reportRecentColors';
 const RECENT_MAX = 9;
 
 const readRecent = () => {
-  try {
-    const list = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
-    return Array.isArray(list) ? list.filter(c => /^#[0-9a-f]{6}$/i.test(c)).slice(0, RECENT_MAX) : [];
-  } catch (e) {
-    return [];
-  }
+  const list = getUiState(RECENT_KEY, []);
+  return Array.isArray(list) ? list.filter(c => /^#[0-9a-f]{6}$/i.test(c)).slice(0, RECENT_MAX) : [];
 };
-const remember = (colour) => {
-  const next = [colour, ...readRecent().filter(c => c !== colour)].slice(0, RECENT_MAX);
-  try {
-    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-  } catch (e) {
-    // Recent colours are a convenience, the choice itself is already applied.
-  }
-};
+const remember = colour => setUiState(
+  RECENT_KEY, [colour, ...readRecent().filter(c => c !== colour)].slice(0, RECENT_MAX),
+);
 
 // A colour of the picked column: a chip showing it, and a palette of ready colours, the
 // ones used lately and the system picker for anything else. `value` is '' for the default.

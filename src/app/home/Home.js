@@ -5,8 +5,9 @@ import {Icon, Modal, openModal, Button, FormatMessage, SearchInput, Tooltip } fr
 // eslint-disable-next-line import/extensions,import/named
 
 // eslint-disable-next-line import/named
-import { platform } from '../../lib/middle';
+import { platform, getUiState, setUiState } from '../../lib/middle';
 import ProjectEdit from '../container/projectedit';
+import ProjectList from './ProjectList';
 import {getPrefix} from '../../lib/prefixUtil';
 import { version } from '../../../package';
 
@@ -18,6 +19,12 @@ export default React.memo(({prefix, importProject, createProject, openTemplate,
                              renameProject, updateHistory, deleteProject, lang, config}) => {
   const currentPrefix = getPrefix(prefix);
   const [searchValue, setSearchValue] = useState('');
+  // 卡片或清单，记在本机
+  const [view, setView] = useState(() => (getUiState('homeView') === 'list' ? 'list' : 'card'));
+  const changeView = (next) => {
+    setUiState('homeView', next);
+    setView(next);
+  };
   const proInfo = (h) => {
     Modal.info({
       title: FormatMessage.string({id: 'home.proInfo'}),
@@ -153,6 +160,8 @@ export default React.memo(({prefix, importProject, createProject, openTemplate,
     </div>;
   };
   const reg = new RegExp((searchValue || '').replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+  const histories = config?.data[0]?.projectHistories || [];
+  const matches = p => reg.test(p.describe || '') || reg.test(p.name || '') || reg.test(p.path || '');
   return <div className={`${currentPrefix}-home-container`}>
     <div className={`${currentPrefix}-home-container-body`}>
       <div className={`${currentPrefix}-home-container-body-left`}>
@@ -236,11 +245,31 @@ export default React.memo(({prefix, importProject, createProject, openTemplate,
                 >
                   <FormatMessage id='home.recently'/>
                 </div>
+                <div className={`${currentPrefix}-home-list-views`}>
+                  {['card', 'list'].map(v => <a
+                    key={v}
+                    className={view === v ? 'active' : ''}
+                    title={FormatMessage.string({id: `home.view.${v}`})}
+                    onClick={() => changeView(v)}
+                  ><Icon type={v === 'card' ? 'fa-th-large' : 'fa-list'}/></a>)}
+                </div>
               </div>
-              <div className={`${currentPrefix}-home-container-body-right-list-tab-content`}>
+              {view === 'list' && <ProjectList
+                cls={`${currentPrefix}-home-list`}
+                projects={histories.filter(matches)}
+                onOpen={onProjectClick}
+                onInfo={proInfo}
+                onEdit={proConfig}
+                onReadOnly={p => importProject(p.path, READING)}
+                onForget={removeHistory}
+                onDelete={removeProject}
+              />}
+              <div
+                className={`${currentPrefix}-home-container-body-right-list-tab-content`}
+                style={view === 'list' ? {display: 'none'} : undefined}
+              >
                 {
-                  config?.data[0]?.projectHistories?.filter(p => reg.test(p.describe || '')
-                      || reg.test(p.name || ''))
+                  view === 'card' && histories.filter(matches)
                   .map((p) => {
                     return <Tooltip
                       offsetLeft={-18}

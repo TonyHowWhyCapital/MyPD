@@ -56,6 +56,43 @@ export const dirname = (file) => {
   return path.dirname(file);
 };
 // 判断文件是否已经存在
+// 界面上的小偏好（如首页的显示方式），存成 userData 下的一个文件，立即落盘
+const uiStatePath = basePath + path.sep + 'ui_state.json';
+const readUiState = () => {
+  try {
+    const data = JSON.parse(fs.readFileSync(uiStatePath, 'utf8'));
+    return data && typeof data === 'object' ? data : {};
+  } catch (e) {
+    return {};
+  }
+};
+export const getUiState = (key, fallback) => {
+  const value = readUiState()[key];
+  return value === undefined ? fallback : value;
+};
+export const setUiState = (key, value) => {
+  try {
+    fs.writeFileSync(uiStatePath, JSON.stringify({ ...readUiState(), [key]: value }, null, 2));
+  } catch (e) {
+    // 偏好没存上不影响使用
+  }
+};
+
+// 文件的修改时间与大小，文件不存在或无法读取时返回 null
+export const fileStat = (filePath) => {
+  try {
+    const stat = fs.statSync(filePath);
+    return { modifiedTime: stat.mtimeMs, size: stat.size };
+  } catch (e) {
+    return null;
+  }
+};
+
+// 在系统文件管理器中定位到该文件
+export const showFileInFolder = (filePath) => {
+  shell.showItemInFolder(filePath);
+};
+
 export const fileExists = (filePath) => {
   return fs.existsSync(filePath);
 };

@@ -888,9 +888,6 @@ export default {
         },
         ModelLabel: 'default display label',
         ModelLabelMessage: '(Take effect after restarting or reopening the project)',
-        relationFieldSize: 'The maximum number of fields allowed in the diagram',
-        relationFieldSizeDiscard: '[Obsolete]',
-        relationFieldSizeDiscardTitle: 'This attribute is no longer supported after version 4.6.0 and can be directly dragged to change size, automatically completing field hiding',
         relationType: 'relation type',
         attr: {
             editType: 'edit type',

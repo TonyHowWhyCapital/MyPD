@@ -850,7 +850,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
   };
   const configFields = ['profile.default.entityInitFields',
     'profile.default.entityInitProperties', 'profile.sql.delimiter', 'profile.generatorDoc.docTemplate',
-  'profile.relationFieldSize', 'profile.uiHint', 'profile.relationType', 'profile.extProps',
+  'profile.uiHint', 'profile.relationType', 'profile.extProps',
     'profile.headers',
     'profile.DDLToggleCase', 'profile.sql.remarkSplit', 'profile.sql.remarkSeparator',
     'profile.sql.domainInDdl'];

@@ -7,7 +7,6 @@ import DomainInDdl from './DomainInDdl';
 // import DocTemplate from './DocTemplate';
 import Language from './Language';
 // import Model from './Model';
-import RelationFieldSize from './RelationFieldSize';
 import AutoSave from './AutoSave';
 // import AutoBackup from './AutoBackup';
 import Jvm from './JVM';
@@ -29,7 +28,6 @@ export default React.memo(({prefix, ...restProps}) => {
     {/*<DocTemplate {...restProps}/>*/}
     <Language {...restProps}/>
     {/*<Model {...restProps}/>*/}
-    <RelationFieldSize {...restProps}/>
     <RelationType {...restProps}/>
   </div>;
 });

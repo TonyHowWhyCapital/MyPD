@@ -890,9 +890,6 @@ export default {
         },
         ModelLabel: '模型默认显示模式',
         ModelLabelMessage: '(重启或重新打开项目后生效)',
-        relationFieldSize: '关系图最多允许展示字段数',
-        relationFieldSizeDiscard: '【已废弃】',
-        relationFieldSizeDiscardTitle: '该属性自4.6.0版本之后，不再生效支持，可以直接拖动改变大小，自动完成字段隐藏',
         relationType: '关系图连线对象',
         attr: {
             editType: '编辑形式',

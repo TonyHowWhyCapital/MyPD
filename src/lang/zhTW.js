@@ -895,9 +895,6 @@ export default {
     },
     "ModelLabel": "模型預設顯示模式",
     "ModelLabelMessage": "(重啟或重新開啟專案後生效)",
-    "relationFieldSize": "關係圖最多允許展示欄位數",
-    "relationFieldSizeDiscard": "【已廢棄】",
-    "relationFieldSizeDiscardTitle": "該屬性自4.6.0版本之後，不再生效支援，可以直接拖動改變大小，自動完成欄位隱藏",
     "relationType": "關係圖連線物件",
     "attr": {
       "editType": "編輯形式",

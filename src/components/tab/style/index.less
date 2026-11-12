@@ -107,8 +107,25 @@
       .@{prefix}-tab-header-item-hidden {
         border-left: 3px solid transparent;
         color: @third-font-color;
+        // Without its title an inactive tab has to be told by the icon alone, so it is
+        // drawn in dark lines instead of white on light grey.
         & > span:first-child {
+          background: transparent;
+        }
+        &:hover > span:first-child {
           background: @four-font-color;
+        }
+        .@{prefix}-tab-header-item-icon {
+          color: @second-font-color;
+          font-size: 16px;
+          width: auto;
+          height: auto;
+          &.@{prefix}-svg-icon {
+            width: 16px;
+            height: 18px;
+            filter: brightness(0);
+            opacity: 0.62;
+          }
         }
       }
       .@{prefix}-tab-header-item-show {

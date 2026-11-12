@@ -1,4 +1,5 @@
 import React, {useState, useMemo} from 'react';
+import _ from 'lodash';
 import {FormatMessage, Input, Select, Button, CodeEditor, Message} from 'components';
 
 import PropEditor from './PropEditor';
@@ -8,11 +9,12 @@ import {
   dbObjectTypes, getDbObjectTypeList, getEmptyDbObject, addDbObject,
   updateDbObject, removeDbObject, getDbObjectDDL,
 } from '../../../../lib/dbobject_util';
+import {useLeaveGuard, confirmThen} from '../../../../lib/leave_guard';
 
 const Option = Select.Option;
 
 export default React.memo(({
-  prefix, dataSource: initDataSource, getDataSource, updateDataSource,
+  prefix, dataSource: initDataSource, getDataSource, updateDataSource, onCloseGuard,
 }) => {
   const currentPrefix = getPrefix(prefix);
   const [dataSource, setDataSource] = useState(
@@ -40,14 +42,17 @@ export default React.memo(({
     }
   }, [draft, dataSource, dbId]);
 
-  const select = (obj) => {
+  // Switching to another object, adding one or closing the tool drops an unsaved draft.
+  const dirty = !!draft && (isNew || !_.isEqual(draft, objects.find(o => o.id === draft.id)));
+  const leave = useLeaveGuard(dirty, draft?.defKey, onCloseGuard);
+  const select = obj => leave(() => {
     setDraft(obj);
     setIsNew(false);
-  };
-  const add = () => {
+  });
+  const add = () => leave(() => {
     setDraft(getEmptyDbObject(filter === 'all' ? types[0] : filter));
     setIsNew(true);
-  };
+  });
   const setField = (key, value) => setDraft(pre => ({...pre, [key]: value}));
   const setProp = (key, value) => setDraft(pre => ({...pre, props: {...pre.props, [key]: value}}));
   const changeType = type => setDraft(pre => ({...pre, type, props: getEmptyDbObject(type).props}));
@@ -69,13 +74,15 @@ export default React.memo(({
       });
     }
   };
-  const remove = () => {
+  const drop = () => {
     if (!isNew) {
       apply(removeDbObject(dataSource, draft.id));
     }
     setDraft(null);
     setIsNew(false);
   };
+  // a draft that was never saved has nothing to lose
+  const remove = () => (isNew ? drop() : confirmThen('delete', draft.defKey, drop));
   const formItem = (name, node) => <div className={`${currentPrefix}-form-item`} key={name}>
     <span className={`${currentPrefix}-form-item-label`}><FormatMessage id={name}/></span>
     <span className={`${currentPrefix}-form-item-component`}>{node}</span>
@@ -102,7 +109,7 @@ export default React.memo(({
         className={!isNew && draft?.id === o.id ? `${currentPrefix}-dbobject-objects-selected` : ''}
         onClick={() => select(o)}
       >
-        <span>{o.defKey}</span>
+        <span title={o.defKey}>{o.defKey}</span>
         <span><FormatMessage id={`dbObject.types.${o.type}`}/></span>
       </div>)}
     </div>

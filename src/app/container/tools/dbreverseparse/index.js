@@ -1,5 +1,5 @@
 import React, {useState, useMemo, useRef} from 'react';
-import {Step, Button, FormatMessage, openModal} from 'components';
+import {Step, Button, FormatMessage, openModal, Message} from 'components';
 import {pickNewGroups} from '../../../../components/listgroupselect/newGroup';
 
 import DbSelect, {connProperties} from './DbSelect';
@@ -69,7 +69,10 @@ export default React.memo(({prefix, dataSource, dataChange, config, onClose, onO
         return Promise.resolve(data);
       }
       domainRows = domainRows
-        || listColumnDomains(dataSource, config, properties).catch(() => []);
+        || listColumnDomains(dataSource, config, properties).catch(() => {
+        Message.warring({title: FormatMessage.string({id: 'pdm.domainReadFail'})});
+        return [];
+      });
       return domainRows.then(rows => applyColumnDomains(data, rows));
     };
     modal = openModal(<DealProgress

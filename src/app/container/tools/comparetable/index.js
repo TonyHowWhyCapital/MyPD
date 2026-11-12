@@ -203,7 +203,12 @@ export default React.memo(({dataSource, prefix,
     };
     const loadList = () => {
         Upload('application/json', (d) => {
-            const data = JSON.parse(d);
+            let data = {};
+            try {
+                data = JSON.parse(d) || {};
+            } catch (err) {
+                // not json at all: reported below like any other file without a list
+            }
             if (!data.compareTableList || !Array.isArray(data.compareTableList)) {
                 Modal.error({
                     title: FormatMessage.string({id: 'optFail'}),

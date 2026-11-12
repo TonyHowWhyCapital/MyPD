@@ -219,8 +219,8 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
       toLen,
       change,
       pickDomain,
-      onDelete: r => del(() => persist(removeColumns(ds,
-        [{ entityId: r.entityId, fieldId: r.id }]))),
+      onDelete: r => del(() => confirmRemove(`${r.defKey || ''}`, () => persist(removeColumns(ds,
+        [{ entityId: r.entityId, fieldId: r.id }])))),
       domainOptions,
       dictOptions: (ds.dicts || []).map(named),
       uiHintOptions: (ds.profile?.uiHint || []).map(named),
@@ -286,7 +286,7 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
           });
           return;
         }
-        persist(result.next);
+        confirmRemove(`${r.defKey || ''}`, () => persist(result.next));
       }),
     },
   ]);

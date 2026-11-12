@@ -1,7 +1,7 @@
 export default {
   zh: {
     report: {
-      title: '报告生成',
+      title: '报表',
       templates: '报告模板',
       addDocument: '新增文档模板',
       addList: '新增清单模板',
@@ -111,7 +111,7 @@ export default {
   },
   en: {
     report: {
-      title: 'Report Generator',
+      title: 'Reports',
       templates: 'Report templates',
       addDocument: 'Add document template',
       addList: 'Add list template',
@@ -222,7 +222,7 @@ export default {
   // 繁体用词与自动转换结果不同的条目（台湾称「欄位」「抬頭」等）
   zhTW: {
     report: {
-      defaultsHint: '尚未儲存模板，目前顯示內建模板，儲存或修改後將寫入專案',
+      defaultsHint: '尚未儲存範本，目前顯示內建範本，儲存或修改後將寫入專案',
       kind: '報告種類',
       columns: '欄位',
       sectionEmpty: '尚未加入章節，請先在上方選擇章節種類並新增',
@@ -234,7 +234,7 @@ export default {
       designPick: '請在左側點選一個欄位，或在上方勾選要顯示的欄位',
       designNoData: '目前模型沒有可預覽的資料',
       propApply: '套用到',
-      discardMessage: '模板「{name}」的修改尚未儲存，繼續的話這些修改會遺失。',
+      discardMessage: '範本「{name}」的修改尚未儲存，繼續的話這些修改會遺失。',
       replaceSection: '更換章節種類',
       collapse: '收合',
       collapseAll: '全部收合',

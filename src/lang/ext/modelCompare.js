@@ -1,7 +1,7 @@
 export default {
   zh: {
     modelCompare: {
-      title: '模型比较与合并',
+      title: '模型对比与合并',
       sideA: '模型 A',
       sideB: '模型 B',
       sourceCurrent: '当前项目',

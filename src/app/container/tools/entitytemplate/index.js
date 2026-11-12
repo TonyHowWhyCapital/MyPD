@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import _ from 'lodash';
 import { FormatMessage, Input, Select, Checkbox, Button, Message, Modal } from 'components';
 
 import './style/index.less';
@@ -7,6 +8,7 @@ import {
   getEntityTemplates, getEmptyEntityTemplate, saveEntityTemplate, removeEntityTemplate,
   createTemplateFromEntity, getLinkedEntities, syncLinkedEntities,
 } from '../../../../lib/entity_template_util';
+import {useLeaveGuard, confirmThen} from '../../../../lib/leave_guard';
 
 const emptyField = () => ({
   id: Math.uuid(),
@@ -20,7 +22,7 @@ const emptyField = () => ({
   notNull: false,
 });
 
-export default React.memo(({dataSource, updateDataSource, prefix}) => {
+export default React.memo(({dataSource, updateDataSource, prefix, onCloseGuard}) => {
   const currentPrefix = getPrefix(prefix);
   const [ds, setDs] = useState(dataSource);
   const [current, setCurrent] = useState(null);
@@ -47,31 +49,42 @@ export default React.memo(({dataSource, updateDataSource, prefix}) => {
       showError(err);
     }
   };
-  const onAdd = () => {
+  // A template not yet in the list, or one that differs from its saved copy, is unsaved.
+  const dirty = !!current && !_.isEqual(current, templates.find(t => t.id === current.id));
+  const leave = useLeaveGuard(dirty, current?.defKey || current?.defName, onCloseGuard);
+  const onAdd = () => leave(() => {
     setCurrent(getEmptyEntityTemplate());
-  };
+  });
   const onFromEntity = () => {
     const entity = (ds?.entities || []).find(e => e.id === fromEntity);
-    if (entity) {
-      setCurrent(createTemplateFromEntity(entity, {
-        defKey: `${entity.defKey}_tpl`,
-        defName: entity.defName,
-      }));
+    if (!entity) {
+      Message.warring({title: FormatMessage.string({id: 'entityTemplate.needEntity'})});
+      return;
     }
+    leave(() => setCurrent(createTemplateFromEntity(entity, {
+      defKey: `${entity.defKey}_tpl`,
+      defName: entity.defName,
+    })));
   };
   const onSave = () => run(() => {
     persist(saveEntityTemplate(ds, current));
     Message.success({title: FormatMessage.string({id: 'entityTemplate.saved'})});
   });
-  const onRemove = id => run(() => {
-    persist(removeEntityTemplate(ds, id));
-    if (current?.id === id) setCurrent(null);
-  });
-  const onSync = () => run(() => {
+  const onRemove = (id) => {
+    const template = templates.find(t => t.id === id) || {};
+    confirmThen('delete', template.defKey || template.defName, () => run(() => {
+      persist(removeEntityTemplate(ds, id));
+      if (current?.id === id) setCurrent(null);
+    }));
+  };
+  // Syncing rewrites the columns of every linked table, so it says how many first.
+  const onSync = () => {
     const count = getLinkedEntities(ds, current.id).length;
-    persist(syncLinkedEntities(ds, current.id));
-    Message.success({title: FormatMessage.string({id: 'entityTemplate.synced', data: {count}})});
-  });
+    confirmThen('overwrite', FormatMessage.string({id: 'entityTemplate.syncConfirm', data: {count}}), () => run(() => {
+      persist(syncLinkedEntities(ds, current.id));
+      Message.success({title: FormatMessage.string({id: 'entityTemplate.synced', data: {count}})});
+    }));
+  };
   const setProp = (name, value) => setCurrent(pre => ({...pre, [name]: value}));
   const setFieldProp = (id, name, value) => setCurrent(pre => ({
     ...pre,
@@ -123,7 +136,7 @@ export default React.memo(({dataSource, updateDataSource, prefix}) => {
         <div
           key={t.id}
           className={itemClass(t.id)}
-          onClick={() => setCurrent(t)}
+          onClick={() => current?.id !== t.id && leave(() => setCurrent(t))}
         >
           <span>{`${t.defKey}(${t.defName || t.defKey})`}</span>
           <a onClick={(e) => {

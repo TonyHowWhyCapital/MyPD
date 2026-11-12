@@ -10,6 +10,7 @@ import {
   getImpactModels, ACTION_TYPES,
 } from '../../../../lib/impact_util';
 import ImpactTable from './ImpactTable';
+import {confirmThen} from '../../../../lib/leave_guard';
 
 const Option = Select.Option;
 const t = id => FormatMessage.string({ id });
@@ -60,7 +61,7 @@ export default React.memo(({ prefix, dataSource, updateDataSource }) => {
       Message.success({ title: t('impact.saved') });
     }
   };
-  const remove = (id) => {
+  const drop = (id) => {
     const next = removeImpactModel(ds, id);
     setDs(next);
     updateDataSource && updateDataSource(next);
@@ -68,6 +69,11 @@ export default React.memo(({ prefix, dataSource, updateDataSource }) => {
       setReviewing(null);
     }
   };
+  const remove = (id) => {
+    const model = getImpactModels(ds).find(m => m.id === id) || {};
+    confirmThen('delete', model.defName || '', () => drop(id));
+  };
+
   const models = getImpactModels(ds);
   const shown = reviewing ? { items: reviewing.items, action: reviewing.action } : result;
   return <div className={`${currentPrefix}-impact`}>

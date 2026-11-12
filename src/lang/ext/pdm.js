@@ -1,6 +1,7 @@
 export default {
   zh: {
     pdm: {
+      domainReadFail: '无法读取字段的数据域，数据表仍会导入，但字段不会关联数据域',
       saveTitle: '写回 PDM 文件',
       reverseToPdm: '从数据库逆向生成 PDM 文件',
       created: '已生成 PDM 文件（{count} 张表）：{path}',
@@ -12,6 +13,7 @@ export default {
   },
   en: {
     pdm: {
+      domainReadFail: 'The domains of the columns could not be read; tables are still imported, without domain links',
       saveTitle: 'Write back to the PDM file',
       reverseToPdm: 'Reverse a database into a PDM file',
       created: 'PDM file created ({count} tables): {path}',

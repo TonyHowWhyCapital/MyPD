@@ -1,7 +1,7 @@
 export default {
   zh: {
     entityTemplate: {
-      title: '表模板',
+      title: '数据表模板',
       fromTemplate: '从模板创建',
       template: '模板',
       keepLink: '保持与模板的关联',
@@ -27,6 +27,8 @@ export default {
       noLinked: '暂无关联的数据表',
       sync: '同步关联的表',
       synced: '已同步 {count} 张表',
+      syncConfirm: '将用此模板覆盖 {count} 张关联数据表的字段，是否继续？',
+      needEntity: '请先选择一张数据表',
       deleteConfirm: '删除模板后，关联的表会保留其字段并解除关联，确定删除？',
       empty: '暂无模板',
       error: {
@@ -65,6 +67,8 @@ export default {
       noLinked: 'No linked tables',
       sync: 'Sync linked tables',
       synced: 'Synced {count} tables',
+      syncConfirm: 'The columns of {count} linked tables will be overwritten by this template. Continue?',
+      needEntity: 'Select a table first',
       deleteConfirm: 'Linked tables keep their columns and are unlinked. Delete this template?',
       empty: 'No templates',
       error: {

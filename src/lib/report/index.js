@@ -12,8 +12,11 @@ import {
 } from './align';
 import { columnLabel, originalLabel, setColumnLabel } from './rename';
 import {
-  FONT_SIZES, styleOf, lookOf, setColumnStyle, cssOf, styleStore,
+  FONT_SIZES, styleOf, lookOf, setColumnStyle, cssOf, styleStore, spreadStyle,
 } from './style';
+import {
+  emptyHistory, record, undo, redo,
+} from './history';
 import { renderMarkdown } from './markdown';
 import { renderHtml } from './html';
 import { renderDocx } from './docx';
@@ -24,7 +27,8 @@ export {
   dragColumn, widthsOf, applyWidths, clearWidths, hasWidths,
   ALIGNS, alignOf, setColumnAlign, nextAlign, applyAligns,
   columnLabel, originalLabel, setColumnLabel,
-  FONT_SIZES, styleOf, lookOf, setColumnStyle, cssOf, styleStore, alignStore,
+  FONT_SIZES, styleOf, lookOf, setColumnStyle, cssOf, styleStore, alignStore, spreadStyle,
+  emptyHistory, record, undo, redo,
 };
 
 const KINDS = ['document', 'list'];
@@ -80,6 +84,19 @@ export const validateReportTemplate = (tpl) => {
   }
   return [...new Set(errors)];
 };
+
+// Whether two templates say the same thing. Key order and empty maps left behind by an
+// edit that was taken back do not count.
+const canonical = (value) => {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (!value || typeof value !== 'object') return value === undefined ? null : value;
+  return Object.keys(value).sort().reduce((out, k) => {
+    const v = canonical(value[k]);
+    const empty = v === null || v === '' || (typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length);
+    return empty ? out : { ...out, [k]: v };
+  }, {});
+};
+export const sameTemplate = (a, b) => JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
 
 const stored = ds => ds?.profile?.reportTemplates || [];
 

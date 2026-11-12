@@ -511,3 +511,44 @@ describe('report header style', () => {
     expect(buildDocumentXml(doc)).toContain('w:fill="E7EAF0"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr>');
   });
 });
+
+describe('report designer helpers', () => {
+  const {
+    emptyHistory, record, undo, redo, spreadStyle, sameTemplate,
+  } = require('../src/lib/report');
+  test('undo and redo step through the changes', () => {
+    let h = record(emptyHistory(), 'a', 'widths', 0);
+    h = record(h, 'b', 'labels', 5000);
+    const back = undo(h, 'c');
+    expect(back.state).toBe('b');
+    expect(undo(back.history, 'b').state).toBe('a');
+    expect(redo(back.history, 'b').state).toBe('c');
+    expect(undo(emptyHistory(), 'x')).toBeNull();
+    expect(redo(h, 'c')).toBeNull();
+  });
+  test('a burst of one kind of change is a single step, a new change drops the redo steps', () => {
+    let h = record(emptyHistory(), 'a', 'widths', 0);
+    h = record(h, 'a1', 'widths', 300);
+    h = record(h, 'a2', 'widths', 600);
+    expect(h.past).toEqual(['a']);
+    h = record(h, 'a3', 'widths', 5000);
+    expect(h.past).toEqual(['a', 'a3']);
+    const back = undo(h, 'now');
+    expect(record(back.history, 'a3', 'aligns', 9000).future).toEqual([]);
+  });
+  test('font and colours spread to every column, alignment does not', () => {
+    const section = { styles: { a: { bold: true, fill: '#ffffcc' }, b: { italic: true } }, aligns: { a: 'right' } };
+    expect(spreadStyle(section, ['a', 'b', 'c'], 'a')).toEqual({
+      a: { bold: true, fill: '#ffffcc' }, b: { bold: true, fill: '#ffffcc' }, c: { bold: true, fill: '#ffffcc' },
+    });
+    expect(spreadStyle(section, ['a', 'b'], 'c')).toEqual({});
+    expect(spreadStyle({ headStyles: { a: { bold: false } } }, ['a', 'b'], 'a', 'head')).toEqual({ a: { bold: false }, b: { bold: false } });
+  });
+  test('templates compare by what they say', () => {
+    const a = { id: '1', defName: 't', sections: [{ id: 's', columns: [], widths: {}, options: {} }] };
+    const b = { sections: [{ options: {}, id: 's', columns: [], title: '' }], defName: 't', id: '1' };
+    expect(sameTemplate(a, b)).toBe(true);
+    expect(sameTemplate(a, { ...b, defName: 'u' })).toBe(false);
+    expect(sameTemplate(a, { ...b, sections: [{ ...b.sections[0], widths: { x: 10 } }] })).toBe(false);
+  });
+});

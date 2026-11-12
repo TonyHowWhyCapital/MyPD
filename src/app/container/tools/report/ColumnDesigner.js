@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Checkbox, FormatMessage, Icon } from 'components';
 import {
   resolveColumns, toggleColumn, moveColumn, columnPercents, dragColumn, widthsOf,
-  columnLabel, originalLabel, cssOf,
+  columnLabel, originalLabel, cssOf, emptyHistory, record, undo, redo,
 } from '../../../../lib/report';
 import { getPrefix } from '../../../../lib/prefixUtil';
 import ColumnProperties from './ColumnProperties';
@@ -87,8 +87,8 @@ export default ({
   const [sec, setSec] = useState(section);
   const [selected, setSelected] = useState(resolveColumns(def, section)[0]);
   const [part, setPart] = useState('cell');
-  const patch = (change) => {
-    const next = { ...sec, ...change };
+  const [history, setHistory] = useState(emptyHistory);
+  const apply = (next) => {
     setSec(next);
     // The caller patches the template it had when the designer opened, so send it all.
     onChange({
@@ -101,6 +101,31 @@ export default ({
       headStyles: next.headStyles,
     });
   };
+  const patch = (change) => {
+    setHistory(record(history, sec, `${Object.keys(change).join()}:${selected}`, Date.now()));
+    apply({ ...sec, ...change });
+  };
+  const step = (go) => {
+    const back = go(history, sec);
+    if (back) {
+      setHistory(back.history);
+      apply(back.state);
+    }
+  };
+  const stepRef = useRef(step);
+  stepRef.current = step;
+  useEffect(() => {
+    const onKey = (e) => {
+      const z = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z';
+      const y = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'y';
+      if (z || y) {
+        e.preventDefault();
+        stepRef.current(z && !e.shiftKey ? undo : redo);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
   const chosen = resolveColumns(def, sec);
   const table = sampleTable(dataSource, sec, lang);
   const toggle = (key, checked) => {
@@ -113,6 +138,14 @@ export default ({
         <span><Icon type='fa-mouse-pointer'/><FormatMessage id='report.designTip'/></span>
         {table.keys && <span><Icon type='fa-arrows'/><FormatMessage id='report.designTipMove'/></span>}
         {table.keys && <span><Icon type='fa-arrows-h'/><FormatMessage id='report.designTipSize'/></span>}
+        <span className={`${cls}-steps`}>
+          <a className={history.past.length ? '' : 'disabled'} title={`${text('undo')} (Ctrl+Z)`} onClick={() => step(undo)}>
+            <Icon type='fa-undo'/>{text('undo')}
+          </a>
+          <a className={history.future.length ? '' : 'disabled'} title={`${text('redo')} (Ctrl+Shift+Z)`} onClick={() => step(redo)}>
+            <Icon type='fa-repeat'/>{text('redo')}
+          </a>
+        </span>
       </div>
       <div className={`${cls}-paper`}>
         <Sheet

@@ -1647,6 +1647,33 @@ export default {
     "propAlign": "對齊",
     "propReset": "恢復預設",
     "propDefault": "預設",
+    "unsaved": "未儲存",
+    "discardTitle": "放棄未儲存的修改？",
+    "discardMessage": "模板「{name}」的修改尚未儲存，繼續的話這些修改會遺失。",
+    "removeSectionTitle": "移除這個章節？",
+    "replaceSection": "更換章節種類",
+    "collapse": "收合",
+    "expand": "展開",
+    "collapseAll": "全部收合",
+    "expandAll": "全部展開",
+    "dragSection": "拖曳可調整章節順序",
+    "undo": "復原",
+    "redo": "重做",
+    "applyAll": "字型與顏色套用到所有欄位",
+    "colorRecent": "最近使用",
+    "colorMore": "其他顏色…",
+    "formats": {
+      "docx": "Word 文件 (.docx)",
+      "html": "網頁 (.html)",
+      "markdown": "Markdown (.md)",
+      "csv": "CSV (.csv)"
+    },
+    "formatHint": {
+      "docx": "保留欄寬、對齊、字型與顏色",
+      "html": "保留欄寬、對齊、字型與顏色",
+      "markdown": "只保留對齊，不含欄寬與樣式",
+      "csv": "純資料，不含任何格式"
+    },
     "part": {
       "cell": "欄位內容",
       "head": "抬頭"

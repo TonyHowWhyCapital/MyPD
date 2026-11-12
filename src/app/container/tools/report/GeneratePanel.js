@@ -64,9 +64,10 @@ export default React.memo(({ prefix, template, getDataSource, lang, onTemplateCh
     <div className={`${currentPrefix}-report-row`}>
       <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.format'/></span>
       <Select notAllowEmpty value={format} onChange={e => setFormat(e.target.value)}>
-        {FORMATS.filter(f => f !== 'csv' || template.kind === 'list').map(f => <Option key={f} value={f}>{f}</Option>)}
+        {FORMATS.filter(f => f !== 'csv' || template.kind === 'list').map(f => <Option key={f} value={f}>{FormatMessage.string({ id: `report.formats.${f}` })}</Option>)}
       </Select>
     </div>
+    <div className={`${currentPrefix}-report-hint`}><FormatMessage id={`report.formatHint.${format}`}/></div>
     <div className={`${currentPrefix}-report-actions`}>
       <Button onClick={preview}><FormatMessage id='report.preview'/></Button>
       <Button type='primary' onClick={exportReport}><FormatMessage id='report.export'/></Button>

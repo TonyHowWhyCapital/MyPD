@@ -122,7 +122,12 @@ export const openModal = (com, params) => {
     const { title, small, buttons, status, fullScreen, bodyStyle,
       modalStyle, contentStyle, closeable, focusFirst, onEnter, header, footerStyle  } = params;
     const _iconClose = () => {
-      const { onClose } = params;
+      const { onClose, beforeClose } = params;
+      if (beforeClose) {
+        // 由调用方决定是否关闭（例如先确认未保存的修改）
+        beforeClose(close);
+        return;
+      }
       onClose && onClose();
       close();
     };

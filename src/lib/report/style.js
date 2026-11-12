@@ -32,6 +32,17 @@ export const setColumnStyle = (section, key, change, part = 'cell') => {
   return Object.keys(next).length ? { ...rest, [key]: next } : rest;
 };
 
+// Gives every column the font and colours of `key`. Alignment is not part of it, a
+// number column stays to the right.
+export const spreadStyle = (section, cols, key, part = 'cell') => {
+  const look = styleOf(section, key, part);
+  const plain = Object.keys(look).length === 0;
+  return cols.reduce((map, c) => {
+    const { [c]: dropped, ...rest } = map;
+    return plain ? rest : { ...rest, [c]: look };
+  }, section[styleStore(part)] || {});
+};
+
 // null for a column left as it is, so the renderers keep their own default.
 export const resolveStyles = (cols, section, part = 'cell') => cols.map(c => (
   Object.keys(styleOf(section, c, part)).length ? lookOf(section, c, part) : null));

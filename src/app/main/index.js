@@ -1203,8 +1203,12 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
   };
   const openExtTool = (key) => {
     let modal;
+    // A tool may ask to be consulted before it is closed, e.g. for unsaved changes.
+    let guard = null;
+    const tryClose = () => (guard ? guard(() => modal && modal.close()) : modal && modal.close());
     const [Com, title] = extTools[key];
     modal = openModal(<Com
+      onCloseGuard={(fn) => { guard = fn; }}
       dataSource={dataSourceRef.current}
       getDataSource={getDataSource}
       updateDataSource={restProps.update}
@@ -1214,9 +1218,10 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     />, {
       bodyStyle: { width: '90%' },
       buttons:  [
-        <Button key='cancel' onClick={() => modal && modal.close()}>
+        <Button key='cancel' onClick={tryClose}>
           <FormatMessage id='button.close'/>
         </Button>],
+      beforeClose: tryClose,
       title: FormatMessage.string({id: title}),
     });
   };

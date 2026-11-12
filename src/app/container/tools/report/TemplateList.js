@@ -3,7 +3,7 @@ import { FormatMessage, Button, Icon } from 'components';
 import { getPrefix } from '../../../../lib/prefixUtil';
 
 export default React.memo(({
-  prefix, templates, selectedId, usingDefaults, onSelect, onAdd, onCopy, onDelete,
+  prefix, templates, selectedId, usingDefaults, dirty, onSelect, onAdd, onCopy, onDelete,
 }) => {
   const currentPrefix = getPrefix(prefix);
   return <div className={`${currentPrefix}-report-list`}>
@@ -22,6 +22,8 @@ export default React.memo(({
         <span title={t.defName}>
           <Icon type={t.kind === 'list' ? 'fa-list' : 'fa-file-text-o'}/>
           <span className={`${currentPrefix}-report-list-item-name`}>{t.defName}</span>
+          {dirty && t.id === selectedId
+            && <b className='unsaved' title={FormatMessage.string({ id: 'report.unsaved' })}>●</b>}
         </span>
         <span>
           <a

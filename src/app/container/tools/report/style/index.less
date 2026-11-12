@@ -63,7 +63,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      > span {
+      > span.@{prefix}-button {
         margin: 0;
       }
     }
@@ -376,5 +376,45 @@
     h1 + &-more {
       margin: 0 0 12px;
     }
+  }
+  .unsaved {
+    font-style: normal;
+    font-weight: normal;
+    font-size: 12px;
+    color: #fa8c16;
+    margin-left: 6px;
+  }
+  &-editor-head > .unsaved {
+    margin-left: auto;
+    margin-right: 10px;
+  }
+  &-section-head {
+    > strong {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      > .fold {
+        margin: 0 6px 0 0;
+        width: 14px;
+        text-align: center;
+        cursor: pointer;
+      }
+      > small {
+        margin-left: 8px;
+        font-weight: normal;
+        opacity: 0.65;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+    &[draggable='true'] {
+      cursor: grab;
+    }
+  }
+  .fold-all {
+    margin-left: auto;
+    font-size: 12px;
+    cursor: pointer;
   }
 }

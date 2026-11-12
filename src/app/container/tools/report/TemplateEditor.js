@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
-  FormatMessage, Button, Input, Select, Text, Icon, openModal,
+  FormatMessage, Button, Input, Select, Text, Icon, Modal, openModal,
 } from 'components';
 import { sectionTypes, labelOf } from '../../../../lib/report';
 import { getPrefix } from '../../../../lib/prefixUtil';
@@ -10,10 +10,13 @@ import ColumnDesigner from './ColumnDesigner';
 const Option = Select.Option;
 
 export default React.memo(({
-  prefix, draft, lang, getDataSource, onChange, onSave,
+  prefix, draft, lang, dirty, getDataSource, onChange, onSave,
 }) => {
   const currentPrefix = getPrefix(prefix);
   const [newType, setNewType] = useState('entityList');
+  // Folded sections are a matter of this window, the template does not keep them.
+  const [folded, setFolded] = useState({});
+  const dragged = useRef(-1);
   // The report tool is modal, the model cannot change underneath it.
   const dataSource = useMemo(() => getDataSource(), []);
   if (!draft) {
@@ -49,7 +52,27 @@ export default React.memo(({
     [next[index], next[target]] = [next[target], next[index]];
     setSections(next);
   };
+  const drop = (to) => {
+    const from = dragged.current;
+    dragged.current = -1;
+    if (from < 0 || from === to) return;
+    const next = draft.sections.slice();
+    next.splice(to, 0, next.splice(from, 1)[0]);
+    setSections(next);
+  };
+  const remove = (index) => {
+    const section = draft.sections[index];
+    Modal.confirm({
+      title: FormatMessage.string({ id: 'report.removeSectionTitle' }),
+      message: section.title || labelOf(`section.${section.type}`, lang),
+      onOk: () => setSections(draft.sections.filter((_, idx) => idx !== index)),
+    });
+  };
+  const allFolded = draft.sections.length > 0 && draft.sections.every(s => folded[s.id]);
+  const foldAll = () => setFolded(allFolded ? {} : draft.sections.reduce((m, s) => ({ ...m, [s.id]: true }), {}));
   const addSection = () => {
+    // Picking the type a list already shows would only throw its layout away.
+    if (isList && draft.sections.length === 1 && draft.sections[0].type === newType) return;
     const section = { id: Math.uuid(), type: newType, title: '', columns: [], options: {} };
     setSections(isList ? [section] : draft.sections.concat(section));
   };
@@ -58,6 +81,7 @@ export default React.memo(({
   return <div className={`${currentPrefix}-report-editor`}>
     <div className={`${currentPrefix}-report-editor-head`}>
       <span className={`${currentPrefix}-report-title`}><FormatMessage id='report.editor'/></span>
+      {dirty && <i className='unsaved'>● <FormatMessage id='report.unsaved'/></i>}
       <Button type='primary' onClick={onSave}><FormatMessage id='report.save'/></Button>
     </div>
     <div className={`${currentPrefix}-report-editor-body`}>
@@ -78,8 +102,11 @@ export default React.memo(({
           {addableTypes.map(t => <Option key={t} value={t}>{labelOf(`section.${t}`, lang)}</Option>)}
         </Select>
         <Button onClick={addSection}>
-          <Icon type='fa-plus'/> <FormatMessage id='report.addSection'/>
+          <Icon type={isList ? 'fa-exchange' : 'fa-plus'}/> <FormatMessage id={isList ? 'report.replaceSection' : 'report.addSection'}/>
         </Button>
+        {draft.sections.length > 1 && <a className='fold-all' onClick={foldAll}>
+          <FormatMessage id={allFolded ? 'report.expandAll' : 'report.collapseAll'}/>
+        </a>}
       </div>
       {draft.sections.length === 0
         && <div className={`${currentPrefix}-report-blank`}><FormatMessage id='report.sectionEmpty'/></div>}
@@ -87,9 +114,28 @@ export default React.memo(({
         const def = sectionTypes[s.type];
         const typeName = labelOf(`section.${s.type}`, lang);
         const hasTable = def && def.columns.length > 0;
-        return <div key={s.id} className={`${currentPrefix}-report-section`}>
-          <div className={`${currentPrefix}-report-section-head`}>
-            <strong><em>{i + 1}</em>{typeName}</strong>
+        const open = !folded[s.id];
+        return <div
+          key={s.id}
+          className={`${currentPrefix}-report-section`}
+          onDragOver={e => dragged.current >= 0 && e.preventDefault()}
+          onDrop={() => drop(i)}
+        >
+          <div
+            className={`${currentPrefix}-report-section-head`}
+            draggable={draft.sections.length > 1}
+            title={draft.sections.length > 1 ? text('dragSection') : undefined}
+            onDragStart={() => { dragged.current = i; }}
+            onDragEnd={() => { dragged.current = -1; }}
+          >
+            <strong>
+              <a
+                className='fold'
+                title={text(open ? 'collapse' : 'expand')}
+                onClick={() => setFolded({ ...folded, [s.id]: open })}
+              ><Icon type={open ? 'fa-angle-down' : 'fa-angle-right'}/></a>
+              <em>{i + 1}</em>{typeName}{s.title ? <small>{s.title}</small> : null}
+            </strong>
             <span>
               {hasTable && <a className='primary' onClick={() => design(i)}>
                 <Icon type='fa-columns'/><FormatMessage id='report.design'/>
@@ -103,10 +149,11 @@ export default React.memo(({
               <a
                 className='danger'
                 title={text('remove')}
-                onClick={() => setSections(draft.sections.filter((_, idx) => idx !== i))}
+                onClick={() => remove(i)}
               ><Icon type='fa-trash-o'/></a>
             </span>
           </div>
+          {open && <React.Fragment>
           <div className={`${currentPrefix}-report-row`}>
             <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.sectionTitle'/></span>
             <Input
@@ -131,6 +178,7 @@ export default React.memo(({
             lang={lang}
             onClick={() => design(i)}
           />}
+          </React.Fragment>}
         </div>;
       })}
     </div>

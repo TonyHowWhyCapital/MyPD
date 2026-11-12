@@ -2,8 +2,9 @@ import React from 'react';
 import { FormatMessage, Icon } from 'components';
 import {
   labelOf, resolveColumns, moveColumn, setColumnWidth, ALIGNS, alignOf, setColumnAlign,
-  FONT_SIZES, lookOf, setColumnStyle, styleStore, alignStore, columnLabel,
+  FONT_SIZES, lookOf, styleOf, setColumnStyle, styleStore, alignStore, columnLabel, spreadStyle,
 } from '../../../../lib/report';
+import ColorField from './ColorField';
 
 const text = id => FormatMessage.string({ id: `report.${id}` });
 const without = (map, key) => {
@@ -41,12 +42,17 @@ export default ({
     (all, store) => ({ ...all, [store]: without(section[store], selected) }), {},
   ));
   const row = (id, body) => <div className={`${cls}-prop`}><span>{text(id)}</span>{body}</div>;
-  const colour = (id, name) => row(id, <React.Fragment>
-    <input type='color' value={look[name] || FALLBACK[part][name]} onChange={e => setLook({ [name]: e.target.value })}/>
-    {look[name]
-      ? <a title={text('propDefault')} onClick={() => setLook({ [name]: '' })}><Icon type='fa-times'/></a>
-      : <i>{text('propDefault')}</i>}
-  </React.Fragment>);
+  const colour = (id, name) => row(id, <ColorField
+    cls={cls}
+    value={look[name] || ''}
+    fallback={FALLBACK[part][name]}
+    onChange={value => setLook({ [name]: value })}
+  />);
+  // Offered once this column has a look of its own, or another one has one to clear.
+  const store = section[styleStore(part)] || {};
+  const canSpread = chosen.length > 1
+    && (Object.keys(styleOf(section, selected, part)).length > 0 || Object.keys(store).length > 0);
+  const spread = () => patch({ [styleStore(part)]: spreadStyle(section, chosen, selected, part) });
   const name = row('propLabel', <input
     type='text'
     value={(section.labels || {})[selected] || ''}
@@ -115,6 +121,9 @@ export default ({
       </React.Fragment>)}
       {colour('propColor', 'color')}
       {colour('propFill', 'fill')}
+      <a className={`${cls}-spread ${canSpread ? '' : 'disabled'}`} onClick={spread}>
+        <Icon type='fa-clone'/>{text('applyAll')}
+      </a>
     </React.Fragment>}
   </React.Fragment>;
 };

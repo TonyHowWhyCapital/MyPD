@@ -1,0 +1,254 @@
+@import "index";
+
+// Night mode. The day styles stay as they are: one base rule turns every element dark and
+// the rules after it lift single regions and states out of that base. Their selectors are
+// wrapped in :where(), so a later rule wins over an earlier one whatever its selector.
+@n-chrome: #171b23;   // title bar, tool bar, icon bar
+@n-backdrop: #13161d; // behind the working area
+@n-surface: #1e232d;  // panels and cards
+@n-raised: #272e3b;   // headings inside a panel, menus, hints
+@n-field: #171b23;    // wells of the inputs
+@n-hover: #2a3243;
+@n-selected: #27375c;
+@n-border: #323b4a;
+@n-text: #d5dbe7;
+@n-dim: #8d99ad;
+@n-accent: #7ba6ff;
+
+body[theme='themeNigh'] {
+  color-scheme: dark;
+
+  ::-webkit-scrollbar-thumb {
+    background-color: #445066;
+  }
+  ::-webkit-scrollbar-corner {
+    display: none;
+  }
+  ::placeholder {
+    color: @n-dim !important;
+    opacity: 0.7;
+  }
+
+  :where(*:not(.@{prefix}-multiple-select-data-item-simple):not(.@{prefix}-er-comments):not(.sketch-picker > div:first-child *):not(.x6-graph-scroller *):not(.@{prefix}-home-container-body-right-list-tab-item-title):not(.@{prefix}-home-container-body-left-opt-item-icon-bg *):not(.ace_editor *):not(.@{prefix}-code-highlight *):not(.@{prefix}-node-tooltip-content-font-circle):not(.@{prefix}-tab-header-left .@{prefix}-tab-header-item-show):not(.@{prefix}-tab-header-left .@{prefix}-tab-header-item-show *):not(.@{prefix}-modal):not(.@{prefix}-loading):not(.@{prefix}-node-tooltip-content-color-edit-container-list *):not(.@{prefix}-report-design-paper *):not(.@{prefix}-report-preview-paper *):not(.@{prefix}-report-sample *):not(.@{prefix}-report-design-colour *)) {
+    color: @n-text !important;
+    background-color: @n-surface !important;
+  }
+  * {
+    border-color: @n-border !important;
+  }
+  symbol > path {
+    fill: fade(@n-text, 90%);
+  }
+  .@{prefix}-er-table {
+    color: @n-text !important;
+    background-color: @n-surface !important;
+  }
+  .@{prefix}-home-container-body-right-list-tab-item {
+    background-image: none;
+  }
+  .@{prefix}-home-menu-header-title:before {
+    display: none;
+  }
+
+  // Window chrome
+  :where(.@{prefix}-toolbar),
+  :where(.@{prefix}-toolbar *),
+  :where(.@{prefix}-head),
+  :where(.@{prefix}-head *),
+  :where(.@{prefix}-tab-header-left),
+  :where(.@{prefix}-tab-header-left .@{prefix}-tab-header-item-hidden),
+  :where(.@{prefix}-tab-header-left .@{prefix}-tab-header-item-hidden *) {
+    background-color: @n-chrome !important;
+  }
+  :where(.@{prefix}-toolbar) {
+    background: @n-chrome !important;
+  }
+  :where(.@{prefix}-head .@{prefix}-group-icon:hover),
+  :where(.@{prefix}-head .@{prefix}-group-icon:hover *),
+  :where(.@{prefix}-head-db:hover),
+  :where(.@{prefix}-head-db:hover *) {
+    color: @n-accent !important;
+  }
+  :where(.@{prefix}-head-search .@{prefix}-search-input),
+  :where(.@{prefix}-head-search .@{prefix}-search-input *) {
+    background-color: @n-raised !important;
+  }
+
+  .@{prefix}-tab-header-left .@{prefix}-tab-header-item-show {
+    background: transparent;
+  }
+  .@{prefix}-tab-header-left .@{prefix}-tab-header-item-hidden {
+    border-left-color: transparent !important;
+  }
+  .@{prefix}-tab-header-left .@{prefix}-tab-header-item-show {
+    border-left-color: @primary-color !important;
+  }
+
+  // Everything that floats above the page
+  :where(.@{prefix}-modal-content),
+  :where(.@{prefix}-modal-content *),
+  :where(.@{prefix}-dropdown-container),
+  :where(.@{prefix}-dropdown-container *),
+  :where(.@{prefix}-contextmenu-show),
+  :where(.@{prefix}-contextmenu-show *),
+  :where(.@{prefix}-tooltip-content),
+  :where(.@{prefix}-tooltip-content *),
+  :where(.@{prefix}-multiple-select-children),
+  :where(.@{prefix}-multiple-select-children *) {
+    background-color: @n-raised !important;
+  }
+  .@{prefix}-modal-content, .@{prefix}-dropdown-container, .@{prefix}-contextmenu-show, .@{prefix}-tooltip-content,
+  .@{prefix}-multiple-select-children {
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+  }
+  :where(.@{prefix}-dropdown-item:hover),
+  :where(.@{prefix}-dropdown-item:hover *),
+  :where(.@{prefix}-multiple-select-children > *:hover),
+  :where(.@{prefix}-multiple-select-children > *:hover *),
+  :where(.@{prefix}-contextmenu-show li:hover),
+  :where(.@{prefix}-contextmenu-show li:hover *) {
+    color: @n-accent !important;
+    background-color: @n-hover !important;
+  }
+
+  // Working area: a darker backdrop with the open object as a card on it
+  :where(.@{prefix}-tab-top),
+  :where(.@{prefix}-tab-top > .@{prefix}-tab-content),
+  :where(.@{prefix}-tab-header-container),
+  :where(.@{prefix}-tab-header-container *),
+  :where(.@{prefix}-home-resize-other),
+  :where(.@{prefix}-auto-compose-tab-top) {
+    background-color: @n-backdrop !important;
+  }
+  :where(.@{prefix}-tab-header-top .@{prefix}-tab-header-item-hidden),
+  :where(.@{prefix}-tab-header-top .@{prefix}-tab-header-item-hidden *) {
+    color: @n-dim !important;
+    background-color: @n-surface !important;
+  }
+  :where(.@{prefix}-tab-header-top .@{prefix}-tab-header-item-show),
+  :where(.@{prefix}-tab-header-top .@{prefix}-tab-header-item-show *) {
+    color: @n-accent !important;
+    background-color: @n-selected !important;
+  }
+
+  // Model tree
+  :where(.@{prefix}-menu-container-fold-item-child-child:hover),
+  :where(.@{prefix}-menu-container-fold-item-child-child:hover *),
+  :where(.@{prefix}-menu-container-fold-item-child-parent:hover > .@{prefix}-menu-container-fold-item),
+  :where(.@{prefix}-menu-container-fold-item-child-parent:hover > .@{prefix}-menu-container-fold-item *) {
+    background-color: @n-hover !important;
+  }
+  :where(.@{prefix}-menu-container-fold-item-child-selected),
+  :where(.@{prefix}-menu-container-fold-item-child-selected *) {
+    color: @n-accent !important;
+    background-color: @n-selected !important;
+  }
+  :where(.@{prefix}-menu-container-fold-item-child-parent.@{prefix}-menu-container-fold-item-child-selected),
+  :where(.@{prefix}-menu-container-fold-item-child-parent.@{prefix}-menu-container-fold-item-child-selected *) {
+    background-color: @n-surface !important;
+  }
+
+  // Tabs inside an object
+  :where(.@{prefix}-simple-tab-titles),
+  :where(.@{prefix}-simple-tab-titles *) {
+    color: @n-dim !important;
+  }
+  :where(.@{prefix}-simple-tab-titles-title-active),
+  :where(.@{prefix}-simple-tab-titles-title-active *) {
+    color: @n-accent !important;
+  }
+  .@{prefix}-simple-tab-titles .@{prefix}-simple-tab-titles-title-active {
+    border-top-color: @n-accent !important;
+  }
+
+  // Forms
+  :where(input),
+  :where(textarea),
+  :where(select),
+  :where(.@{prefix}-multiple-select-data) {
+    background-color: @n-field !important;
+  }
+  // The arrow of a dropdown lies under its input
+  :where(.@{prefix}-multiple-select-data *) {
+    background-color: transparent !important;
+  }
+  :where(.@{prefix}-form-item-label),
+  :where(.@{prefix}-form-item-label *),
+  :where(.@{prefix}-input-count) {
+    color: @n-dim !important;
+  }
+  .@{prefix}-input > input:focus, textarea:focus {
+    border-color: @n-accent !important;
+    box-shadow: 0 0 0 2px fade(@n-accent, 25%);
+  }
+  :where(.@{prefix}-fieldset > div:first-child),
+  :where(.@{prefix}-fieldset > div:first-child *) {
+    background-color: @n-raised !important;
+  }
+  :where(.@{prefix}-fieldset > div:first-child input),
+  :where(.@{prefix}-fieldset > div:first-child .@{prefix}-search-input),
+  :where(.@{prefix}-fieldset > div:first-child .@{prefix}-search-input *) {
+    background-color: @n-field !important;
+  }
+  :where(a) {
+    color: @n-accent !important;
+  }
+
+  // Tables
+  :where(th),
+  :where(th *) {
+    color: @n-dim !important;
+    background-color: @n-raised !important;
+  }
+  :where(.@{prefix}-table-default:hover td),
+  :where(.@{prefix}-table-default:hover td *) {
+    background-color: @n-hover !important;
+  }
+  :where(.@{prefix}-table-selected td),
+  :where(.@{prefix}-table-selected td *) {
+    background-color: @n-selected !important;
+  }
+
+  // The grip for resizing a column lies over its heading
+  :where(.@{prefix}-gridview-resize) {
+    background-color: transparent !important;
+  }
+
+  // Buttons
+  :where(.@{prefix}-button-primary),
+  :where(.@{prefix}-button-primary *) {
+    color: #fff !important;
+    background-color: @primary-color !important;
+  }
+  .@{prefix}-button.@{prefix}-button-primary {
+    border-color: @primary-color !important;
+  }
+  :where(.@{prefix}-button-default:hover),
+  :where(.@{prefix}-button-default:hover *),
+  :where(.@{prefix}-icon-title:hover),
+  :where(.@{prefix}-icon-title:hover *) {
+    color: @n-accent !important;
+  }
+  .@{prefix}-icon-disable, .@{prefix}-icon-title-disable, .@{prefix}-group-icon-disable,
+  .@{prefix}-head-mind-disable, .@{prefix}-button-disable, .@{prefix}-dropdown-item-disable {
+    opacity: 0.4;
+  }
+
+  // Whatever a screen marks as chosen
+  :where(.active:not(.@{prefix}-simple-tab-titles-title-active)),
+  :where(.active:not(.@{prefix}-simple-tab-titles-title-active) *),
+  :where(.picked),
+  :where(.picked *),
+  :where(.current),
+  :where(.current *),
+  :where(.selected),
+  :where(.selected *) {
+    color: @n-accent !important;
+    background-color: @n-selected !important;
+  }
+
+  // A table of a diagram keeps the colour its heading was given, with dark writing on it
+  .@{prefix}-er-table-header, .@{prefix}-er-table-header * {
+    color: #1f2733 !important;
+  }
+}

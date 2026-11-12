@@ -20,7 +20,7 @@
     margin-bottom: 8px;
     i {
       margin-right: 5px;
-      color: #1890ff;
+      color: @primary-color;
     }
   }
   &-paper {
@@ -52,14 +52,14 @@
     // column would hide a tint.
     td.picked {
       background: #e6f4ff;
-      box-shadow: inset 2px 0 0 #1890ff, inset -2px 0 0 #1890ff;
+      box-shadow: inset 2px 0 0 @primary-color, inset -2px 0 0 @primary-color;
     }
     tr:last-child > td.picked {
-      box-shadow: inset 2px 0 0 #1890ff, inset -2px 0 0 #1890ff, inset 0 -2px 0 #1890ff;
+      box-shadow: inset 2px 0 0 @primary-color, inset -2px 0 0 @primary-color, inset 0 -2px 0 @primary-color;
     }
     // The summary shows its columns as rows.
     table.rows td.picked {
-      box-shadow: inset 0 2px 0 #1890ff, inset 0 -2px 0 #1890ff;
+      box-shadow: inset 0 2px 0 @primary-color, inset 0 -2px 0 @primary-color;
     }
     th {
       position: relative;
@@ -67,11 +67,11 @@
       text-align: center;
       user-select: none;
       &:hover {
-        box-shadow: inset 0 2px 0 rgba(24, 144, 255, 0.5);
+        box-shadow: inset 0 2px 0 fade(@primary-color, 50%);
       }
       &.picked {
         background: #bae0ff;
-        box-shadow: inset 2px 0 0 #1890ff, inset -2px 0 0 #1890ff, inset 0 3px 0 #1890ff;
+        box-shadow: inset 2px 0 0 @primary-color, inset -2px 0 0 @primary-color, inset 0 3px 0 @primary-color;
       }
       > small {
         display: block;
@@ -90,7 +90,7 @@
     z-index: 1;
     cursor: col-resize;
     &:hover {
-      background: rgba(24, 144, 255, 0.45);
+      background: fade(@primary-color, 45%);
     }
   }
   &-side {
@@ -119,7 +119,7 @@
         white-space: nowrap;
         > b {
           margin-left: 8px;
-          color: #1890ff;
+          color: @primary-color;
         }
       }
       > i {
@@ -134,7 +134,7 @@
         opacity: 0.8;
         &:hover {
           opacity: 1;
-          color: #1890ff;
+          color: @primary-color;
         }
         &.disabled {
           opacity: 0.3;
@@ -181,7 +181,7 @@
       background: rgba(128, 128, 128, 0.15);
     }
     &.picked {
-      background: rgba(24, 144, 255, 0.25);
+      background: fade(@primary-color, 25%);
     }
   }
   // A segmented switch: the rows below it apply to the cells or to the header.
@@ -211,9 +211,9 @@
       }
       &.active {
         position: relative;
-        color: #1890ff;
-        border-color: #1890ff;
-        background: rgba(24, 144, 255, 0.15);
+        color: @primary-color;
+        border-color: @primary-color;
+        background: fade(@primary-color, 15%);
         font-weight: bold;
       }
     }
@@ -276,12 +276,12 @@
       border: 1px solid rgba(128, 128, 128, 0.4);
       border-radius: 3px;
       &:hover {
-        border-color: #1890ff;
+        border-color: @primary-color;
       }
       &.active {
-        border-color: #1890ff;
-        color: #1890ff;
-        background: rgba(24, 144, 255, 0.15);
+        border-color: @primary-color;
+        color: @primary-color;
+        background: fade(@primary-color, 15%);
       }
       &.disabled {
         opacity: 0.3;
@@ -294,7 +294,7 @@
     > a {
       cursor: pointer;
       margin-left: 12px;
-      color: #1890ff;
+      color: @primary-color;
       > i {
         margin-right: 4px;
       }
@@ -325,7 +325,7 @@
       opacity: 0.7;
       &:hover {
         opacity: 1;
-        color: #1890ff;
+        color: @primary-color;
       }
     }
     > i {
@@ -380,7 +380,7 @@
         transform: scale(1.15);
       }
       &.active {
-        box-shadow: 0 0 0 2px #1890ff;
+        box-shadow: 0 0 0 2px @primary-color;
       }
     }
   }
@@ -388,7 +388,7 @@
     display: block;
     margin-top: 4px;
     font-size: 12px;
-    color: #1890ff;
+    color: @primary-color;
     cursor: pointer;
     > i {
       margin-right: 5px;

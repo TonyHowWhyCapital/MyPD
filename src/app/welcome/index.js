@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
 
-import {Progressbar, Modal, FormatMessage} from 'components';
+import { Modal } from 'components';
 import { fail, success, pageType, CONFIG } from '../../lib/variable';
-import './style/index.less';
 import {
   getUserConfigData,
   removeHistory,
@@ -24,82 +23,27 @@ import {
 } from '../../actions/core';
 import { openLoading, closeLoading } from '../../actions/common';
 import {ConfigContent} from '../../lib/context';
-import {getPrefix} from '../../lib/prefixUtil';
-// eslint-disable-next-line import/named
-import { platform } from '../../lib/middle';
 
+// Reads the user's settings and goes straight to the home page, nothing is shown meanwhile.
 const Welcome = React.memo(({ prefix, getUserData, config, ...restProps }) => {
-  const [percent, updatePercent] = useState(50);
-  // 由于显示该标题时还无法获取到用户数据，无法支持国际化
-  const [title, updateTitle] = useState('获取配置数据...');
-  const [loadingTitle] = useState('加载中');
+  const [ready, setReady] = useState(false);
   useEffect(() => {
-    // 第一个页面打开 读取各个配置文件
     getUserData();
   }, []);
   useEffect(() => {
     if (config.result === success) {
-      // 读取配置信息成功
-      updatePercent(90);
       setMemoryCache(CONFIG, config);
-      if (platform === 'json') {
-        updateTitle(FormatMessage.string({id: 'welcomeVersionTitle'}));
-        updatePercent(100);
-      } else {
-        setTimeout(() => {
-         updatePercent(100);
-        }, 1000);
-      }
+      setReady(true);
     } else if (config.result === fail) {
-      // 读取配置信息失败
       Modal.error({title: config?.data.toString()});
     }
   }, [config.result]);
-  const currentPrefix = getPrefix(prefix);
-  if (percent === 100) {
-    return <ConfigContent.Provider value={config}>
-      <Home config={config} {...restProps}/>
-    </ConfigContent.Provider>;
+  if (!ready) {
+    return null;
   }
-  return <div className={`${currentPrefix}-welcome`}
-  >
-    <div className={`${currentPrefix}-welcome-header`}>
-      <div className={`${currentPrefix}-welcome-header-logo`}>{}</div>
-      <div className={`${currentPrefix}-welcome-header-name`}>
-        <div>元数建模</div>
-        <div>MyPD</div>
-      </div>
-    </div>
-    <div className={`${currentPrefix}-welcome-body`}>
-      <div className={`${currentPrefix}-welcome-body-left`}>
-        <div className={`${currentPrefix}-welcome-body-left-bg`}>
-          {}
-        </div>
-      </div>
-      <div className={`${currentPrefix}-welcome-body-right`}>
-        <div className={`${currentPrefix}-welcome-body-right-circle`}>
-          {}
-        </div>
-        <div className={`${currentPrefix}-welcome-body-right-icon`}>
-          {}
-        </div>
-        <div className={`${currentPrefix}-welcome-body-right-loading`}>
-          <span>{loadingTitle}</span>
-          <span className={`${currentPrefix}-welcome-body-right-loading-block`}>{}</span>
-          <span className={`${currentPrefix}-welcome-body-right-loading-block`}>{}</span>
-          <span className={`${currentPrefix}-welcome-body-right-loading-block`}>{}</span>
-        </div>
-        <div className={`${currentPrefix}-welcome-body-right-progress`}>
-          <Progressbar title={title} percent={percent} className={`${currentPrefix}-welcome-progressbar`} showPercent/>
-        </div>
-        <div className={`${currentPrefix}-welcome-body-right-copy`}>
-          The most popular database table design tool in China
-        </div>
-      </div>
-    </div>
-    {/* eslint-disable-next-line max-len */}
-    {/*<Progressbar title={title} percent={percent} className={`${currentPrefix}-welcome-progressbar`} showPercent/>*/}
-  </div>;
+  return <ConfigContent.Provider value={config}>
+    <Home config={config} {...restProps}/>
+  </ConfigContent.Provider>;
 });
 
 const mapStateToProps = (state) => {

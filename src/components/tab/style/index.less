@@ -292,3 +292,23 @@
     }
   }
 }
+// Night mode: the icons are light lines on a dark side bar, so the inactive ones must
+// not be blackened or dimmed the way the day theme draws them.
+body[theme='themeNigh'] .@{prefix}-tab-header-left {
+  .@{prefix}-tab-header-item span[class*=icon] {
+    opacity: 1;
+  }
+  .@{prefix}-tab-header-item-hidden {
+    .@{prefix}-tab-header-item-icon {
+      opacity: 1;
+      // The svg lines are lighter than the font icons, this evens them out.
+      &.@{prefix}-svg-icon {
+        filter: none;
+        opacity: 0.75;
+      }
+    }
+    &:hover .@{prefix}-tab-header-item-icon {
+      opacity: 1;
+    }
+  }
+}

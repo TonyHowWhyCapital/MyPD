@@ -9,7 +9,7 @@ removeAllVersionProject, openFileOrDirPath, ensureDirectoryExistence,
   dirSplicing, fileExists, deleteFile, basename, writeLog, getBackupAllFile, renameBackupAllFile,
   readPdmFile, savePdmFile,
 } from '../../lib/middle';
-import { isPdmFile, pdmToDataSource } from '../../lib/pdm';
+import { isPdmFile, pdmToDataSource, rememberSource } from '../../lib/pdm';
 import { openLoading, closeLoading, optReset, STATUS } from '../common';
 //import { pdman2sino, version2sino } from '../../lib/datasource_util';
 import { removeHistory, addHistory, updateHistory } from '../config';
@@ -239,7 +239,8 @@ export const readProject = (path, title, getState, type, isDemoProject, mode = E
     const readPdm = () => readPdmFile(path).then((xml) => {
       try {
         return {
-          ...pdmToDataSource(xml, emptyProject, { createEntity: () => getEmptyEntity() }),
+          ...rememberSource(pdmToDataSource(xml, emptyProject, { createEntity: () => getEmptyEntity() }),
+            path.split(/[\\/]/).pop(), xml),
           version,
         };
       } catch (e) {

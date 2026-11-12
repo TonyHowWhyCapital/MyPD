@@ -115,6 +115,7 @@ const flatten = (entities, dataSource, dbId, kept) => entities.map((entity) => {
   return {
     ...entity,
     id: guid(),
+    sourceId: entity.id,
     fields,
     indexes: (entity.indexes || []).map(index => ({
       ...index,

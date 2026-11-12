@@ -63,7 +63,7 @@ export const openPdm = (xml) => {
 };
 
 const resolve = (doc, el) => (el && el.attrs.Ref ? doc.byId.get(el.attrs.Ref) : el);
-const refTarget = (doc, owner, collection) => resolve(doc, elements(child(owner, collection))[0]);
+export const refTarget = (doc, owner, collection) => resolve(doc, elements(child(owner, collection))[0]);
 const objectId = el => value(el, 'a:ObjectID');
 
 // Every package nests the same collections as the model itself.
@@ -165,7 +165,7 @@ const readEntity = (doc, el, createEntity, domains, mappings, dbId) => {
   };
 };
 
-const readReferences = (doc) => {
+export const readReferences = (doc) => {
   return collect(doc, 'c:References', 'o:Reference').map((el) => {
     const join = elements(child(el, 'c:Joins'), 'o:ReferenceJoin')[0];
     const parent = refTarget(doc, el, 'c:ParentTable');

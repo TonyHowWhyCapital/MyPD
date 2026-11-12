@@ -80,7 +80,9 @@ import { imgAll } from '../../lib/generatefile/img';
 import {compareVersion} from '../../lib/update';
 import {notify} from '../../lib/subscribe';
 import {READING} from '../../lib/variable';
-import {isPdmFile, createPdm, remarksAsComments, pdmToDataSource, mergePdm} from '../../lib/pdm';
+import {
+  isPdmFile, createPdm, remarksAsComments, pdmToDataSource, mergePdm, rememberSource, projectToPdm,
+} from '../../lib/pdm';
 import {resolveColumnDomains, keepColumnDomains} from '../../lib/column_domain';
 import {pickNewGroups} from '../../components/listgroupselect/newGroup';
 import LogicEntity from '../container/logicentity';
@@ -816,7 +818,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
   // The tables of a PDM file join the open project with their domains, references and
   // diagrams. The file is read here, the same way as when it is opened on its own.
   const importFromPdm = () => {
-    Upload('', (xml) => {
+    Upload('', (xml, file) => {
       const project = dataSourceRef.current;
       let imported;
       try {
@@ -845,8 +847,8 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
           .filter(g => !(project.viewGroups || []).some(o => o.id === g.id)
             && picked.some(p => p.id === g.id && (p.fields || []).length > 0))
           .map(g => ({...g, refEntities: [], refDiagrams: []})));
-        injectDataSource(mergePdm(dataSourceRef.current, imported,
-          {entityIds: Object.keys(groupOf), groupOf, newGroups}), modal);
+        injectDataSource(rememberSource(mergePdm(dataSourceRef.current, imported,
+          {entityIds: Object.keys(groupOf), groupOf, newGroups}), file.name, xml), modal);
       };
       modal = openModal(<ImportPd
         customerData={fileGroups.length > 0 ? fileGroups.map(g => ({
@@ -879,7 +881,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       return valid;
     });
   };
-  // The whole project as a new PDM file: tables, columns, keys, indexes and domains.
+  // The whole project as a PDM file, written onto the file it was imported from if any.
   const exportPdm = () => {
     const project = dataSourceRef.current;
     const fail = err => err?.message && Modal.error({
@@ -887,10 +889,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       message: err.message,
     });
     try {
-      const xml = createPdm(project, {
-        name: project.name,
-        domainIds: (project.domains || []).map(d => d.id),
-      });
+      const xml = projectToPdm(project);
       saveFile(xml, [{name: 'PDM', extensions: ['pdm']}],
         p => (/\.pdm$/i.test(p) ? p : `${p}.pdm`),
         {defaultPath: `${project.name || 'model'}.pdm`})

@@ -84,3 +84,32 @@ describe('importing a pdm file into an open project', () => {
     expect(linked(back)).toEqual(linked(merged));
   });
 });
+
+describe('exporting a project that came from a pdm file', () => {
+  const { rememberSource, projectToPdm } = require('../src/lib/pdm');
+  const xml = buildPdm();
+  const project = rememberSource(mergePdm(base, read(base)), 'staff.pdm', xml);
+
+  test('an unchanged project gives the file back as it was', () => {
+    expect(projectToPdm(project)).toBe(xml);
+  });
+
+  test('a change reaches the file and the rest of it stays', () => {
+    const changed = _.cloneDeep(project);
+    changed.entities.find(e => e.id === ids.dept).defName = 'Renamed';
+    const out = projectToPdm(changed, { now: 1800000000, user: 'jest' });
+    expect(out).toContain('<a:Name>Renamed</a:Name>');
+    expect(out.split('\n').filter((line, i) => line !== xml.split('\n')[i]).length).toBeLessThan(6);
+  });
+
+  test('the first file is remembered, the same file again is refreshed', () => {
+    expect(rememberSource(project, 'other.pdm', '<x/>').profile.pdmSource.name).toBe('staff.pdm');
+    expect(rememberSource(project, 'staff.pdm', '<x/>').profile.pdmSource.xml).toBe('<x/>');
+  });
+
+  test('a project without a remembered file is written as a new one', () => {
+    const fresh = mergePdm(base, read(base));
+    const back = pdmToDataSource(projectToPdm(fresh), base);
+    expect(back.entities.map(e => e.defKey).sort()).toEqual(fresh.entities.map(e => e.defKey).sort());
+  });
+});

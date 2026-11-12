@@ -49,9 +49,12 @@ const freeName = (ctx) => {
   return `Reference_${n}`;
 };
 
-// The same shape the modeling tool writes, with changes and deletions of the parent
-// restricted. `joins` pairs a column of the parent with one of the child.
-const create = (ctx, { parent, child: childTable, key, joins, rows }) => {
+// What the child rows do when the parent changes: nothing, refuse, follow, empty, default.
+const RULES = ['0', '1', '2', '3', '4'];
+
+// The same shape the modeling tool writes; changes and deletions of the parent are
+// refused unless the line says otherwise. `joins` pairs a column of the parent with one of the child.
+const create = (ctx, { parent, child: childTable, key, joins, rows, updateRule, deleteRule }) => {
   const name = freeName(ctx);
   const nodes = build(ctx, [
     `<o:Reference Id="${ctx.nextId()}">`,
@@ -60,8 +63,8 @@ const create = (ctx, { parent, child: childTable, key, joins, rows }) => {
     `<a:Code>${name}</a:Code>`,
     ...stamp(ctx),
     `<a:Cardinality>${cardinalityOf(rows)}</a:Cardinality>`,
-    '<a:UpdateConstraint>1</a:UpdateConstraint>',
-    '<a:DeleteConstraint>1</a:DeleteConstraint>',
+    `<a:UpdateConstraint>${RULES.includes(`${updateRule}`) ? updateRule : 1}</a:UpdateConstraint>`,
+    `<a:DeleteConstraint>${RULES.includes(`${deleteRule}`) ? deleteRule : 1}</a:DeleteConstraint>`,
     '<c:ParentTable>',
     `<o:Table Ref="${parent.attrs.Id}"/>`,
     '</c:ParentTable>',
@@ -110,7 +113,13 @@ const relationOf = (cell, tableOf, ids) => {
   const [parent, many, rows] = MANY.includes(from) ? [target, source, from] : [source, target, to];
   const id = v => ids[v] || v;
   return {
-    parent: id(parent.table), parentField: id(parent.field), child: id(many.table), childField: id(many.field), rows,
+    parent: id(parent.table),
+    parentField: id(parent.field),
+    child: id(many.table),
+    childField: id(many.field),
+    rows,
+    updateRule: cell.updateRule,
+    deleteRule: cell.deleteRule,
   };
 };
 
@@ -220,6 +229,12 @@ export const syncReferences = (ctx, before, after, ids) => {
     if (lines.length > 0 && cardinalityOf(lines[0].relation.rows) !== cardinalityOf(rowsOf(r.cardinality))) {
       setAttribute(ctx, r.el, 'a:Cardinality', cardinalityOf(lines[0].relation.rows));
     }
+    [['updateRule', 'a:UpdateConstraint'], ['deleteRule', 'a:DeleteConstraint']].forEach(([key, tag]) => {
+      const wanted = lines.length > 0 ? lines[0].relation[key] : undefined;
+      if (RULES.includes(`${wanted}`) && `${wanted}` !== `${r[key]}`) {
+        setAttribute(ctx, r.el, tag, `${wanted}`);
+      }
+    });
   });
   const fresh = [...now.keys()].filter(k => !have.has(k)).map(k => now.get(k));
   grouped(ctx, fresh).forEach((group) => {
@@ -233,7 +248,9 @@ export const syncReferences = (ctx, before, after, ids) => {
     }));
     if (pk && childTable && joins.every(j => j.parentColumn && j.childColumn
       && pk.columns.includes(j.parentColumn.attrs.Id))) {
-      const reference = create(ctx, { parent, child: childTable, key: pk.key, joins, rows: r.rows });
+      const reference = create(ctx, {
+        parent, child: childTable, key: pk.key, joins, rows: r.rows, updateRule: r.updateRule, deleteRule: r.deleteRule,
+      });
       [...new Set(group.reduce((all, line) => all.concat(line.diagrams), []))]
         .forEach(id => addSymbol(ctx, id, reference, parent, childTable));
     }

@@ -354,6 +354,16 @@ export default {
       "search": "搜尋節點"
     },
     "edge": {
+      "updateRule": "更新時",
+      "deleteRule": "刪除時",
+      "updateRuleTip": "父表的鍵值被修改時，子表對應的資料怎麼處理",
+      "deleteRuleTip": "父表的資料被刪除時，子表對應的資料怎麼處理",
+      "ruleUnset": "未設定",
+      "rule0": "不處理",
+      "rule1": "限制",
+      "rule2": "級聯",
+      "rule3": "設為空值",
+      "rule4": "設為預設值",
       "form": "連線起點",
       "to": "連線終點",
       "none": "無",

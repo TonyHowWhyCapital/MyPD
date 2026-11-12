@@ -10,10 +10,12 @@ import {
   remove, sweepDanglingRefs, syncProps, namedSpecs, flag,
 } from './edit';
 import { syncObjects } from './objects';
+import { changedExtended, OWNER, ROWS } from './extras';
+import { collect } from './read';
 import { syncReferences, originIds, finalIds } from './references';
 import { syncDiagrams } from './diagrams';
 
-const TABLE_ORDER = ['c:Columns', 'c:Keys', 'c:Indexes', 'c:PrimaryKey', 'c:ClusterObject'];
+const TABLE_ORDER = ['c:Columns', 'c:Keys', 'c:Indexes', 'c:Owner', 'c:PrimaryKey', 'c:ClusterObject'];
 
 const effectiveType = (field, dataSource, dbId) => {
   const mappings = dataSource.dataTypeMapping?.mappings || [];
@@ -111,6 +113,10 @@ const syncColumns = (ctx, table, old, entity, sources, dbId) => {
       setDataType(ctx, el, type);
     }
     syncProps(ctx, el, oldField, field, columnFlagSpecs);
+    const extended = oldField ? changedExtended(el, ctx.eol, oldField.extProps, field.extProps) : null;
+    if (extended !== null) {
+      setAttribute(ctx, el, 'a:ExtendedAttributesText', extended);
+    }
     if (norm(before.domain) !== norm(field.domain)) {
       syncColumnDomain(ctx, el, field.domain);
     }
@@ -118,6 +124,34 @@ const syncColumns = (ctx, table, old, entity, sources, dbId) => {
   });
   reorder(ctx, collection, columns);
   return columns;
+};
+
+// The owner and the expected number of rows are properties of the table in the project.
+// Taking the property away changes nothing; emptying it clears the value in the file.
+const syncTableExtras = (ctx, table, old, entity) => {
+  const was = (old && old.properties) || {};
+  const now = entity.properties || {};
+  if (now[ROWS] !== undefined && norm(was[ROWS]) !== norm(now[ROWS])) {
+    setAttribute(ctx, table, 'a:Number', norm(now[ROWS]).trim());
+  }
+  if (now[OWNER] === undefined || norm(was[OWNER]) === norm(now[OWNER])) {
+    return;
+  }
+  const code = norm(now[OWNER]).trim();
+  const existing = child(table, 'c:Owner');
+  existing && detach(existing);
+  if (!code) {
+    return;
+  }
+  let user = collect(ctx, 'c:Users', 'o:User').find(u => value(u, 'a:Code').toLowerCase() === code.toLowerCase());
+  if (!user) {
+    user = createObject(ctx, 'o:User');
+    setAttribute(ctx, user, 'a:Name', code);
+    setAttribute(ctx, user, 'a:Code', code);
+    insert(ensureCollection(ctx, ctx.model, 'c:Users', MODEL_ORDER), [user], null, ctx.eol);
+  }
+  insert(ensureCollection(ctx, table, 'c:Owner', TABLE_ORDER), build(ctx, refLines('o:User', [user])),
+    null, ctx.eol);
 };
 
 const syncPrimaryKey = (ctx, table, old, entity, columns) => {
@@ -250,6 +284,7 @@ const syncEntities = (ctx, before, after, dbId) => {
       entity.id = value(table, 'a:ObjectID');
     }
     syncProps(ctx, table, old, entity, namedSpecs);
+    syncTableExtras(ctx, table, old, entity);
     const known = entity.fields.map(f => f.id);
     const columns = syncColumns(ctx, table, old, entity, { before, after }, dbId);
     syncPrimaryKey(ctx, table, old, entity, columns);

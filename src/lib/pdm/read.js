@@ -1,6 +1,7 @@
 import { parseXml, elements, child, value, walk } from './xml';
 // eslint-disable-next-line import/no-cycle
 import { readObjects } from './objects';
+import { readExtended, readTableExtras, colourOf } from './extras';
 
 const SIGNATURE = 'PDM_DATA_MODEL_XML';
 // Diagram units in the file are much finer than canvas pixels, and y grows upwards.
@@ -126,6 +127,7 @@ const readField = (doc, el, pkColumns, domains, mappings, dbId) => {
     uiHint: '',
     domain: '',
     baseType: '',
+    extProps: readExtended(el, doc.eol),
   };
   const domainEl = refTarget(doc, el, 'c:Domain');
   const domain = domainEl && domains.find(d => d.id === objectId(domainEl));
@@ -144,8 +146,10 @@ const readEntity = (doc, el, createEntity, domains, mappings, dbId) => {
   const pkColumns = elements(child(refTarget(doc, el, 'c:PrimaryKey'), 'c:Key.Columns'))
     .map(c => resolve(doc, c));
   const columns = elements(child(el, 'c:Columns'), 'o:Column');
+  const created = createEntity();
   return {
-    ...createEntity(),
+    ...created,
+    properties: { ...created.properties, ...readTableExtras(doc, el, resolve) },
     id: objectId(el),
     defKey: value(el, 'a:Code'),
     defName: value(el, 'a:Name'),
@@ -209,6 +213,9 @@ export const readReferences = (doc) => {
       parent: objectId(parent),
       child: objectId(childTable),
       cardinality: value(el, 'a:Cardinality'),
+      // what happens to the child rows when the parent row changes or goes
+      updateRule: value(el, 'a:UpdateConstraint'),
+      deleteRule: value(el, 'a:DeleteConstraint'),
       joins,
     };
   }).filter(r => r);
@@ -240,6 +247,7 @@ const readDiagrams = (doc, references) => {
       },
       count: 0,
       originKey: objectId(table),
+      ...(value(s, 'a:FillColor') ? { fillColor: colourOf(value(s, 'a:FillColor')) } : {}),
     }));
     const edges = elements(symbols, 'o:ReferenceSymbol').map((s) => {
       const reference = references.find(r => r.el === refTarget(doc, s, 'c:Object'));
@@ -254,6 +262,8 @@ const readDiagrams = (doc, references) => {
         source: { cell: cellId(parentSymbol.s), port: `${join.parentField}%out` },
         target: { cell: cellId(childSymbol.s), port: `${join.childField}%in` },
         relation: `1:${rowsOf(reference.cardinality)}`,
+        updateRule: reference.updateRule,
+        deleteRule: reference.deleteRule,
         fillColor: '#ACDAFC',
       }));
     }).filter(e => e).reduce((all, e) => all.concat(e), []);

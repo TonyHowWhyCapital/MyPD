@@ -5,6 +5,7 @@ import { refTarget, CANVAS_SCALE } from './read';
 import {
   MODEL_ORDER, find, build, createObject, ensureCollection, setAttribute, remove,
 } from './edit';
+import { numberOf } from './extras';
 
 const WIDTH = 12000;
 const heightFor = columns => 2200 + 420 * Math.max(columns, 1);
@@ -34,12 +35,13 @@ const placed = (frame, position, width, height) => {
   return { left, right: left + width, bottom: top - height, top };
 };
 
-const addTable = (ctx, symbols, table, rect) => {
+const addTable = (ctx, symbols, table, rect, colour) => {
   insert(symbols, build(ctx, [
     `<o:TableSymbol Id="${ctx.nextId()}">`,
     `<a:CreationDate>${ctx.now}</a:CreationDate>`,
     `<a:ModificationDate>${ctx.now}</a:ModificationDate>`,
     `<a:Rect>${rectText(rect)}</a:Rect>`,
+    ...(colour ? [`<a:FillColor>${colour}</a:FillColor>`] : []),
     '<c:Object>',
     `<o:Table Ref="${table.attrs.Id}"/>`,
     '</c:Object>',
@@ -91,6 +93,9 @@ export const syncDiagrams = (ctx, before, after, ids) => {
           setText(child(symbol, 'a:Rect'),
             rectText(placed(frame, node.position, rect.right - rect.left, rect.top - rect.bottom)));
         }
+        if (node.fillColor && node.fillColor !== was.fillColor && numberOf(node.fillColor)) {
+          setAttribute(ctx, symbol, 'a:FillColor', numberOf(node.fillColor));
+        }
         return;
       }
       const table = tableOf(node);
@@ -99,7 +104,7 @@ export const syncDiagrams = (ctx, before, after, ids) => {
         addTable(ctx, symbols, table, placed(frame, node.position,
           node.size?.width ? Math.round(node.size.width * CANVAS_SCALE) : WIDTH,
           node.size?.height ? Math.round(node.size.height * CANVAS_SCALE)
-            : heightFor((entity?.fields || []).length)));
+            : heightFor((entity?.fields || []).length)), numberOf(node.fillColor));
       }
     });
   });

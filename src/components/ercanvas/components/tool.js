@@ -213,6 +213,16 @@ const EdgeTooltipContent = ({onUpdate, edge, movePosition, getDataSource, positi
   const [isLock, setIsLock] = useState(() => {
     return edge.getProp('isLock');
   });
+  // What the child rows of a relation do when the parent row changes or is deleted.
+  const [rules, setRules] = useState(() => ({
+    updateRule: `${edge.getProp('updateRule') || ''}`,
+    deleteRule: `${edge.getProp('deleteRule') || ''}`,
+  }));
+  const ruleValues = ['', '0', '1', '2', '3', '4'];
+  const onRule = (key, v) => {
+    setRules(pre => ({...pre, [key]: v}));
+    onUpdate(key, v);
+  };
   const arrowType = ['none', 'triangle-stroke', 'triangle-fill', 'right', 'concave'];
   const erArrowType = ['1', 'n'];
   const lineType = ['straight', 'polyline', 'fillet'];
@@ -372,6 +382,23 @@ const EdgeTooltipContent = ({onUpdate, edge, movePosition, getDataSource, positi
                 </OverDown>
               </div>
             </div>
+            <div className={`${prefix}-edge-tooltip-content-line`}/></>
+        }
+        {
+          edge.shape === 'erdRelation' && <>
+            {['updateRule', 'deleteRule'].map(key => <label
+              key={key}
+              className={`${prefix}-edge-tooltip-content-item`}
+              style={{display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', padding: '0 4px', fontSize: 12}}
+              title={FormatMessage.string({id: `canvas.edge.${key}Tip`})}
+            >
+              <span style={{marginRight: 4}}>{FormatMessage.string({id: `canvas.edge.${key}`})}</span>
+              <select value={rules[key]} onChange={e => onRule(key, e.target.value)}>
+                {ruleValues.map(v => <option key={v} value={v}>
+                  {FormatMessage.string({id: `canvas.edge.rule${v === '' ? 'Unset' : v}`})}
+                </option>)}
+              </select>
+            </label>)}
             <div className={`${prefix}-edge-tooltip-content-line`}/></>
         }
         </>
@@ -643,6 +670,9 @@ export const edgeNodeAddTool = (edge, graph, id, dataChange, getDataSource, upda
       toolParent.style.position = 'absolute';
       const calcLeft = () => {
         width = edge.isNode() ? 170 : 250;
+        if (edge.shape === 'erdRelation') {
+          width = 520;
+        }
         if (edge.getProp('isLock')) {
           width = 45;
         } else if (edge.shape === 'table') {
@@ -705,6 +735,8 @@ export const edgeNodeAddTool = (edge, graph, id, dataChange, getDataSource, upda
               edge.attr('line/targetMarker/relation', v);
             }
             edge.setProp('relation', `${edge.attr('line/sourceMarker/relation')}:${edge.attr('line/targetMarker/relation')}`);
+          } else if (t === 'updateRule' || t === 'deleteRule') {
+            edge.setProp(t, v);
           } else if (t === 'arrow-exchange') {
             edge.attr('line', {
               sourceMarker: {

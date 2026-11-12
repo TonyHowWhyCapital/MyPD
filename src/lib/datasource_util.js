@@ -185,7 +185,10 @@ export const updateAllData = (dataSource) => {
               'isLock',
               'note',
               'layout',
-               'type'
+               'type',
+              // what the child rows do when the parent row changes or goes
+              'updateRule',
+              'deleteRule',
             ];
             if (c.shape === 'edit-node' || c.shape === 'edit-node-circle'
                 || c.shape === 'edit-node-polygon'

@@ -1,4 +1,6 @@
 import { parseXml, elements, child, value, walk } from './xml';
+// eslint-disable-next-line import/no-cycle
+import { readObjects } from './objects';
 
 const SIGNATURE = 'PDM_DATA_MODEL_XML';
 // Diagram units in the file are much finer than canvas pixels, and y grows upwards.
@@ -328,5 +330,7 @@ export const pdmToDataSource = (xml, base, { createEntity = defaultEntity } = {}
     domains,
     dataTypeMapping: { ...base.dataTypeMapping, mappings },
     diagrams: readDiagrams(doc, references),
+    // only what the file holds; the objects a project made itself are merged by the caller
+    dbObjects: readObjects(doc),
   };
 };

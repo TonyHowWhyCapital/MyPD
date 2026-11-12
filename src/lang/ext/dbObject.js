@@ -5,6 +5,7 @@ export default {
       types: {
         trigger: '触发器',
         procedure: '存储过程/函数',
+        view: '视图(SQL)',
         sequence: '序列',
         partition: '分区',
         tablespace: '表空间',
@@ -73,6 +74,7 @@ export default {
       types: {
         trigger: 'Triggers',
         procedure: 'Procedures / Functions',
+        view: 'Views (SQL)',
         sequence: 'Sequences',
         partition: 'Partitions',
         tablespace: 'Tablespaces',

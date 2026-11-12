@@ -24,6 +24,20 @@
   }
   &-objects {
     width: 22%;
+    // a long code is cut short, the kind beside it stays whole
+    & > div > span:first-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+    & > div > span + span {
+      flex-shrink: 0;
+      margin-left: 8px;
+      white-space: nowrap;
+      color: @third-font-color;
+      font-size: 12px;
+    }
     &-head {
       cursor: default !important;
       border-bottom: 1px solid @primary-border-color;

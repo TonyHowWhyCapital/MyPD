@@ -8,7 +8,9 @@ export const rememberSource = (dataSource, name, xml) => {
   if (known?.xml && known.name !== name) {
     return dataSource;
   }
-  return { ...dataSource, profile: { ...dataSource.profile, pdmSource: { name, xml } } };
+  // `covers` says how much of the file this project has read: 2 includes keys, procedures
+  // and views, so one of those missing from the project was deleted there.
+  return { ...dataSource, profile: { ...dataSource.profile, pdmSource: { name, xml, covers: 2 } } };
 };
 
 // The project as a PDM file. With a remembered file the project is written onto it, so

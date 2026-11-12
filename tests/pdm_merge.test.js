@@ -72,6 +72,12 @@ describe('importing a pdm file into an open project', () => {
     expect(fields.some(f => f.domain === 'own' || f.domain === used)).toBe(false);
   });
 
+  test('two domains of the file sharing a code are both kept', () => {
+    const twice = read(base);
+    twice.domains = twice.domains.concat({ ...twice.domains[0], id: 'second' });
+    expect(mergePdm(base, twice).domains.filter(d => d.defKey === twice.domains[0].defKey)).toHaveLength(2);
+  });
+
   test('importing the same file twice changes nothing more', () => {
     expect(mergePdm(merged, read(merged))).toEqual(merged);
   });

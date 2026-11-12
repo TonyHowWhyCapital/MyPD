@@ -6,8 +6,8 @@ import { openPdm } from './read';
 
 // The tools for changing a PDM file in place: finding an object, making one, setting an
 // attribute and taking an object out together with whatever pointed at it.
-export const MODEL_ORDER = ['c:DBMS', 'c:PhysicalDiagrams', 'c:DefaultDiagram', 'c:Domains', 'c:Tables',
-  'c:References', 'c:DefaultGroups', 'c:TargetModels'];
+export const MODEL_ORDER = ['c:DBMS', 'c:PhysicalDiagrams', 'c:DefaultDiagram', 'c:Users', 'c:Domains',
+  'c:Procedures', 'c:Tables', 'c:References', 'c:Views', 'c:DefaultGroups', 'c:TargetModels'];
 // A reference to a deleted object inside one of these makes its owner meaningless.
 const OWNER_DIES_WITH_REF = new Set(['c:Object', 'c:ParentTable', 'c:ChildTable', 'c:ParentKey',
   'c:Object1', 'c:Object2', 'c:SourceSymbol', 'c:DestinationSymbol', 'c:Column']);
@@ -131,3 +131,22 @@ export const sweepDanglingRefs = (ctx) => {
     });
   } while (dangling.length);
 };
+
+export const flag = v => (v ? '1' : '');
+
+// Writes the attributes that differ between what the file had and what the project has.
+export const syncProps = (ctx, el, before, after, specs) => {
+  specs.forEach(([key, tag, toXml = norm]) => {
+    // A project from before this was read does not know the value; the file keeps its own.
+    if (before && after[key] === undefined) {
+      return;
+    }
+    const content = toXml(after[key], after);
+    if (before ? norm(before[key]) !== norm(after[key]) : content !== '') {
+      setAttribute(ctx, el, tag, content);
+    }
+  });
+};
+
+const nameOrCode = (name, object) => norm(name) || norm(object.defKey);
+export const namedSpecs = [['defName', 'a:Name', nameOrCode], ['defKey', 'a:Code'], ['comment', 'a:Comment']];

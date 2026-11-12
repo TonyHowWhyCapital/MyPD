@@ -299,6 +299,22 @@ export const dbObjectTypes = {
       },
     },
   },
+  view: {
+    needsEntity: false,
+    hasBody: true,
+    defaultProps: {},
+    propFields: [],
+    templates: {
+      default: {
+        create: L(`CREATE VIEW ${NAME} AS`, `{{=it.object.body}}${SEP}`),
+        drop: `DROP VIEW IF EXISTS ${NAME}${SEP}`,
+      },
+      oracle: {
+        create: L(`CREATE OR REPLACE VIEW ${NAME} AS`, `{{=it.object.body}}${SEP}`),
+        drop: `DROP VIEW ${NAME}${SEP}`,
+      },
+    },
+  },
   grant: {
     needsEntity: true,
     hasBody: false,

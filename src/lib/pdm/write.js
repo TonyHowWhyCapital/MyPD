@@ -7,13 +7,13 @@ import {
 } from './read';
 import {
   MODEL_ORDER, norm, createContext, find, build, createObject, ensureCollection, setAttribute,
-  remove, sweepDanglingRefs,
+  remove, sweepDanglingRefs, syncProps, namedSpecs, flag,
 } from './edit';
+import { syncObjects } from './objects';
 import { syncReferences, originIds, finalIds } from './references';
 import { syncDiagrams } from './diagrams';
 
 const TABLE_ORDER = ['c:Columns', 'c:Keys', 'c:Indexes', 'c:PrimaryKey', 'c:ClusterObject'];
-const flag = v => (v ? '1' : '');
 
 const effectiveType = (field, dataSource, dbId) => {
   const mappings = dataSource.dataTypeMapping?.mappings || [];
@@ -31,19 +31,6 @@ const domainType = (domain, dataSource, dbId) => {
   return composeDataType({ type: mapping?.[dbId] || '', len: domain.len, scale: domain.scale });
 };
 
-const syncProps = (ctx, el, before, after, specs) => {
-  specs.forEach(([key, tag, toXml = norm]) => {
-    // A project from before this was read does not know the value; the file keeps its own.
-    if (before && after[key] === undefined) {
-      return;
-    }
-    const content = toXml(after[key], after);
-    if (before ? norm(before[key]) !== norm(after[key]) : content !== '') {
-      setAttribute(ctx, el, tag, content);
-    }
-  });
-};
-
 const setDataType = (ctx, el, dataType) => {
   const parsed = parseDataType(dataType);
   setAttribute(ctx, el, 'a:DataType', dataType);
@@ -51,8 +38,6 @@ const setDataType = (ctx, el, dataType) => {
   setAttribute(ctx, el, 'a:Precision', norm(parsed.scale));
 };
 
-const nameOrCode = (name, object) => norm(name) || norm(object.defKey);
-const namedSpecs = [['defName', 'a:Name', nameOrCode], ['defKey', 'a:Code'], ['comment', 'a:Comment']];
 const columnSpecs = namedSpecs.concat([['defaultValue', 'a:DefaultValue']]);
 const domainSpecs = columnSpecs.concat([['notNull', 'a:PhysicalDomain.Mandatory', flag]]);
 const columnFlagSpecs = [['autoIncrement', 'a:Identity', flag], ['notNull', 'a:Column.Mandatory', flag]];
@@ -228,8 +213,7 @@ const syncIndexes = (ctx, table, old, entity) => {
       index.id = value(el, 'a:ObjectID');
     }
     syncProps(ctx, el, oldIndex, index, [
-      ['defName', 'a:Name', nameOrCode], ['defKey', 'a:Code'], ['comment', 'a:Comment'],
-      ['unique', 'a:Unique', flag],
+      ...namedSpecs, ['unique', 'a:Unique', flag],
     ]);
     if (!hasColumn(index) || (oldIndex && indexSignature(oldIndex) === indexSignature(index))) {
       return;
@@ -275,7 +259,8 @@ const syncEntities = (ctx, before, after, dbId) => {
 };
 
 // Rewrites only what differs between the file and the project: tables, columns,
-// primary keys, indexes, domains, references and where the tables sit in the diagrams. Everything else in the file is kept as is.
+// keys, indexes, domains, references, procedures, views and where the tables sit in the
+// diagrams. Everything else in the file is kept as is.
 export const applyDataSourceToPdm = (xml, dataSource, options = {}) => {
   const ctx = createContext(xml, options);
   const after = {
@@ -287,12 +272,16 @@ export const applyDataSourceToPdm = (xml, dataSource, options = {}) => {
       indexes: (e.indexes || []).map(i => ({ ...i })),
     })),
     diagrams: (dataSource.diagrams || []).map(d => ({ ...d })),
+    dbObjects: (dataSource.dbObjects || []).map(o => ({ ...o })),
   };
   const before = pdmToDataSource(xml, dataSource);
   const dbId = resolveDb(ctx.target, dataSource);
   const origin = originIds(after);
   syncDomains(ctx, before, after, dbId);
   syncEntities(ctx, before, after, dbId);
+  const forget = options.forget === undefined
+    ? dataSource.profile?.pdmSource?.covers >= 2 : options.forget;
+  syncObjects(ctx, before, after, dbId, forget);
   const ids = finalIds(after, origin);
   syncDiagrams(ctx, before, after, ids);
   syncReferences(ctx, before, after, ids);

@@ -1370,6 +1370,7 @@ export default {
     "types": {
       "trigger": "觸發器",
       "procedure": "預存程序/函式",
+      "view": "視圖(SQL)",
       "sequence": "序列",
       "partition": "分割區",
       "tablespace": "資料表空間",

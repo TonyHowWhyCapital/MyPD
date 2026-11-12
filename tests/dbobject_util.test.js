@@ -29,9 +29,10 @@ const samples = {
   tablespace: make('tablespace', {props: {dataFile: '/data/ts.dbf'}}),
   synonym: make('synonym', {refEntity: '', props: {targetName: 'other.tbl', isPublic: true}}),
   grant: make('grant', {props: {privileges: ['SELECT', 'INSERT'], grantee: 'bob', withGrantOption: true}}),
+  view: make('view', {refEntity: '', body: 'select 1 as one'}),
 };
 
-test('registry has the seven types with form metadata', () => {
+test('registry has the eight types with form metadata', () => {
   expect(getDbObjectTypeList().sort()).toEqual(Object.keys(samples).sort());
   getDbObjectTypeList().forEach((t) => {
     expect(dbObjectTypes[t].templates.default).toBeTruthy();

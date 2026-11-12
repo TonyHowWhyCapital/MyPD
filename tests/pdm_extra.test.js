@@ -95,3 +95,84 @@ describe('keys of a table', () => {
     expect(save(saved, (ds) => { ds.entities.forEach((e) => { delete e.keys; }); })).toBe(saved);
   });
 });
+
+describe('procedures and views are database objects of the project', () => {
+  const PROC = 'AAAAAAAA-0000-4000-8000-000000000001';
+  const VIEW = 'AAAAAAAA-0000-4000-8000-000000000002';
+  const xml = buildPdm()
+    .replace('<c:Tables>', [
+      '<c:Procedures>',
+      '<o:Procedure Id="o900">',
+      `<a:ObjectID>${PROC}</a:ObjectID>`,
+      '<a:Name>Today</a:Name>',
+      '<a:Code>fn_today</a:Code>',
+      '<a:Definition>create function [%QUALIFIER%]%FUNC% ([%PROCPRMS%])',
+      'returns date as begin return now() end</a:Definition>',
+      '<a:BaseProcedure.Function>1</a:BaseProcedure.Function>',
+      '</o:Procedure>',
+      '</c:Procedures>',
+      '<c:Tables>',
+    ].join('\n'))
+    .replace('</c:Tables>', [
+      '</c:Tables>',
+      '<c:Views>',
+      '<o:View Id="o901">',
+      `<a:ObjectID>${VIEW}</a:ObjectID>`,
+      '<a:Name>Staff</a:Name>',
+      '<a:Code>V_STAFF</a:Code>',
+      '<a:View.SQLQuery>select * from EMP where 1 &lt; 2</a:View.SQLQuery>',
+      '<a:TaggedSQLQuery>select * from [EMP]</a:TaggedSQLQuery>',
+      '</o:View>',
+      '</c:Views>',
+    ].join('\n'));
+  const object = (ds, id) => ds.dbObjects.find(o => o.id === id);
+  const forget = (change) => {
+    const ds = _.cloneDeep(open(xml));
+    change(ds);
+    const saved = applyDataSourceToPdm(xml, ds, { now: 1800000000, user: 'jest', forget: true });
+    expect(danglingRefs(saved)).toEqual([]);
+    return saved;
+  };
+
+  test('both are read, the procedure with its placeholders filled in', () => {
+    const ds = open(xml);
+    expect(object(ds, PROC)).toMatchObject({ type: 'procedure', defKey: 'fn_today', props: { kind: 'FUNCTION' } });
+    expect(object(ds, PROC).customDDL).toBe('create function fn_today ()\nreturns date as begin return now() end');
+    expect(object(ds, VIEW)).toMatchObject({ type: 'view', defKey: 'V_STAFF', body: 'select * from EMP where 1 < 2' });
+  });
+
+  test('an unchanged project leaves the file, placeholders included', () => {
+    expect(forget(() => {})).toBe(xml);
+  });
+
+  test('changes are written and read back', () => {
+    const saved = forget((ds) => {
+      object(ds, PROC).customDDL = 'create function fn_today () returns date as begin return 1 end';
+      object(ds, VIEW).body = 'select ID from EMP';
+      object(ds, VIEW).comment = 'only ids';
+    });
+    expect(saved).not.toContain('TaggedSQLQuery');
+    const after = open(saved);
+    expect(object(after, PROC).customDDL).toBe('create function fn_today () returns date as begin return 1 end');
+    expect(object(after, VIEW)).toMatchObject({ body: 'select ID from EMP', comment: 'only ids' });
+  });
+
+  test('new ones are added, removed ones go, and an older project removes nothing', () => {
+    const saved = forget((ds) => {
+      ds.dbObjects = ds.dbObjects.filter(o => o.id !== PROC).concat({
+        id: 'mine', type: 'view', defKey: 'V_NEW', defName: 'New', comment: '', refEntity: '', props: {}, body: 'select 1 as one', customDDL: '',
+      });
+    });
+    const after = open(saved);
+    expect(after.dbObjects.map(o => o.defKey).sort()).toEqual(['V_NEW', 'V_STAFF']);
+    expect(save(xml, (ds) => { ds.dbObjects = []; })).toBe(xml);
+  });
+
+  test('importing into a project brings them along with the objects it had', () => {
+    const { mergePdm } = require('../src/lib/pdm');
+    const project = { ...base, dbObjects: [{ id: 'own', type: 'sequence', defKey: 'SEQ', defName: '', comment: '', refEntity: '', props: {}, body: '', customDDL: '' }] };
+    const merged = mergePdm(project, pdmToDataSource(xml, project));
+    expect(merged.dbObjects.map(o => o.id)).toEqual(['own', PROC, VIEW]);
+    expect(mergePdm(merged, pdmToDataSource(xml, merged)).dbObjects).toEqual(merged.dbObjects);
+  });
+});

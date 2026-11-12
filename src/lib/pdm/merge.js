@@ -27,7 +27,8 @@ const mergeDomains = (dataSource, imported) => {
   const ids = {};
   (imported.domains || []).forEach((d) => {
     const at = domains.findIndex(o => o.id === d.id);
-    const twin = at < 0 && domains.find(o => sameKey(o.defKey, d.defKey));
+    // only a domain the project had before; two of the file may share a code
+    const twin = at < 0 && (dataSource.domains || []).find(o => sameKey(o.defKey, d.defKey));
     if (at >= 0) {
       domains[at] = { ...domains[at], ...d };
       ids[d.id] = d.id;
@@ -147,10 +148,17 @@ export const mergePdm = (dataSource, imported, { entityIds, groupOf = {}, newGro
   const { diagrams, added } = mergeDiagrams(dataSource, imported, ids, present);
   const chosenGroups = Object.keys(groupOf)
     .reduce((map, id) => ({ ...map, [ids.entity[id] || id]: groupOf[id] }), {});
+  // a procedure or view the project already has, by id or by its code, is replaced in place
+  const twin = o => (dataSource.dbObjects || [])
+    .find(m => m.id === o.id || (m.type === o.type && sameKey(m.defKey, o.defKey)));
+  const objects = (imported.dbObjects || []).map(o => ({ ...o, id: (twin(o) || o).id }));
+  const dbObjects = (dataSource.dbObjects || []).map(o => objects.find(n => n.id === o.id) || o)
+    .concat(objects.filter(n => !(dataSource.dbObjects || []).some(o => o.id === n.id)));
   return {
     ...dataSource,
     entities,
     domains,
+    dbObjects,
     dataTypeMapping: { ...dataSource.dataTypeMapping, mappings: mergeMappings(dataSource, imported) },
     diagrams,
     viewGroups: mergeGroups(dataSource, newGroups, chosen, chosenGroups, added),

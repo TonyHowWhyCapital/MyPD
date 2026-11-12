@@ -134,6 +134,7 @@ export const mergePdm = (dataSource, imported, { entityIds, groupOf = {}, newGro
       ...i,
       fields: (i.fields || []).map(f => ({ ...f, fieldDefKey: ids.field[f.fieldDefKey] || f.fieldDefKey })),
     })),
+    ...(e.keys ? { keys: e.keys.map(k => ({ ...k, fields: (k.fields || []).map(id => ids.field[id] || id) })) } : {}),
     correlations: (e.correlations || []).filter(c => present.has(ids.entity[c.refEntity])).map(c => ({
       ...c,
       myField: ids.field[c.myField] || c.myField,

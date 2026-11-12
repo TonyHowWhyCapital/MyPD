@@ -164,6 +164,15 @@ const readEntity = (doc, el, createEntity, domains, mappings, dbId) => {
           ascOrDesc: value(ic, 'a:Ascending') === '0' ? 'D' : 'A',
         })),
     })),
+    // The primary key is listed with the others; its columns are the ones marked above.
+    keys: elements(child(el, 'c:Keys'), 'o:Key').map(key => ({
+      id: objectId(key),
+      defKey: value(key, 'a:Code'),
+      defName: value(key, 'a:Name'),
+      constraintName: value(key, 'a:ConstraintName'),
+      primary: key === refTarget(doc, el, 'c:PrimaryKey'),
+      fields: elements(child(key, 'c:Key.Columns')).map(c => resolve(doc, c)).filter(c => c).map(objectId),
+    })),
     correlations: [],
   };
 };

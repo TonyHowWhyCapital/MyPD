@@ -5,6 +5,7 @@ import { getEntityOrViewByName } from '../../../lib/datasource_util';
 import EntityBase from './EntityBase';
 import EntityCode from './EntityCode';
 import EntityIndexes from './EntityIndexes';
+import EntityKeys from './EntityKeys';
 
 import './style/index.less';
 import {removeDataByTabId} from '../../../lib/cache';
@@ -69,6 +70,13 @@ const Entity = React.memo(({prefix, dataSource, entity, tabDataChange, tabKey,
                 .findIndex(field => field.id === f.fieldDefKey) > -1),
           };
         });
+        // a key cannot hold on to a column that is gone
+        if (tempData.keys) {
+          tempData.keys = tempData.keys.map(k => ({
+            ...k,
+            fields: (k.fields || []).filter(id => (tempData.fields || []).some(f => f.id === id)),
+          }));
+        }
       }
       tabDataChange && tabDataChange({
         type: 'entity',
@@ -125,6 +133,11 @@ const Entity = React.memo(({prefix, dataSource, entity, tabDataChange, tabKey,
               prefix={prefix}
               dataChange={dataChange}
             />,
+          },
+          {
+            key: 'keys',
+            title: FormatMessage.string({id: 'tableEdit.keys'}),
+            content: <EntityKeys data={data} prefix={prefix} dataChange={dataChange}/>,
           },
           {
             key: 'dbDDL',

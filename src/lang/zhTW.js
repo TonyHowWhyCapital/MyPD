@@ -456,7 +456,22 @@ export default {
     "edit": "編輯",
     "preview": "預覽"
   },
+  "tableKeys": {
+    "add": "新增替代鍵",
+    "hint": "主鍵的欄位由欄位清單的「主鍵」勾選決定；替代鍵是另一組不可重複的欄位",
+    "kind": "種類",
+    "primary": "主鍵",
+    "alternate": "替代鍵",
+    "defName": "名稱",
+    "defKey": "程式碼",
+    "constraintName": "約束名稱",
+    "columns": "欄位",
+    "primaryHint": "在欄位清單勾選「主鍵」來調整",
+    "remove": "刪除",
+    "empty": "尚無鍵"
+  },
   "tableEdit": {
+    "keys": "鍵",
     "database": "資料庫方言:",
     "columnSetting": "列設定",
     "excelMode": "表格式編輯",

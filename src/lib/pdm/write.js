@@ -163,6 +163,48 @@ const syncPrimaryKey = (ctx, table, old, entity, columns) => {
     null, ctx.eol);
 };
 
+const keySpecs = namedSpecs.slice(0, 2).concat([['constraintName', 'a:ConstraintName']]);
+
+// The primary key takes its columns from the columns marked as primary, so only what it
+// is called is written here. The other keys are made, changed and removed as listed.
+// `idOf` gives the id a column has in the file for the one the project knew it by.
+const syncKeys = (ctx, table, old, entity, idOf) => {
+  if (!entity.keys) {
+    return;
+  }
+  const oldKeys = (old && old.keys) || [];
+  oldKeys.filter(k => !k.primary && !entity.keys.some(a => a.id === k.id)).forEach((k) => {
+    const el = find(ctx, k.id, 'o:Key');
+    el && remove(ctx, el);
+  });
+  entity.keys.forEach((key) => {
+    const before = oldKeys.find(k => k.id === key.id);
+    if (key.primary) {
+      const pkRef = elements(child(table, 'c:PrimaryKey'))[0];
+      const el = pkRef && ctx.byId.get(pkRef.attrs.Ref);
+      el && syncProps(ctx, el, before, key, keySpecs);
+      return;
+    }
+    const columns = (key.fields || []).map(id => find(ctx, idOf(id), 'o:Column')).filter(c => c);
+    let el = before && find(ctx, key.id, 'o:Key');
+    if (!el && columns.length === 0) {
+      return;
+    }
+    if (!el) {
+      el = createObject(ctx, 'o:Key', key.id);
+      insert(ensureCollection(ctx, table, 'c:Keys', TABLE_ORDER), [el], null, ctx.eol);
+    }
+    syncProps(ctx, el, before, key, keySpecs);
+    const ids = list => (list || []).map(idOf).join();
+    if (!before || ids(before.fields) !== ids(key.fields)) {
+      const existing = child(el, 'c:Key.Columns');
+      existing && detach(existing);
+      insert(el, build(ctx, ['<c:Key.Columns>', ...refLines('o:Column', columns), '</c:Key.Columns>']),
+        null, ctx.eol);
+    }
+  });
+};
+
 const indexSignature = index => (index.fields || []).map(f => `${f.fieldDefKey}:${f.ascOrDesc}`).join();
 
 const syncIndexes = (ctx, table, old, entity) => {
@@ -224,8 +266,10 @@ const syncEntities = (ctx, before, after, dbId) => {
       entity.id = value(table, 'a:ObjectID');
     }
     syncProps(ctx, table, old, entity, namedSpecs);
+    const known = entity.fields.map(f => f.id);
     const columns = syncColumns(ctx, table, old, entity, { before, after }, dbId);
     syncPrimaryKey(ctx, table, old, entity, columns);
+    syncKeys(ctx, table, old, entity, id => (entity.fields[known.indexOf(id)] || { id }).id);
     syncIndexes(ctx, table, old, entity);
   });
 };

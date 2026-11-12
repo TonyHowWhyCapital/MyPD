@@ -1,0 +1,62 @@
+@import "~style";
+
+.@{prefix}-entity-keys {
+  padding: 10px;
+  &-bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    & > .@{prefix}-button {
+      margin: 0;
+      flex-shrink: 0;
+    }
+    & > span:last-child {
+      margin-left: 12px;
+      color: @third-font-color;
+      font-size: 12px;
+    }
+    i {
+      margin-right: 4px;
+    }
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    th, td {
+      border: 1px solid @primary-border-color;
+      padding: 4px 6px;
+      text-align: left;
+    }
+    th {
+      background: @tr-background;
+      font-weight: normal;
+      color: @second-font-color;
+    }
+    td:first-child {
+      white-space: nowrap;
+      width: 70px;
+    }
+    td:last-child {
+      width: 36px;
+      text-align: center;
+    }
+    td:nth-child(5) {
+      min-width: 260px;
+    }
+    a {
+      cursor: pointer;
+      color: @third-font-color;
+      &:hover {
+        color: @danger-color;
+      }
+    }
+  }
+  &-fixed {
+    color: @second-font-color;
+  }
+  &-empty {
+    text-align: center !important;
+    color: @third-font-color;
+    padding: 18px !important;
+  }
+}

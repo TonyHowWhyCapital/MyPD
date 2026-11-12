@@ -81,6 +81,7 @@ export default {
         exportImgLoading: '正在导出当前画布为图片...',
         exportSql: '导出数据表结构DDL',
         exportDict: '导出数据字典SQL',
+        exportPdm: '导出为PowerDesigner文件(.pdm)',
         exportWord: '导出为WORD文档',
         exportExcel: '导出EXCEL文档',
         exportHtml: '导出HTML文档',

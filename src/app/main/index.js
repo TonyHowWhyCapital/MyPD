@@ -60,7 +60,7 @@ import {
   resetHeader,
   validateNeedSave,
   toggleCaseDataSource,
-  toggleCaseEntityOrView, getUnGroup,
+  toggleCaseEntityOrView, getUnGroup, getEmptyEntity,
 } from '../../lib/datasource_util';
 import {
   clearAllTabData,
@@ -80,7 +80,7 @@ import { imgAll } from '../../lib/generatefile/img';
 import {compareVersion} from '../../lib/update';
 import {notify} from '../../lib/subscribe';
 import {READING} from '../../lib/variable';
-import {isPdmFile, createPdm, remarksAsComments} from '../../lib/pdm';
+import {isPdmFile, createPdm, remarksAsComments, pdmToDataSource, mergePdm} from '../../lib/pdm';
 import {resolveColumnDomains, keepColumnDomains} from '../../lib/column_domain';
 import {pickNewGroups} from '../../components/listgroupselect/newGroup';
 import LogicEntity from '../container/logicentity';
@@ -812,6 +812,93 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     model = openModal(<ImportExcel onPicker={onPicker}/>, {
       title: FormatMessage.string({id: 'toolbar.importExcel'}),
     });
+  };
+  // The tables of a PDM file join the open project with their domains, references and
+  // diagrams. The file is read here, the same way as when it is opened on its own.
+  const importFromPdm = () => {
+    Upload('', (xml) => {
+      const project = dataSourceRef.current;
+      let imported;
+      try {
+        imported = pdmToDataSource(xml, project, {createEntity: () => getEmptyEntity()});
+      } catch (err) {
+        Modal.error({
+          title: FormatMessage.string({id: 'optFail'}),
+          message: `${FormatMessage.string({id: 'invalidPdmFile'})}: ${err.message}`,
+        });
+        return;
+      }
+      const sameKey = (a, b) => `${a || ''}`.toLowerCase() === `${b || ''}`.toLowerCase();
+      // A package of the file is the project's group of the same code, or a new group.
+      const fileGroups = (imported.viewGroups || []).map(g => ({
+        ...g,
+        id: (project.viewGroups || []).find(o => sameKey(o.defKey, g.defKey))?.id || g.id,
+      }));
+      const grouped = fileGroups.reduce((a, g) => a.concat(g.refEntities), []);
+      const tablesOf = keep => imported.entities.filter(keep);
+      let modal;
+      const onOk = () => {
+        const picked = importPdRef.current.getData();
+        const groupOf = {};
+        picked.forEach(g => (g.fields || []).forEach((f) => { groupOf[f.id] = g.id; }));
+        const newGroups = pickNewGroups(picked).concat(fileGroups
+          .filter(g => !(project.viewGroups || []).some(o => o.id === g.id)
+            && picked.some(p => p.id === g.id && (p.fields || []).length > 0))
+          .map(g => ({...g, refEntities: [], refDiagrams: []})));
+        injectDataSource(mergePdm(dataSourceRef.current, imported,
+          {entityIds: Object.keys(groupOf), groupOf, newGroups}), modal);
+      };
+      modal = openModal(<ImportPd
+        customerData={fileGroups.length > 0 ? fileGroups.map(g => ({
+          id: g.id,
+          defKey: g.defKey,
+          defName: g.defName,
+          fields: tablesOf(e => g.refEntities.includes(e.id)),
+        })).concat({
+          id: '',
+          defKey: '',
+          defName: FormatMessage.string({id: 'components.select.empty'}),
+          fields: tablesOf(e => !grouped.includes(e.id)),
+        }) : null}
+        data={imported.entities}
+        ref={importPdRef}
+        dataSource={project}
+      />, {
+        bodyStyle: {width: '80%'},
+        buttons: [
+          <Button type='primary' key='ok' onClick={onOk}><FormatMessage id='button.ok'/></Button>,
+          <Button key='cancel' onClick={() => modal.close()}><FormatMessage id='button.cancel'/></Button>],
+        title: FormatMessage.string({id: 'toolbar.importPowerDesigner'}),
+      });
+    }, (file) => {
+      const valid = /\.pdm$/i.test(file.name);
+      !valid && Modal.error({
+        title: FormatMessage.string({id: 'optFail'}),
+        message: FormatMessage.string({id: 'invalidPdmFile'}),
+      });
+      return valid;
+    });
+  };
+  // The whole project as a new PDM file: tables, columns, keys, indexes and domains.
+  const exportPdm = () => {
+    const project = dataSourceRef.current;
+    const fail = err => err?.message && Modal.error({
+      title: FormatMessage.string({id: 'pdm.createFail'}),
+      message: err.message,
+    });
+    try {
+      const xml = createPdm(project, {
+        name: project.name,
+        domainIds: (project.domains || []).map(d => d.id),
+      });
+      saveFile(xml, [{name: 'PDM', extensions: ['pdm']}],
+        p => (/\.pdm$/i.test(p) ? p : `${p}.pdm`),
+        {defaultPath: `${project.name || 'model'}.pdm`})
+        .then(() => Message.success({title: FormatMessage.string({id: 'optSuccess'})}))
+        .catch(fail);
+    } catch (err) {
+      fail(err);
+    }
   };
   const importFromPb = (type) => {
     Upload(type === 'PD' ? '' : 'text/x-sql', (data) => {
@@ -1763,7 +1850,8 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       case 'excel': importFromExcel();break;
       case 'chiner': importFromPDMan('chiner');break;
       case 'PDManer': importFromPDMan('PDManer');break;
-      case 'powerdesigner': importFromPb('PD');break;
+      case 'powerdesigner': importFromPdm();break;
+      case 'exportPdm': exportPdm();break;
       case 'db': importFromDb();break;
       case 'dbToPdm': importFromDb(true);break;
       case 'domains': importDomains('dbDDL');break;

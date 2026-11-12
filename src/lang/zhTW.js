@@ -83,6 +83,7 @@ export default {
     "exportImgLoading": "正在匯出當前畫布為圖片...",
     "exportSql": "匯出資料表結構DDL",
     "exportDict": "匯出資料字典SQL",
+    "exportPdm": "匯出為PowerDesigner檔案(.pdm)",
     "exportWord": "匯出為WORD文件",
     "exportExcel": "匯出EXCEL文件",
     "exportHtml": "匯出HTML文件",

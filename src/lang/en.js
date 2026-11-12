@@ -81,6 +81,7 @@ export default {
         exportImgLoading: 'export the current canvas as a picture...',
         exportSql: 'export DDL',
         exportDict: 'exportDictSQL',
+        exportPdm: 'export PowerDesigner file (.pdm)',
         exportWord: 'export WORD',
         exportExcel: 'export EXCEL',
         exportHtml: 'export HTML',

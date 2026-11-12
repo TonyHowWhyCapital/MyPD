@@ -1,4 +1,5 @@
 // 差异化数据转化成SQL或者代码信息
+import {withUniqueKeys} from './key_ddl';
 import React from 'react';
 import _ from 'lodash/object';
 import { Message, FormatMessage } from '../components';
@@ -578,7 +579,8 @@ const generateIncreaseSql = (dataSource, group, dataTable, code, templateShow) =
       return getTemplateString(tpl, templateData);
     }
     const domain = domainDdl(dataSource, code, tempDataTable);
-    return wrapDomainDdl(getTemplateString(tpl, {...templateData, entity: domain.entity}), domain);
+    return withUniqueKeys(wrapDomainDdl(getTemplateString(tpl, {...templateData, entity: domain.entity}), domain),
+      tempDataTable, sqlSeparator);
   };
   if (!templateShow) {
     const dataTypeSupports = (dataSource.profile?.dataTypeSupports || []).filter(t => t.id === code)[0]

@@ -1,5 +1,6 @@
 // 不依赖其他文件[react相关/样式相关] 方便后续使用worker线程 此处方法皆为影子方法 所有方法都使用_开头
 // 此文件中禁止引入dom/css/localStorage相关
+import {withUniqueKeys} from './key_ddl';
 import demoProject from './template/教学管理系统.pdma.json';
 import allLangData from '../lang';
 import _ from 'lodash';
@@ -1570,7 +1571,7 @@ export const _getAllDataSQLByFilter = (data, code, filterTemplate, filterDefKey)
                     ? domainDdl(dataSource, code, data.entity, seenDomains) : null;
                 const text = `${_getTemplateString(getTemplate(f),
                     domain ? {...templateData, entity: domain.entity} : templateData)}`;
-                const ddl = domain ? wrapDomainDdl(text, domain) : text;
+                const ddl = domain ? withUniqueKeys(wrapDomainDdl(text, domain), data.entity, sqlSeparator) : text;
                 tempData += ddl ? `${ddl}\n` : '';
             });
             return tempData;

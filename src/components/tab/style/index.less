@@ -50,7 +50,7 @@
         display: block;
         & > span {
           width: auto !important;
-          writing-mode: tb;
+          white-space: nowrap;
         }
       }
       width: @left-tab-width;
@@ -80,9 +80,28 @@
         &-icon {
           color: #FFFFFF;
         }
-        span:last-child {
-          width: 100%;
-          overflow-wrap: break-word;
+        // Only the icon shows. The title is a hint to the right of it, on hover.
+        position: relative;
+        & > span:last-child {
+          display: none;
+          position: absolute;
+          left: 100%;
+          top: 50%;
+          transform: translateY(-50%);
+          margin: 0 0 0 6px;
+          width: auto;
+          padding: 4px 10px;
+          white-space: nowrap;
+          font-size: @left-tab-font-size;
+          color: @font-color;
+          background: @background-color;
+          border-radius: 5px;
+          box-shadow: 0 0 6px 2px @primary-border-color;
+          z-index: 999;
+          pointer-events: none;
+        }
+        &:hover > span:last-child {
+          display: block;
         }
       }
       .@{prefix}-tab-header-item-hidden {

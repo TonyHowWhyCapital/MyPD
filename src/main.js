@@ -70,6 +70,18 @@ function createWindow() {
   win.on('ready-to-show', function () {
     win.show();
   });
+  // Cmd (macOS) or Ctrl with + - 0 changes the size of the whole interface. Read from the
+  // key itself, so it also works where there is no menu and for + typed without Shift.
+  win.webContents.on('before-input-event', (event, input) => {
+    const held = process.platform === 'darwin' ? input.meta : input.control;
+    const step = {'=': 0.5, '+': 0.5, '-': -0.5, '_': -0.5, '0': 0}[input.key];
+    if (input.type !== 'keyDown' || !held || input.alt || step === undefined) {
+      return;
+    }
+    const level = win.webContents.getZoomLevel() + step;
+    win.webContents.setZoomLevel(step === 0 ? 0 : Math.max(-3, Math.min(4, level)));
+    event.preventDefault();
+  });
   let dataCache = {};
   const sendMessage = (reason) => {
     if (dataCache.data && dataCache.info) {

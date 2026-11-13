@@ -8,6 +8,9 @@
 @n-surface: #1e232d;  // panels and cards
 @n-raised: #272e3b;   // headings inside a panel, menus, hints
 @n-field: #171b23;    // wells of the inputs
+@n-row: #1a1e27;      // rows of a grid, and
+@n-stripe: #272e3c;   // every second one
+@n-row-hover: #323c50;
 @n-hover: #2a3243;
 @n-selected: #27375c;
 @n-border: #323b4a;
@@ -225,12 +228,28 @@ body[theme='themeNigh'] {
     color: @n-dim !important;
     background-color: @n-raised !important;
   }
+  :where(.@{prefix}-table-default td),
+  :where(.@{prefix}-table-default td *) {
+    background-color: @n-row !important;
+  }
+  :where(.@{prefix}-table-default:nth-child(2n) td),
+  :where(.@{prefix}-table-default:nth-child(2n) td *) {
+    background-color: @n-stripe !important;
+  }
   :where(.@{prefix}-table-default:hover td),
   :where(.@{prefix}-table-default:hover td *) {
-    background-color: @n-hover !important;
+    background-color: @n-row-hover !important;
   }
   :where(.@{prefix}-table-selected td),
   :where(.@{prefix}-table-selected td *) {
+    background-color: @n-selected !important;
+  }
+  // The day rules for these two colour the cell with !important, which :where() cannot
+  // outweigh: without these the cell itself stays light and frames what is inside it.
+  .@{prefix}-table-default:hover td {
+    background-color: @n-row-hover !important;
+  }
+  .@{prefix}-table-selected, .@{prefix}-table-selected td {
     background-color: @n-selected !important;
   }
 

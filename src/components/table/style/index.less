@@ -93,6 +93,11 @@
       }
     }
   }
+  // A dropdown shows the colour of its row, like the inputs beside it
+  &-default td .@{prefix}-multiple-select-data,
+  &-selected td .@{prefix}-multiple-select-data {
+    background: transparent;
+  }
   &-insert {
     & > td {
       border-bottom: 2px dashed @primary-color !important;

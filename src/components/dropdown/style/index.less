@@ -6,9 +6,11 @@
     z-index: 999;
     background: @background-color;
     outline: none;
-    padding: 3px 0;
+    padding: 4px 0;
     color: @font-color;
     border: 1px solid @primary-border-color;
+    border-radius: @radius-popup;
+    box-shadow: @shadow-popup;
   }
   &-item {
     display: flex;
@@ -25,7 +27,9 @@
         cursor: not-allowed !important;
       }
     }
-    padding: 5px 10px 5px 20px;
+    padding: 5px 10px 5px 16px;
+    margin: 0 4px;
+    border-radius: @radius-field;
     &:hover {
       cursor: pointer;
       color: @primary-color;

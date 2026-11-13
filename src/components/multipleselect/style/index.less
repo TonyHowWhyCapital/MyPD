@@ -27,7 +27,7 @@
     width: 200px;
     background: @background-color;
     border: 1px solid @primary-border-color;
-    border-radius: 2px;
+    border-radius: @radius-field;
     outline: none;
     min-height: 25px;
     &:hover {
@@ -144,7 +144,8 @@
     border: 1px solid @primary-border-color-simple;
     color: @second-font-color;
     width: 100%;
-    box-shadow: 0 0 6px 2px @primary-border-color;
+    box-shadow: @shadow-popup;
+    border-radius: @radius-popup;
     max-height: 400px;
     overflow: auto;
     z-index: 999;

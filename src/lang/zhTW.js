@@ -1501,6 +1501,9 @@ export default {
   "guard": {
     "discardTitle": "放棄未儲存的修改？",
     "discardMessage": "「{name}」有尚未儲存的修改，離開後將會遺失。",
+    "discardUnnamed": "尚未儲存的修改在離開後將會遺失。",
+    "deleteUnnamed": "刪除後無法恢復。",
+    "overwriteUnnamed": "原有內容將被覆蓋。",
     "deleteTitle": "確定刪除？",
     "deleteMessage": "「{name}」刪除後無法恢復。",
     "overwriteTitle": "確定覆蓋？",

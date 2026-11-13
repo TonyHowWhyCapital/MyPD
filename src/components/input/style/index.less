@@ -16,9 +16,9 @@
       border: 1px solid @primary-color;
     }
     border: 1px solid @primary-border-color;
-    border-radius: 2px;
+    border-radius: @radius-field;
     & > input {
-      border-radius: 2px;
+      border-radius: @radius-field;
       line-height: 23px;
       height: 23px;
       padding: 5px 5px;
@@ -28,7 +28,7 @@
     }
   }
   &-count {
-    border-radius: 2px;
+    border-radius: @radius-field;
     color: @primary-border-color;
     font-size: 12px;
     margin-right: 5px;
@@ -36,7 +36,7 @@
   &-suffix {
     &-container {
       & > input {
-        border-radius: 2px 0 0 2px;
+        border-radius: @radius-field 0 0 @radius-field;
       }
     }
     height: 25px;

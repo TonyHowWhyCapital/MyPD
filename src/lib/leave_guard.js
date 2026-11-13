@@ -6,7 +6,7 @@ const text = (id, data) => FormatMessage.string({ id: `guard.${id}`, data });
 // Asks before something is deleted or overwritten; `name` says what.
 export const confirmThen = (kind, name, proceed) => Modal.confirm({
   title: text(`${kind}Title`),
-  message: text(`${kind}Message`, { name: name || '' }),
+  message: name ? text(`${kind}Message`, { name }) : text(`${kind}Unnamed`),
   onOk: proceed,
 });
 

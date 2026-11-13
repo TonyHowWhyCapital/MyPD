@@ -10,7 +10,9 @@
     display: none;
   }
   &-show {
-    box-shadow: 0 2px 15px 0 rgba(146, 161, 170, 0.2);
+    box-shadow: @shadow-popup;
+    border-radius: @radius-popup;
+    padding: 4px 0;
     border: 1px solid @primary-border-color;
     outline-style: none;
     z-index: 999;
@@ -20,6 +22,8 @@
     color: @font-color;
     li {
       padding: 5px;
+      margin: 0 4px;
+      border-radius: @radius-field;
     }
     li:hover {
       cursor: pointer;

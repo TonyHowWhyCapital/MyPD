@@ -30,6 +30,10 @@
   &-container {
     width: @modal-width;
     max-width: 100vw;
+    // the corners are rounded here alone, so a full screen window loses them in one place
+    border-radius: @radius-window;
+    overflow: hidden;
+    box-shadow: @shadow-window;
     // Once resized by the user the body follows the dialog size.
     &-resized {
       display: flex;
@@ -53,8 +57,8 @@
   }
   &-resize {
     position: absolute;
-    right: 0;
-    bottom: 0;
+    right: 2px;
+    bottom: 2px;
     width: 16px;
     height: 16px;
     z-index: 2;
@@ -69,9 +73,8 @@
     background-color: @background-color;
     background-clip: padding-box;
     border: 0;
-    border-radius: 0 0 4px 4px;
     pointer-events: auto;
-    padding: 5px;
+    padding: 8px;
     display: flex;
     justify-content: space-around;
     flex-direction: column;
@@ -108,10 +111,10 @@
   &-header {
     -webkit-app-region: no-drag;
     width: 100%;
-    padding: 5px;
+    padding: 10px 12px;
     position: relative;
     border-bottom: 1px @primary-border-color solid;
-    border-radius: 4px 4px 0 0;
+    align-items: center;
     pointer-events: auto;
     display: flex;
     flex-direction: row;
@@ -120,15 +123,26 @@
       width: @modal-min-width;
     }
     &-title {
-      margin-left: 10px;
-      font-weight: bold;
+      margin-left: 4px;
+      font-size: 15px;
+      font-weight: 600;
+      color: @main-font-color;
     }
     &-icon {
       position: absolute;
-      right: 10px;
-      top: 7px;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 24px;
+      line-height: 24px;
+      text-align: center;
+      border-radius: @radius-control;
+      color: @second-font-color;
+      cursor: pointer;
+      transition: background-color @motion-fast, color @motion-fast;
       &:hover {
-        cursor: pointer;
+        background-color: @tr-background;
         color: @danger-color;
       }
     }
@@ -137,5 +151,6 @@
     z-index: 1;
     background: @background-color;
     text-align: center;
+    padding: 10px 0 4px;
   }
 }

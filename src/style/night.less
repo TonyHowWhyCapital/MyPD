@@ -98,7 +98,7 @@ body[theme='themeNigh'] {
   :where(.@{prefix}-multiple-select-children *) {
     background-color: @n-raised !important;
   }
-  .@{prefix}-modal-content, .@{prefix}-dropdown-container, .@{prefix}-contextmenu-show, .@{prefix}-tooltip-content,
+  .@{prefix}-modal-container, .@{prefix}-dropdown-container, .@{prefix}-contextmenu-show, .@{prefix}-tooltip-content,
   .@{prefix}-multiple-select-children {
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
   }
@@ -110,6 +110,17 @@ body[theme='themeNigh'] {
   :where(.@{prefix}-contextmenu-show li:hover *) {
     color: @n-accent !important;
     background-color: @n-hover !important;
+  }
+
+  // The round mark in the heading of a question keeps its colour
+  .@{prefix}-modal-content-small-warring i {
+    background-color: @warring-color !important;
+  }
+  .@{prefix}-modal-content-small-error i {
+    background-color: @danger-color !important;
+  }
+  .@{prefix}-modal-content-small-success i, .@{prefix}-modal-content-small-info i {
+    background-color: @success-color !important;
   }
 
   // Working area: a darker backdrop with the open object as a card on it
@@ -224,8 +235,22 @@ body[theme='themeNigh'] {
   .@{prefix}-button.@{prefix}-button-primary {
     border-color: @primary-color !important;
   }
-  :where(.@{prefix}-button-default:hover),
-  :where(.@{prefix}-button-default:hover *),
+  :where(.@{prefix}-button-normal.@{prefix}-button-primary:hover),
+  :where(.@{prefix}-button-normal.@{prefix}-button-primary:hover *) {
+    background-color: lighten(@primary-color, 6%) !important;
+  }
+  :where(.@{prefix}-button-normal.@{prefix}-button-default:hover),
+  :where(.@{prefix}-button-normal.@{prefix}-button-default:hover *) {
+    color: @n-accent !important;
+    background-color: @n-hover !important;
+  }
+  .@{prefix}-button-normal.@{prefix}-button-default:hover {
+    border-color: @n-accent !important;
+  }
+  :where(.@{prefix}-modal-header-icon:hover) {
+    color: @danger-color !important;
+    background-color: @n-hover !important;
+  }
   :where(.@{prefix}-icon-title:hover),
   :where(.@{prefix}-icon-title:hover *) {
     color: @n-accent !important;

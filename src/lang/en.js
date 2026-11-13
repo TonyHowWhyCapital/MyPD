@@ -237,10 +237,6 @@ export default {
       none: 'Order: as stored (click for by code)',
       key: 'Order: by code (click for by name)',
       name: 'Order: by name (click for as stored)',
-      short: {
-        key: 'Code',
-        name: 'Name',
-      },
     },
     moduleList: 'Data Model',
     closeCurrent: 'close current',

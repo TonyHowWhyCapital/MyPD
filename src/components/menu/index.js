@@ -17,6 +17,9 @@ import {tree2array} from '../../lib/tree';
 import {READING} from '../../lib/variable';
 import {NAV_LISTS, NAV_LIST_OF} from '../../lib/nav_sort';
 
+// as stored, by code, by name
+const SORT_ICONS = { '': 'fa-sort', key: 'fa-sort-alpha-asc', name: 'fa-sort-amount-asc' };
+
 const Menu = React.memo(forwardRef(({contextMenus = [], onContextMenu, fieldNames,
                            contextMenuClick, prefix, menus = [], doubleMenuClick, getName,
                            emptyData, defaultExpands, dragTable, groupType, header, mode,
@@ -267,7 +270,7 @@ const Menu = React.memo(forwardRef(({contextMenus = [], onContextMenu, fieldName
             </span>
           </span>
           <span className={`${currentPrefix}-menu-container-fold-item-right-group`}>
-            {sortsRef.current.onListSort && NAV_LISTS.includes(menu.type) && <span
+            {isOpen && sortsRef.current.onListSort && NAV_LISTS.includes(menu.type) && <span
               title={FormatMessage.string({id: `navSort.${sortsRef.current.listSorts[menu.type] || 'none'}`})}
               className={`${currentPrefix}-menu-container-fold-item-sort${sortsRef.current.listSorts[menu.type] ? ' on' : ''}`}
               onClick={(e) => {
@@ -275,8 +278,7 @@ const Menu = React.memo(forwardRef(({contextMenus = [], onContextMenu, fieldName
                 sortsRef.current.onListSort(menu.type);
               }}
             >
-              <Icon type={sortsRef.current.listSorts[menu.type] ? 'fa-sort-alpha-asc' : 'fa-sort'}/>
-              {sortsRef.current.listSorts[menu.type] && <em>{FormatMessage.string({id: `navSort.short.${sortsRef.current.listSorts[menu.type]}`})}</em>}
+              <Icon type={SORT_ICONS[sortsRef.current.listSorts[menu.type] || '']}/>
             </span>}
             <Icon
               style={{

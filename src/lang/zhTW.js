@@ -241,11 +241,7 @@ export default {
   "navSort": {
     "none": "排序：原始順序（點選改為按程式碼）",
     "key": "排序：按程式碼（點選改為按名稱）",
-    "name": "排序：按名稱（點選恢復原始順序）",
-    "short": {
-      "key": "程式碼",
-      "name": "名稱"
-    }
+    "name": "排序：按名稱（點選恢復原始順序）"
   },
   "moduleList": "資料模型",
   "closeCurrent": "關閉當前",

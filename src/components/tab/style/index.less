@@ -188,10 +188,13 @@
         }
       }
       .@{prefix}-tab-header-item-hidden {
-        background: @third-font-color;
+        background: transparent;
         border-radius: 14px;
         color: @font-color;
-        opacity: 0.7;
+        transition: background-color @motion-fast;
+        &:hover {
+          background: @tr-background;
+        }
       }
       .@{prefix}-tab-header-item-show {
         background: @third-primary-color;

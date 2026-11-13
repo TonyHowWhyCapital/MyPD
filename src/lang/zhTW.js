@@ -230,10 +230,10 @@ export default {
   "defKeyValidateMessage": "{name}程式碼不能為空",
   "defKeyValidateUniquenessMessage": "程式碼不能為空且不可重複",
   "entityAndViewUniquenessCheck": "必輸項不能重複！",
-  "showGroup": "主題域模式",
+  "showGroup": "主題領域模式",
   "click": "點選",
-  "createGroup": "建立主題域",
-  "emptyGroup": "暫無主題域資料",
+  "createGroup": "建立主題領域",
+  "emptyGroup": "暫無主題領域資料",
   "createAppCode": "建立程式碼",
   "emptyAppCode": "暫無程式碼",
   "location": "定位到開啟的標籤頁",
@@ -251,7 +251,7 @@ export default {
     "opt": {
       "add": "新增",
       "delete": "刪除",
-      "move": "改變主題域",
+      "move": "改變主題領域",
       "copy": "複製",
       "cut": "剪下",
       "paste": "貼上",
@@ -267,7 +267,7 @@ export default {
       "svg": "匯出為SVG",
       "extract": "提取"
     },
-    "groups": "主題域",
+    "groups": "主題領域",
     "entities": "這些資料表",
     "entity": "資料表",
     "logicEntities": "這些邏輯實體",
@@ -298,7 +298,7 @@ export default {
       "newViewStepNext": "下一步",
       "newRelation": "新增關係圖",
       "newDict": "新增資料字典",
-      "newGroup": "新增主題域",
+      "newGroup": "新增主題領域",
       "newDomain": "新增資料域",
       "newDataType": "新增資料型別",
       "newDataTypeSupport": "新增資料庫",
@@ -306,7 +306,7 @@ export default {
     },
     "edit": {
       "editRelation": "編輯關係圖",
-      "editGroup": "編輯主題域",
+      "editGroup": "編輯主題領域",
       "editDomain": "編輯資料域",
       "editMapping": "編輯資料型別",
       "editDataTypeSupport": "編輯資料庫",
@@ -435,7 +435,7 @@ export default {
     "standardFieldNotAllowRepeat": "標準欄位[{data}]重複",
     "groupAndFieldNotAllowRepeatAndEmpty": "分類或欄位不能重複或為空",
     "selectGroup": "選擇分類",
-    "group": "主題域",
+    "group": "主題領域",
     "groupName": "分類名",
     "groupCode": "分類程式碼",
     "dropFieldsSuccessResult": "成功{success}個:",
@@ -538,7 +538,7 @@ export default {
     "defKeyHolder": "例如：teacher",
     "defName": "名稱",
     "defNameHolder": "例如：教師",
-    "group": "所屬主題域",
+    "group": "所屬主題領域",
     "validate": "程式碼和名稱不能都為空",
     "logicEntityUniquenessCheck": "該邏輯實體已存在",
     "field": {
@@ -570,7 +570,7 @@ export default {
     "defKey": "程式碼",
     "tableName": "表名",
     "tableTitle": "表顯示名",
-    "group": "所屬主題域",
+    "group": "所屬主題領域",
     "properties": "自訂屬性",
     "propertyName": "屬性名",
     "propertyValue": "屬性值",
@@ -1060,9 +1060,9 @@ export default {
   },
   "group": {
     "base": "基本資訊",
-    "defKey": "主題域程式碼",
-    "defName": "主題域名稱",
-    "selectGroup": "選擇主題域",
+    "defKey": "主題領域程式碼",
+    "defName": "主題領域名稱",
+    "selectGroup": "選擇主題領域",
     "refEntities": "資料表",
     "refViews": "多表透視",
     "refDiagrams": "關係圖",
@@ -1105,8 +1105,8 @@ export default {
     },
     "listSelect": {
       "tableName": "表名",
-      "useGroup": "所屬主題域",
-      "batchSelection": "批次調整主題域",
+      "useGroup": "所屬主題領域",
+      "batchSelection": "批次調整主題領域",
       "result": "一共解析到{size}個標準欄位，其中{repeat}個已經存在",
       "remove": "移除",
       "repeatMessage": "選擇該資料表將會覆蓋系統中原有資料表",
@@ -1114,8 +1114,8 @@ export default {
       "search": "程式碼/顯示名稱",
       "empty": "暫無資料，請點選左側選擇",
       "disable": "關係圖中使用的資料表為必選資料表",
-      "group": "主題域",
-      "groupNotAllowEmpty": "主題域不能為空",
+      "group": "主題領域",
+      "groupNotAllowEmpty": "主題領域不能為空",
       "all": "全選"
     },
     "colorPicker": {
@@ -1221,7 +1221,7 @@ export default {
     "pickDict": "選擇資料字典",
     "exportData": "匯出內容",
     "exportCustomerData": "自訂匯出內容",
-    "defaultGroup": "預設主題域",
+    "defaultGroup": "預設主題領域",
     "entityList": "資料表",
     "viewList": "多表透視",
     "current": "資料庫類型："
@@ -1494,13 +1494,17 @@ export default {
     "dragTip": "拖動表頭可調整欄位順序，拖動表頭右緣可調整欄寬",
     "fitAll": "最適欄寬",
     "resetWidths": "還原欄寬",
-    "resizeTip": "拖動調整欄寬，雙擊設為最適欄寬"
+    "resizeTip": "拖動調整欄寬，雙擊設為最適欄寬",
+    "exportCsv": "匯出 CSV",
+    "exportXlsx": "匯出 Excel",
+    "exportTip": "匯出選中的行；未選中任何行時匯出全部",
+    "exported": "已匯出 {count} 行"
   },
   "groupNew": {
-    "option": "＋ 新增主題域…",
-    "title": "新增主題域",
-    "required": "請填寫主題域程式碼",
-    "duplicate": "已存在相同程式碼的主題域"
+    "option": "＋ 新增主題領域…",
+    "title": "新增主題領域",
+    "required": "請填寫主題領域程式碼",
+    "duplicate": "已存在相同程式碼的主題領域"
   },
   "guard": {
     "discardTitle": "放棄未儲存的修改？",

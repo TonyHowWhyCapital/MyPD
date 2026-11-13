@@ -9,6 +9,10 @@ export default {
       fitAll: '最适栏宽',
       resetWidths: '还原栏宽',
       resizeTip: '拖动调整栏宽，双击设为最适栏宽',
+      exportCsv: '导出 CSV',
+      exportXlsx: '导出 Excel',
+      exportTip: '导出选中的行；未选中任何行时导出全部',
+      exported: '已导出 {count} 行',
     },
   },
   en: {
@@ -21,6 +25,10 @@ export default {
       fitAll: 'Fit column widths',
       resetWidths: 'Reset widths',
       resizeTip: 'Drag to resize, double-click for the best width',
+      exportCsv: 'Export CSV',
+      exportXlsx: 'Export Excel',
+      exportTip: 'Exports the selected rows, or all rows when none is selected',
+      exported: '{count} rows exported',
     },
   },
 };

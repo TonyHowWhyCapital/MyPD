@@ -23,7 +23,7 @@ export default React.memo(({f, i, expand, onMouseOver, tempHeaders, calcPosition
     data-key={f.id}
     onMouseOver={onMouseOver}
     key={f.id}
-    className={getClass}
+    className={`${getClass} ${i % 2 ? `${currentPrefix}-table-even` : ''}`}
   >
     <td
       style={{userSelect: 'none', cursor: disableDragRow ? 'pointer' : 'move', ...otherStyle, color: f.notes?.fontColor}}

@@ -24,6 +24,7 @@ import { addBodyEvent, removeBodyEvent } from '../../lib/listener';
 import { Copy, Paste } from '../../lib/event_tool';
 import Tr from './Tr';
 import { useGridView, useColumnWidths, SortMark, ColumnChooser } from '../gridview';
+import { gridMatrix, toCsv, toXlsx } from '../../lib/grid_export';
 import './style/index.less';
 import {getPrefix} from '../../lib/prefixUtil';
 import {separator} from '../../../profile';
@@ -1329,6 +1330,28 @@ fields}}
       ReactDOM.render(Search, searchRef());
     }
   }, []);
+  // The rows picked, or all of them when none is: the columns and the order on screen.
+  const exportRows = (format) => {
+    // a column with a domain shows the type, length and scale of that domain
+    const rows = filterFields.filter(f => selectedFields.length === 0
+        || selectedFields.includes(f.id))
+        .map(f => (f.domain ? {...f, ...getFieldProps(f.domain)} : f));
+    const headers = finalTempHeaders.map(h => ({
+      key: h.refKey, title: typeof h.value === 'string' ? h.value : h.refKey,
+    }));
+    const matrix = gridMatrix(headers, rows, { domain: domains, refDict: dicts, uiHint },
+        checkboxComponents);
+    const name = data.defKey || tableType || 'grid';
+    if (format === 'csv') {
+      Component.Download([toCsv(matrix)], 'text/csv;charset=utf-8', `${name}.csv`);
+    } else {
+      Component.Download([toXlsx(matrix, name)],
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', `${name}.xlsx`);
+    }
+    Component.Message.success({
+      title: FormatMessage.string({id: 'gridView.exported', data: {count: rows.length}}),
+    });
+  };
   return (
     <div className={`${currentPrefix}-table-container ${className || ''}`}>
       <div className={`${currentPrefix}-table-container-tools`}>
@@ -1388,6 +1411,8 @@ fields}}
             </span>
               <span className={`${currentPrefix}-table-opt-setting`} key='columns' onClick={() => setChoosingColumns(!choosingColumns)}>{Component.FormatMessage.string({id: 'gridView.columns'})}</span>
               {gridView.sorts.length > 0 && <span className={`${currentPrefix}-table-opt-setting`} key='clearSort' onClick={gridView.clearSort}>{Component.FormatMessage.string({id: 'gridView.clearSort'})}</span>}
+              <span className={`${currentPrefix}-table-opt-setting`} key='csv' title={Component.FormatMessage.string({id: 'gridView.exportTip'})} onClick={() => exportRows('csv')}>{Component.FormatMessage.string({id: 'gridView.exportCsv'})}</span>
+              <span className={`${currentPrefix}-table-opt-setting`} key='xlsx' title={Component.FormatMessage.string({id: 'gridView.exportTip'})} onClick={() => exportRows('xlsx')}>{Component.FormatMessage.string({id: 'gridView.exportXlsx'})}</span>
               <span className={`${currentPrefix}-table-opt-setting`} key='fitAll' onClick={sizes.fitAll}>{Component.FormatMessage.string({id: 'gridView.fitAll'})}</span>
               {gridView.isCustom && <span className={`${currentPrefix}-table-opt-setting`} key='resetView' onClick={gridView.reset}>{Component.FormatMessage.string({id: 'gridView.reset'})}</span>}
               {sizes.customized && <span className={`${currentPrefix}-table-opt-setting`} key='resetWidths' onClick={sizes.reset}>{Component.FormatMessage.string({id: 'gridView.resetWidths'})}</span>}

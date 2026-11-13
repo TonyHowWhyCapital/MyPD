@@ -63,40 +63,32 @@
   outline: none;
   border-collapse: separate;
   border-spacing: 0;
-  &-default {
-    &:nth-child(2n) {
-      td {
-        background: @tr-background;
-        input, select {
-          background: transparent;
-        }
-      }
+  // Whatever a cell holds shows the colour of its row.
+  .row-controls() {
+    input, select, textarea, .@{prefix}-multiple-select-data, .@{prefix}-input,
+    .@{prefix}-numberinput, .@{prefix}-textarea, .@{prefix}-search-suggest {
+      background: transparent;
     }
-    &:hover {
-      td {
-        background: @fourth-primary-color !important;
-        input, select {
-          background: transparent;
-        }
-      }
+  }
+  &-default {
+    // by the number of the row, not its place among the siblings: a row that can be
+    // opened has a hidden one after it
+    &.@{prefix}-table-even td {
+      background: @tr-background;
+      .row-controls();
+    }
+    &:hover td {
+      background: @fourth-primary-color !important;
+      .row-controls();
     }
   }
   &-selected {
     background: @third-primary-color !important;
-    input, select {
-      background: transparent;
-    }
+    .row-controls();
     td {
       background: @third-primary-color !important;
-      input, select {
-        background: transparent;
-      }
+      .row-controls();
     }
-  }
-  // A dropdown shows the colour of its row, like the inputs beside it
-  &-default td .@{prefix}-multiple-select-data,
-  &-selected td .@{prefix}-multiple-select-data {
-    background: transparent;
   }
   &-insert {
     & > td {

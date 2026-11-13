@@ -2292,6 +2292,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
                 mode={mode}
                 ref={menuModelRef}
                 prefix={prefix}
+                defaultExpands={['__ungroup']}
                 {...restProps}
                 menus={tempMenu}
                 doubleMenuClick={_onMenuClick}

@@ -27,6 +27,7 @@ var terms = [
     ['級聯', '串聯'],
     // “型別”专指字段的数据类型，数据库的种类说“類型”
     ['資料庫型別', '資料庫類型'],
+    ['主題域', '主題領域'],
 ];
 var convert = function (text) {
     return terms.reduce(function (p, t) {

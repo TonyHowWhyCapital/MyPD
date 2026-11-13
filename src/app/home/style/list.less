@@ -36,7 +36,7 @@
     &:hover {
       background: fade(@primary-color, 8%);
       .actions > a {
-        opacity: 0.75;
+        opacity: 1;
       }
     }
     &.missing {
@@ -75,13 +75,23 @@
   }
   .actions > a {
     cursor: pointer;
-    margin-right: 8px;
-    opacity: 0.35;
+    display: inline-block;
+    width: 20px;
+    line-height: 22px;
+    margin-right: 2px;
+    text-align: center;
+    font-size: 14px;
+    color: @font-color;
+    border-radius: @radius-field;
+    opacity: 0.8;
+    transition: background-color @motion-fast, color @motion-fast;
     &:hover {
+      background: fade(@primary-color, 12%);
       opacity: 1;
       color: @primary-color;
     }
     &.danger:hover {
+      background: fade(@danger-color, 12%);
       color: @danger-color;
     }
   }

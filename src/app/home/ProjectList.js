@@ -79,7 +79,8 @@ export default ({
           <span>{p.path}</span>
         </td>
         <td className='actions'>
-          {p.stat && act('fa-folder-open-o', 'showInFolder', q => showFileInFolder(q.path), p)}
+          {p.stat ? act('fa-folder-open-o', 'showInFolder', q => showFileInFolder(q.path), p)
+            : <a style={{visibility: 'hidden'}}/>}
           {act('fa-info-circle', 'proInfo', onInfo, p)}
           {act('fa-pencil', 'editProject', onEdit, p)}
           {act('fa-eye', 'openReading', onReadOnly, p)}

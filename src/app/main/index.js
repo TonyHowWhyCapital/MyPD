@@ -76,7 +76,8 @@ import {getPrefix} from '../../lib/prefixUtil';
 import {addBodyEvent, removeBodyEvent} from '../../lib/listener';
 import {firstUp} from '../../lib/string';
 import {
-  connectDB, getLogPath, selectWordFile, selectDir, showItemInFolder, saveFile,
+  connectDB, getLogPath, selectWordFile, selectDir, showItemInFolder, saveFile, dirSplicing,
+  dirname,
   getUiState, setUiState,
 } from '../../lib/middle';
 import { sortNav, nextNavSort, readNavSorts } from '../../lib/nav_sort';
@@ -895,6 +896,9 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     });
   };
   // The whole project as a PDM file, written onto the file it was imported from if any.
+  // A file saved from the project is offered in the folder of the project.
+  const besideProject = name => (projectInfoRef.current
+    ? dirSplicing(dirname(projectInfoRef.current), name) : name);
   const exportPdm = () => {
     const project = dataSourceRef.current;
     const fail = err => err?.message && Modal.error({
@@ -905,7 +909,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       const xml = projectToPdm(project);
       saveFile(xml, [{name: 'PDM', extensions: ['pdm']}],
         p => (/\.pdm$/i.test(p) ? p : `${p}.pdm`),
-        {defaultPath: `${project.name || 'model'}.pdm`})
+        {defaultPath: besideProject(`${project.name || 'model'}.pdm`)})
         .then(() => Message.success({title: FormatMessage.string({id: 'optSuccess'})}))
         .catch(fail);
     } catch (err) {
@@ -1117,7 +1121,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       });
       saveFile(xml, [{name: 'PDM', extensions: ['pdm']}],
         p => (/\.pdm$/i.test(p) ? p : `${p}.pdm`),
-        {defaultPath: `${conn.defName || 'model'}.pdm`}).then(({filePath}) => {
+        {defaultPath: besideProject(`${conn.defName || 'model'}.pdm`)}).then(({filePath}) => {
         Modal.confirm({
           title: FormatMessage.string({id: 'pdm.addToProjectTitle'}),
           message: <div style={{whiteSpace: 'pre-wrap', maxWidth: 520, wordBreak: 'break-all'}}>
@@ -2292,7 +2296,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
                 mode={mode}
                 ref={menuModelRef}
                 prefix={prefix}
-                defaultExpands={['__ungroup']}
+                defaultExpands={['__ungroup', restProps.dataSource?.viewGroups?.[0]?.id]}
                 {...restProps}
                 menus={tempMenu}
                 doubleMenuClick={_onMenuClick}

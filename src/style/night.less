@@ -159,6 +159,10 @@ body[theme='themeNigh'] {
     background-color: @n-selected !important;
   }
 
+  [class*='-listselect-opt-normal'], [class*='-listselect-opt-ind'] {
+    border-color: @n-dim !important;
+  }
+
   // Model tree
   :where(.@{prefix}-menu-container-fold-item-child-child:hover),
   :where(.@{prefix}-menu-container-fold-item-child-child:hover *),

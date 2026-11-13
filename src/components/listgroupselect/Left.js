@@ -29,7 +29,7 @@ const Item = React.memo(({prefix, repeatData,
 });
 
 export default React.memo(({prefix, newData, checkBoxChange, repeatTitle,
-                             repeatData, checked, defaultSelected, onSearch, header}) => {
+                             repeatData, checked, defaultSelected, onSearch, header, onAll}) => {
   const [matched, setFilterData] = useState([]);
   // View-only sort of the candidates by code and/or name.
   const [sorts, setSorts] = useState([]);
@@ -75,7 +75,7 @@ export default React.memo(({prefix, newData, checkBoxChange, repeatTitle,
     </div>
     <div className={`${prefix}-listselect-left-header`}>
       {header}
-      <span><FormatMessage id='components.listSelect.all'/></span>
+      <span style={{cursor: 'pointer'}} onClick={onAll}><FormatMessage id='components.listSelect.all'/></span>
       {sortLabel('defKey', 'tableBase.defKey')}
       {sortLabel('defName', 'tableBase.defName')}
     </div>

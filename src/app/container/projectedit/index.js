@@ -12,6 +12,7 @@ export default React.memo(({prefix, data = {}, reading, onChange, dataFinish}) =
   const { path } = data;
   const [dataSource, updateDataSource] = useState({});
   const [loading, updateLoading] = useState(!!path);
+  const [groupTouched, setGroupTouched] = useState(false);
   useEffect(() => {
     if (path) {
       setTimeout(() => {
@@ -69,6 +70,12 @@ export default React.memo(({prefix, data = {}, reading, onChange, dataFinish}) =
       ...dataSource,
       [name]: value,
     };
+    // the first group is named after the project until it is given a name of its own
+    if (name === 'name' && !groupTouched) {
+      newDataSource.firstGroup = value;
+    } else if (name === 'firstGroup') {
+      setGroupTouched(true);
+    }
     updateDataSource(newDataSource);
     onChange && onChange(newDataSource);
   };
@@ -149,6 +156,21 @@ export default React.memo(({prefix, data = {}, reading, onChange, dataFinish}) =
           </span>
         </div> : null
       }
+      {!path && !reading && <div className={`${currentPrefix}-form-item`}>
+        <span
+          className={`${currentPrefix}-form-item-label`}
+          title={FormatMessage.string({id: 'groupNew.firstGroupTip'})}
+        >
+          <FormatMessage id='groupNew.firstGroup'/>
+        </span>
+        <span className={`${currentPrefix}-form-item-component`}>
+          <Input
+            onChange={e => _onChange(e.target.value, 'firstGroup')}
+            value={dataSource.firstGroup}
+            placeholder={FormatMessage.string({id: 'groupNew.firstGroupTip'})}
+          />
+        </span>
+      </div>}
       <div className={`${currentPrefix}-form-item`}>
         <span
           className={`${currentPrefix}-form-item-label`}

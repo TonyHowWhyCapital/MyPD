@@ -55,7 +55,20 @@ export default React.memo(({prefix, importProject, createProject, openTemplate,
           if (!newDataSource.describe){
             newDataSource.describe = newDataSource.name;
           }
-          createProject(_.omit(newDataSource, ['path']), newDataSource.path);
+          const group = `${newDataSource.firstGroup || ''}`.trim();
+          createProject({
+            ..._.omit(newDataSource, ['path', 'firstGroup']),
+            viewGroups: group ? [{
+              id: Math.uuid(),
+              defKey: group,
+              defName: group,
+              refEntities: [],
+              refViews: [],
+              refDiagrams: [],
+              refDicts: [],
+              refLogicEntities: [],
+            }] : [],
+          }, newDataSource.path);
         }
         modal && modal.close();
       }

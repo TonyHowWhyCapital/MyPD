@@ -10,7 +10,7 @@ import {unRepeated} from '../../lib/array_util';
 export default React.memo(forwardRef(({allowClear = false, notAllowEmpty = true,
                                         data, groups, prefix, formatResult, arrayData, repeatTitle,
                                         defaultSelected = [], originGroups = [],
-                                        allowAddGroup}, ref) => {
+                                        allowAddGroup, defaultGroup = ''}, ref) => {
   const tempSelected = unRepeated(defaultSelected);
   const searchDataRef = useRef([]);
   const currentPrefix = getPrefix(prefix);
@@ -37,7 +37,8 @@ export default React.memo(forwardRef(({allowClear = false, notAllowEmpty = true,
   const newData = useMemo(() => data.reduce((a, b) => {
     const aKeys = a.map(f => f.id);
     return a.concat(b.fields
-        .filter(f => !aKeys.includes(f.id)).map(f => ({...f, group: b.id || findPreGroup(f)})));
+        .filter(f => !aKeys.includes(f.id))
+        .map(f => ({...f, group: b.id || findPreGroup(f) || defaultGroup})));
   }, []), [data]);
   const newDataKeys = useMemo(() => newData.map(n => n.id), [newData]);
   const newDataDefKeys = useMemo(() => newData.map(n => n.defKey), [newData]);
@@ -132,6 +133,7 @@ export default React.memo(forwardRef(({allowClear = false, notAllowEmpty = true,
         header={<span className={`${currentPrefix}-listselect-opt-${type}`} onClick={() => _iconClick(type)}>
           {}
         </span>}
+        onAll={() => _iconClick(type)}
         repeatTitle={repeatTitle}
         defaultSelected={tempSelected}
         prefix={currentPrefix}

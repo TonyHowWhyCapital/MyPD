@@ -1506,7 +1506,9 @@ export default {
     "option": "＋ 新增主題領域…",
     "title": "新增主題領域",
     "required": "請填寫主題領域程式碼",
-    "duplicate": "已存在相同程式碼的主題領域"
+    "duplicate": "已存在相同程式碼的主題領域",
+    "firstGroup": "主題領域",
+    "firstGroupTip": "專案的第一個主題領域，預設與專案同名；留空則不建立"
   },
   "guard": {
     "discardTitle": "放棄未儲存的修改？",

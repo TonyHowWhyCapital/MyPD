@@ -32,9 +32,12 @@
       height: 16px;
       direction: ltr;
       background-color: @background-color;
-      border: 1px solid @primary-border-color;
-      border-radius: 2px;
+      // as dark as the tick boxes of the rows, so it reads as a box to tick
+      border: 1px solid @third-font-color;
+      border-radius: 3px;
       border-collapse: separate;
+      cursor: pointer;
+      vertical-align: middle;
     }
     &-all {
       position: relative;
@@ -74,7 +77,9 @@
       border-radius: 2px;
       border-collapse: separate;
       background-color: @background-color;
-      border: 1px solid @primary-border-color;
+      border: 1px solid @third-font-color;
+      cursor: pointer;
+      vertical-align: middle;
       &:after {
         top: 50%;
         left: 50%;

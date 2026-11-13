@@ -6,6 +6,8 @@ import {getPrefix} from '../../../../lib/prefixUtil';
 import {connectDB,  getLogPath, showItemInFolder} from '../../../../lib/middle';
 import {remarkSetting, namedByRemark} from '../../../../lib/remark';
 
+const oneLine = {whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'};
+
 export default React.memo(({prefix, dataSource, config, selectedTable,
                              onOk, onClose, currentDb, dbData}) => {
   const currentPrefix = getPrefix(prefix);
@@ -282,7 +284,8 @@ export default React.memo(({prefix, dataSource, config, selectedTable,
                         {
                           ({ index, style }) => {
                             const data = leaveSuccess[index];
-                            return <div style={style}>
+                            // one line a row: a long remark would run into the next row
+                            return <div style={{...style, ...oneLine}} title={`${data.defKey}[${data.defName}]`}>
                               {index + 1}.{data.defKey}[{data.defName}]
                             </div>;
                           }
@@ -315,7 +318,8 @@ export default React.memo(({prefix, dataSource, config, selectedTable,
                         {
                           ({ index, style }) => {
                             const data = fail[index];
-                            return <div style={style}>
+                            // one line a row: a long remark would run into the next row
+                            return <div style={{...style, ...oneLine}} title={`${data.defKey}[${data.defName}]`}>
                               {index + 1}.{data.defKey}[{data.defName}]
                             </div>;
                           }
@@ -333,7 +337,7 @@ export default React.memo(({prefix, dataSource, config, selectedTable,
         <Button key='onCancel' onClick={onButtonCancel}>
           <FormatMessage id='button.cancel'/>
         </Button>
-        <Button type='primary' key='ok' onClick={onButtonOk}>
+        <Button type='primary' key='ok' onClick={onButtonOk} disable={currentCount < selectedTable.length && !isStop}>
           <FormatMessage id='button.ok'/>
         </Button>
       </div>

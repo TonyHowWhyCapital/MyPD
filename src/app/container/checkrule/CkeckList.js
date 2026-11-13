@@ -136,7 +136,8 @@ export default React.memo(forwardRef(({prefix, dataSource, onCheck, ruleResults,
         beforeClose,
         maskClosable: false,
         title: data.defName || data.defKey,
-        width: '80%',
+        width: '100%',
+        sizeKey: 'entityDrawer',
         buttons: [
           <Button key='onSave' onClick={onOK} type='primary'>
             <FormatMessage id='button.save'/>

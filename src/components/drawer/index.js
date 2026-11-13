@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ReactDom from 'react-dom';
 import {getPrefix} from '../../lib/prefixUtil';
 import Icon from '../icon';
@@ -7,10 +7,37 @@ import './style/index.less';
 import {ConfigContent} from '../../lib/context';
 import {getMemoryCache} from '../../lib/cache';
 import {CONFIG} from '../../lib/variable';
+import {getUiState, setUiState} from '../../lib/middle';
+
+const MIN_WIDTH = 480;
 
 export const Drawer = React.memo(({prefix, title, onClose, children, width,
-                                    bodyStyle, buttons, maskClosable, placement}) => {
+                                    bodyStyle, buttons, maskClosable, placement, sizeKey}) => {
   const currentPrefix = getPrefix(prefix);
+  // The width is kept as a share of the window, so it follows the size of the screen.
+  const [size, setSize] = useState(() => (sizeKey && getUiState(sizeKey)) || width);
+  const startResize = (down) => {
+    down.preventDefault();
+    let share = size;
+    const move = (e) => {
+      const px = placement === 'left' ? e.clientX : window.innerWidth - e.clientX;
+      const wide = Math.min(window.innerWidth, Math.max(MIN_WIDTH, px));
+      share = `${Math.round((wide / window.innerWidth) * 1000) / 10}%`;
+      setSize(share);
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      sizeKey && setUiState(sizeKey, share);
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  };
+  const fitOrRestore = () => {
+    const share = size === '100%' ? width : '100%';
+    setSize(share);
+    sizeKey && setUiState(sizeKey, share);
+  };
   const ref = useRef(null);
   const containerRef = useRef(null);
   const updateStyle = () => {
@@ -55,7 +82,7 @@ export const Drawer = React.memo(({prefix, title, onClose, children, width,
       onClick={onClick}
       >
       <div
-        style={{width, ...style}}
+        style={{width: size, ...style}}
         ref={containerRef}
         className={`${currentPrefix}-drawer-container`}
         >
@@ -74,6 +101,11 @@ export const Drawer = React.memo(({prefix, title, onClose, children, width,
         {
           buttons && <div className={`${currentPrefix}-drawer-button-${placement}`}>{buttons}</div>
         }
+        <div
+          className={`${currentPrefix}-drawer-resize ${currentPrefix}-drawer-resize-${placement}`}
+          onMouseDown={startResize}
+          onDoubleClick={fitOrRestore}
+        />
       </div>
     </div>
   );
@@ -104,7 +136,7 @@ export const openDrawer = (com, params) => {
     }
   };
   const DrawerCompose = () => {
-    const { title, width,bodyStyle, buttons,  maskClosable = true, placement = 'left' } = params;
+    const { title, width, bodyStyle, buttons, maskClosable = true, placement = 'left', sizeKey } = params;
     const _iconClose = () => {
       const { onClose } = params;
       onClose && onClose();
@@ -117,6 +149,7 @@ export const openDrawer = (com, params) => {
           buttons={buttons}
           title={title}
           width={width}
+          sizeKey={sizeKey}
           maskClosable={maskClosable}
           bodyStyle={bodyStyle}
           onClose={_iconClose}

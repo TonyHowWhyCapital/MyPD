@@ -30,6 +30,25 @@
   }
   &-content {
   }
+  // Edge to drag for the width; a double click fills the window or goes back.
+  &-resize {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    transition: background-color @motion-fast;
+    &:hover, &:active {
+      background: @primary-color;
+      opacity: 0.5;
+    }
+    &-left {
+      right: 0;
+    }
+    &-right {
+      left: 0;
+    }
+  }
   &-button-left {
     text-align: right;
     padding-right: 5px;

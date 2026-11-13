@@ -724,7 +724,8 @@ export default class ER {
                         beforeClose,
                         maskClosable: false,
                         title: cellData.defName || cellData.defKey,
-                        width: '80%',
+                        width: '100%',
+                        sizeKey: 'entityDrawer',
                         buttons: [
                           <Button key='onSave' onClick={onOK} type='primary'>
                             <FormatMessage id='button.save'/>

@@ -158,8 +158,11 @@
       border-right: unset;
       .@{prefix}-tab-header-item {
         position: relative;
-        width: @top-tab-width;
+        width: auto;
         min-width: @top-tab-width;
+        flex-shrink: 0;
+        box-sizing: border-box;
+        padding: 0 22px;
         display: flex;
         flex-direction: row;
         justify-content: center;
@@ -169,7 +172,7 @@
           white-space: nowrap;
           text-overflow: ellipsis;
           overflow: hidden;
-          max-width: 60px;
+          max-width: 150px;
           display: inline-block;
         }
         &:hover {
@@ -206,8 +209,7 @@
       align-items: center;
       text-align: center;
       &-tooltip {
-        padding: 5px;
-        background: @primary-bg !important;
+        padding: 5px 8px;
       }
       span {
         display: inline-block;

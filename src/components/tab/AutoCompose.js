@@ -9,7 +9,7 @@ export const AutoCompose = (Com) => {
   // 对tab自动适应显示箭头的拓展方法
   const Tab = React.memo(({prefix, position = 'left', ...restProps}) => {
     const currentPrefix = getPrefix(prefix);
-    const tabHeaderWidth = 100;
+    const tabHeaderWidth = 160;
     const [tabId] = useState(() => {
       return Math.uuid();
     });

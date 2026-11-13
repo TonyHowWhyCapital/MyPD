@@ -306,9 +306,32 @@ export default React.memo(({prefix, importProject, createProject, openTemplate,
             <div className={`${currentPrefix}-home-container-body-right-list-title`}>
               <FormatMessage id='home.exampleProject'/>
             </div>
-            <div className={`${currentPrefix}-home-container-body-right-list-tab-content`}>
+            {view === 'list' && <table className={`${currentPrefix}-home-list ${currentPrefix}-home-list-templates`}>
+              <thead>
+                <tr>
+                  <th><FormatMessage id='home.colName'/></th>
+                  <th><FormatMessage id='home.colDescribe'/></th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.keys(template).map(t => <tr
+                  key={template[t].name}
+                  onDoubleClick={() => openTemplateClick(template[t], t)}
+                >
+                  <td className='name' onClick={() => openTemplateClick(template[t], t)}>
+                    {template[t].avatar ? <img src={template[t].avatar} alt=''/> : <Icon type='fa-file-o'/>}
+                    <span>{template[t].name}</span>
+                  </td>
+                  <td className='describe' title={template[t].describe}>{template[t].describe}</td>
+                </tr>)}
+              </tbody>
+            </table>}
+            <div
+              className={`${currentPrefix}-home-container-body-right-list-tab-content`}
+              style={view === 'list' ? {display: 'none'} : undefined}
+            >
               {
-                Object.keys(template).map((t) => {
+                view === 'card' && Object.keys(template).map((t) => {
                   const p = template[t];
                   return <div
                     key={p.name}

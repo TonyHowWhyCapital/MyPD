@@ -14,6 +14,7 @@ import {
   updateTable, updateColumn, addColumn, removeTables, removeColumns,
   updateDomain, addDomain, removeDomains, toggleSort, sortRows, orderColumns, moveColumn,
 } from '../../../../lib/model_edit_util';
+import { useLeaveGuard, confirmThen } from '../../../../lib/leave_guard';
 
 const Option = Select.Option;
 const TABS = ['entity', 'field', 'domain'];
@@ -31,9 +32,13 @@ const checkCell = (value, onChange) => (
 const named = d => ({ id: d.id, label: d.defName || d.defKey });
 const toLen = v => (v === '' ? '' : (parseInt(v, 10) || ''));
 
-export default React.memo(({ dataSource, updateDataSource, prefix }) => {
+export default React.memo(({ dataSource, updateDataSource, prefix, onCloseGuard }) => {
   const currentPrefix = getPrefix(prefix);
   const [ds, setDs] = useState(dataSource);
+  // What the project holds; `ds` runs ahead of it until the changes are saved.
+  const [saved, setSaved] = useState(dataSource);
+  const dirty = ds !== saved;
+  useLeaveGuard(dirty, FormatMessage.string({ id: 'modelEdit.title' }), onCloseGuard);
   const [tab, setTab] = useState('entity');
   const [keyword, setKeyword] = useState('');
   const [pendingEntity, setPendingEntity] = useState('');
@@ -64,10 +69,13 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
   // Row order is frozen until the sort or filter changes, so a row does not
   // jump away while its sorted cell is being edited.
   const orderRef = useRef({ signature: '', keys: [] });
-  const persist = (next) => {
-    setDs(next);
-    updateDataSource && updateDataSource(next);
+  const persist = next => setDs(next);
+  const save = () => {
+    updateDataSource && updateDataSource(ds);
+    setSaved(ds);
+    Message.success({ title: FormatMessage.string({ id: 'modelEdit.saved' }) });
   };
+  const revert = () => confirmThen('discard', FormatMessage.string({ id: 'modelEdit.title' }), () => setDs(saved));
   const typeOptions = useMemo(() => getTypeOptions(ds), [ds]);
   const domainOptions = (ds.domains || [])
     .map(d => ({ id: d.id, label: `${d.defKey}${d.defName ? `(${d.defName})` : ''}` }));
@@ -95,6 +103,11 @@ export default React.memo(({ dataSource, updateDataSource, prefix }) => {
           >
             <FormatMessage id={`modelEdit.tab.${t}`}/>
           </span>))}
+      </span>
+      <span className={`${currentPrefix}-modeledit-save`}>
+        <Button type='primary' disable={!dirty} onClick={save}><FormatMessage id='modelEdit.save'/></Button>
+        <Button disable={!dirty} onClick={revert}><FormatMessage id='modelEdit.revert'/></Button>
+        {dirty && <span className={`${currentPrefix}-modeledit-unsaved`}><FormatMessage id='guard.unsaved'/></span>}
       </span>
       <Input
         placeholder={FormatMessage.string({ id: 'modelEdit.search' })}

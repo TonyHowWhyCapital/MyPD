@@ -3,6 +3,9 @@ export default {
     modelEdit: {
       title: '模型清单编辑',
       search: '搜索',
+      save: '保存',
+      revert: '放弃修改',
+      saved: '已保存到项目',
       empty: '暂无数据',
       delete: '删除',
       confirmDelete: '删除确认',
@@ -41,6 +44,9 @@ export default {
     modelEdit: {
       title: 'Model list editor',
       search: 'Search',
+      save: 'Save',
+      revert: 'Discard changes',
+      saved: 'Saved to the project',
       empty: 'No data',
       delete: 'Delete',
       confirmDelete: 'Confirm delete',

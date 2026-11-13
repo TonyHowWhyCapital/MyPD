@@ -1614,6 +1614,9 @@ export default {
   "modelEdit": {
     "title": "模型清單編輯",
     "search": "搜尋",
+    "save": "儲存",
+    "revert": "放棄修改",
+    "saved": "已儲存到專案",
     "empty": "暫無資料",
     "delete": "刪除",
     "confirmDelete": "刪除確認",

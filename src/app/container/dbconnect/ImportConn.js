@@ -2,8 +2,11 @@ import React, {useState} from 'react';
 import {Button, Radio, FormatMessage} from 'components';
 import {
   openFileOrDirPath, readNormalFile, readDbxConnections, getDbxDefaultFile,
+  getDBeaverDefaultFile, dirname,
 } from '../../../lib/middle';
-import {parseNavicat, parseDbxRows, parseDbxJson, resolveType} from '../../../lib/dbconn_import';
+import {
+  parseNavicat, parseDbxRows, parseDbxJson, parseDBeaver, decodeDBeaverCredentials, resolveType,
+} from '../../../lib/dbconn_import';
 import {getPrefix} from '../../../lib/prefixUtil';
 import {SimpleGrid} from '../../../components/gridview';
 
@@ -21,6 +24,14 @@ const sources = {
     read: file => (/\.json$/i.test(file)
       ? readNormalFile(file).then(data => parseDbxJson(data.toString()))
       : readDbxConnections(file).then(parseDbxRows)),
+  },
+  dbeaver: {
+    filters: [{name: 'DBeaver', extensions: ['json']}],
+    defaultPath: () => getDBeaverDefaultFile(),
+    // the users and passwords are in a second file beside it, which may be missing
+    read: file => readNormalFile(file).then(data => readNormalFile(`${dirname(file)}/credentials-config.json`)
+      .then(decodeDBeaverCredentials, () => ({}))
+      .then(credentials => parseDBeaver(data.toString(), credentials))),
   },
 };
 
@@ -48,6 +59,7 @@ export default React.memo(({prefix, dataSource, onChange}) => {
     <div className={`${currentPrefix}-dbconnect-import-source`}>
       <Button onClick={() => pick('navicat')}><FormatMessage id='dbConnImport.navicat'/></Button>
       <Button onClick={() => pick('dbx')}><FormatMessage id='dbConnImport.dbx'/></Button>
+      <Button onClick={() => pick('dbeaver')}><FormatMessage id='dbConnImport.dbeaver'/></Button>
       <span className={`${currentPrefix}-dbconnect-import-file`} title={state.file}>
         {state.file || FormatMessage.string({id: 'dbConnImport.noFile'})}
       </span>
@@ -55,9 +67,10 @@ export default React.memo(({prefix, dataSource, onChange}) => {
     {state.error && <div className={`${currentPrefix}-dbconnect-import-error`}>
       <FormatMessage id='dbConnImport.readError'/>{state.error}
     </div>}
-    {state.source === 'dbx' && state.conns.length > 0 && !state.conns.some(c => c.password)
+    {['dbx', 'dbeaver'].includes(state.source) && state.conns.length > 0
+      && !state.conns.some(c => c.password)
       && <div className={`${currentPrefix}-dbconnect-import-tip`}>
-        <FormatMessage id='dbConnImport.dbxPassword'/>
+        <FormatMessage id={`dbConnImport.${state.source}Password`}/>
       </div>}
     <SimpleGrid
       prefix={prefix}

@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import {
   parseNavicat, parseDbxRows, parseDbxJson, toDbConn, importDbConns, resolveType, decodeNavicatPassword,
+  parseDBeaver, decodeDBeaverCredentials,
 } from '../src/lib/dbconn_import';
 import base from '../src/lib/template/empty.json';
 
@@ -122,5 +123,47 @@ describe('dbx json export', () => {
 
   test('a data file row never carries a password', () => {
     expect(parseDbxRows([{ config_json: { name: 'X', db_type: 'mysql', password: 'cipher' } }])[0].password).toBe('');
+  });
+});
+
+describe('dbeaver connections', () => {
+  const sources = JSON.stringify({
+    folders: {},
+    connections: {
+      'microsoft-1': {
+        provider: 'sqlserver', driver: 'microsoft', name: 'Dev', 'save-password': true,
+        configuration: { host: '10.0.0.1', port: '1433', database: 'Shop', url: 'jdbc:sqlserver://x' },
+      },
+      'pg-2': { provider: 'postgresql', name: 'Pg', configuration: { host: 'h', port: '5432', database: 'd', user: 'inline' } },
+      'mongo-3': { provider: 'mongo', name: 'Docs', configuration: {} },
+    },
+  });
+  const seal = (text) => {
+    const iv = Buffer.alloc(16, 7);
+    const cipher = crypto.createCipheriv('aes-128-cbc', Buffer.from('babb4a9f774ab853c96c2d653dfe544a', 'hex'), iv);
+    return Buffer.concat([iv, cipher.update(text, 'utf8'), cipher.final()]);
+  };
+  const credentials = decodeDBeaverCredentials(seal(JSON.stringify({
+    'microsoft-1': { '#connection': { user: 'sa', password: 'p@ss' } },
+  })));
+
+  test('the user and password come from the credentials file', () => {
+    const [dev, pg] = parseDBeaver(sources, credentials);
+    expect(dev).toMatchObject({ source: 'dbeaver', name: 'Dev', kind: 'sqlserver', host: '10.0.0.1', port: '1433', database: 'Shop', username: 'sa', password: 'p@ss' });
+    expect(pg).toMatchObject({ kind: 'postgresql', username: 'inline', password: '' });
+    expect(toDbConn(dev, base).properties.url).toBe('jdbc:sqlserver://10.0.0.1:1433;DatabaseName=Shop');
+  });
+
+  test('without the credentials file the connections still come, without passwords', () => {
+    expect(decodeDBeaverCredentials(Buffer.from('not a credentials file'))).toEqual({});
+    expect(parseDBeaver(sources).map(c => c.password)).toEqual(['', '', '']);
+  });
+
+  test('a database type the project does not have cannot be imported', () => {
+    expect(resolveType(parseDBeaver(sources)[2], base)).toBe('');
+  });
+
+  test('a file that is not a DBeaver connection file is refused', () => {
+    expect(() => parseDBeaver('{"a":1}')).toThrow('Invalid DBeaver connection file');
   });
 });

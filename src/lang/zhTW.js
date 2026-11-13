@@ -1359,6 +1359,8 @@ export default {
     "title": "匯入資料庫連線",
     "navicat": "選擇 Navicat 連線檔案 (.ncx)",
     "dbx": "選擇 DBX 連線檔案 (.json / dbx.db)",
+    "dbeaver": "選擇 DBeaver 連線檔案 (data-sources.json)",
+    "dbeaverPassword": "沒有讀到密碼：同一資料夾內找不到 credentials-config.json，或 DBeaver 未儲存密碼。匯入後請自行填寫密碼。",
     "noFile": "尚未選擇檔案",
     "name": "連線名",
     "type": "資料庫",

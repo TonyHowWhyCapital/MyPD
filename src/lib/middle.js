@@ -40,6 +40,7 @@ const getBackupAllFile = json.getBackupAllFile;
 const readPdmFile = json.readPdmFile;
 const readDbxConnections = json.readDbxConnections;
 const getDbxDefaultFile = json.getDbxDefaultFile;
+const getDBeaverDefaultFile = json.getDBeaverDefaultFile;
 const listDatabases = json.listDatabases;
 const listColumnDomains = json.listColumnDomains;
 const readNormalFile = json.readNormalFile;
@@ -92,6 +93,7 @@ export {
   readPdmFile,
   readDbxConnections,
   getDbxDefaultFile,
+  getDBeaverDefaultFile,
   listDatabases,
   listColumnDomains,
   readNormalFile,

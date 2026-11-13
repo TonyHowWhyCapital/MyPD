@@ -22,7 +22,7 @@ const kinds = {
 
 const aliases = {
   mariadb: 'mysql', postgres: 'postgresql', pgsql: 'postgresql', mssql: 'sqlserver',
-  dameng: 'dm', kingbasees: 'kingbase',
+  dameng: 'dm', kingbasees: 'kingbase', db2luw: 'db2', db2zos: 'db2',
 };
 
 export const normalizeKind = (name) => {
@@ -121,6 +121,47 @@ export const parseDbxJson = (text) => {
     throw new Error('Invalid DBX connection file');
   }
   return list.map(dbxConnection).filter(c => c);
+};
+
+// DBeaver keeps the users and passwords apart from the connections, in
+// credentials-config.json: AES-128-CBC with the key DBeaver documents for reading the
+// file back, the first 16 bytes being the IV. Returns {} when it cannot be read.
+export const decodeDBeaverCredentials = (bytes) => {
+  try {
+    const data = Buffer.from(bytes);
+    const decipher = crypto.createDecipheriv('aes-128-cbc',
+      Buffer.from('babb4a9f774ab853c96c2d653dfe544a', 'hex'), data.slice(0, 16));
+    const text = Buffer.concat([decipher.update(data.slice(16)), decipher.final()]).toString('utf8');
+    const found = JSON.parse(text.slice(text.indexOf('{')));
+    return found && typeof found === 'object' ? found : {};
+  } catch (e) {
+    return {};
+  }
+};
+
+// text: DBeaver's data-sources.json; credentials: what decodeDBeaverCredentials gave.
+export const parseDBeaver = (text, credentials = {}) => {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    data = null;
+  }
+  if (!data || typeof data.connections !== 'object' || !data.connections) {
+    throw new Error('Invalid DBeaver connection file');
+  }
+  return Object.keys(data.connections).map((id) => {
+    const c = data.connections[id] || {};
+    const config = c.configuration || {};
+    const login = (credentials[id] && credentials[id]['#connection']) || {};
+    return connection('dbeaver', c.name || id, c.provider, {
+      host: config.host || '',
+      port: config.port || '',
+      database: config.database || '',
+      username: login.user || config.user || '',
+      password: typeof login.password === 'string' ? login.password : '',
+    });
+  });
 };
 
 // A connection can be imported when the project has a matching database type.

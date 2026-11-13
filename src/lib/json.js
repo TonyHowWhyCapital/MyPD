@@ -188,6 +188,14 @@ export const getDbxDefaultFile = () => {
   return path.join(app.getPath('appData'), 'com.dbx.app', 'dbx.db');
 };
 
+// DBeaver 默认工作区的连接文件；Windows 在 %APPDATA%，其他系统在用户目录下
+export const getDBeaverDefaultFile = () => {
+  const home = app.getPath('home');
+  const base = { darwin: path.join(home, 'Library'), win32: app.getPath('appData') }[process.platform]
+    || path.join(home, '.local', 'share');
+  return path.join(base, 'DBeaverData', 'workspace6', 'General', '.dbeaver', 'data-sources.json');
+};
+
 // DBX 的连接保存在 SQLite 文件中，使用系统自带的 sqlite3 以只读方式读取
 export const readDbxConnections = (filePath) => {
   return new Promise((res, rej) => {

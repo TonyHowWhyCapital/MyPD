@@ -78,7 +78,7 @@ import {firstUp} from '../../lib/string';
 import {
   connectDB, getLogPath, selectWordFile, selectDir, showItemInFolder, saveFile, getUiState, setUiState,
 } from '../../lib/middle';
-import { sortNav, nextNavSort, NAV_SORTS } from '../../lib/nav_sort';
+import { sortNav, nextNavSort, readNavSorts } from '../../lib/nav_sort';
 import { imgAll } from '../../lib/generatefile/img';
 import {compareVersion} from '../../lib/update';
 import {notify} from '../../lib/subscribe';
@@ -1412,9 +1412,9 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     config.lang, menuType]);
   const navEmptyHide = !!restProps.dataSource?.profile?.navEmptyHide;
   // how the tree orders its lists, kept on this machine
-  const [navSort, setNavSort] = useState(() => (NAV_SORTS.includes(getUiState('navSort')) ? getUiState('navSort') : ''));
-  const changeNavSort = () => {
-    const next = nextNavSort(navSort);
+  const [navSort, setNavSort] = useState(() => readNavSorts(getUiState('navSort')));
+  const changeNavSort = (list) => {
+    const next = { ...navSort, [list]: nextNavSort(navSort[list] || '') };
     setUiState('navSort', next);
     setNavSort(next);
   };
@@ -2263,20 +2263,6 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
                       <Icon type={`fa-eye${navEmptyHide ? '-slash' : ''}`}/>
                     </Tooltip>
                   </div>
-                  <div
-                    className={`${currentPrefix}-home-menu-header-opt-position ${navSort ? `${currentPrefix}-home-menu-header-opt-on` : ''}`}
-                    onClick={changeNavSort}
-                  >
-                    <Tooltip
-                      title={<div className={`${currentPrefix}-home-menu-header-opt-title`}>
-                        <FormatMessage id={`navSort.${navSort || 'none'}`}/>
-                      </div>}
-                      force
-                      placement='top'
-                    >
-                      <Icon type={navSort ? 'fa-sort-alpha-asc' : 'fa-sort'}/>
-                    </Tooltip>
-                  </div>
                   <span onClick={_groupMenuChange}>
                     <FormatMessage id='showGroup'/>
                   </span>
@@ -2296,7 +2282,8 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
                 contextMenus={contextMenus}
                 contextMenuClick={_contextMenuClick}
                 draggable={draggable}
-                sortEnable={!navSort}
+                listSorts={navSort}
+                onListSort={changeNavSort}
                 getName={getName}
                 dragTable={createEmptyTable}
                 groupType={groupType}

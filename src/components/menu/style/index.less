@@ -93,6 +93,27 @@
           }
         }
       }
+      &-sort {
+        display: inline-flex;
+        align-items: center;
+        margin-right: 8px;
+        padding: 0 4px;
+        border-radius: @radius-field;
+        font-size: 12px;
+        font-weight: normal;
+        color: @third-font-color;
+        cursor: pointer;
+        em {
+          font-style: normal;
+          margin-left: 3px;
+        }
+        &:hover, &.on {
+          color: @primary-color;
+        }
+        &:hover {
+          background: @third-primary-color;
+        }
+      }
       &-right {
         transition: transform 0.3s;
         &-group {

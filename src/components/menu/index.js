@@ -6,6 +6,7 @@ import {FixedSizeTree as Tree} from 'react-vtree';
 import ContextMenu from '../contextmenu';
 import Icon from '../icon';
 import Tooltip from '../tooltip';
+import FormatMessage from '../formatmessage';
 import './style/index.less';
 import {getPrefix} from '../../lib/prefixUtil';
 import { moveArrayPosition } from '../../lib/array_util';
@@ -14,13 +15,18 @@ import {separator} from '../../../profile';
 import {firstUp} from '../../lib/string';
 import {tree2array} from '../../lib/tree';
 import {READING} from '../../lib/variable';
+import {NAV_LISTS, NAV_LIST_OF} from '../../lib/nav_sort';
 
 const Menu = React.memo(forwardRef(({contextMenus = [], onContextMenu, fieldNames,
                            contextMenuClick, prefix, menus = [], doubleMenuClick, getName,
                            emptyData, defaultExpands, dragTable, groupType, header, mode,
-                           update, dataSource, sortEnable = true, draggable}, ref) => {
+                           update, dataSource, sortEnable = true, draggable,
+                           listSorts = {}, onListSort}, ref) => {
   const currentPrefix = getPrefix(prefix);
   const menuRef = useRef(null);
+  // the rows are drawn by a function made once, so what changes is read through a ref
+  const sortsRef = useRef({});
+  sortsRef.current = { listSorts, onListSort };
   const itemBase = `${currentPrefix}-menu-container-fold-item-child-`;
   const { icon, defName, defKey, children } = fieldNames;
   const [expandMenu, updateExpandMenu] = useState(defaultExpands || []);
@@ -135,15 +141,18 @@ const Menu = React.memo(forwardRef(({contextMenus = [], onContextMenu, fieldName
       e.preventDefault();
     }
   };
+  // A list shown in an order of its own cannot be put in order by hand; its rows can still
+  // be dragged onto a diagram.
+  const sortedList = () => !!sortsRef.current.listSorts[NAV_LIST_OF[startRef.current.type]];
   const rowOnDragOver = (e, key, pKey) => {
-    if ((startRef.current.parentKey === pKey) && (key !== pKey)){
+    if ((startRef.current.parentKey === pKey) && (key !== pKey) && !sortedList()){
       updateInsert(key);
     }
     e.preventDefault();
     e.stopPropagation();
   };
   const rowOnDrop = (e, i, parentKey, parentMenu, realParentMenu) => {
-    if ((startRef.current.parentKey === parentKey) &&
+    if ((startRef.current.parentKey === parentKey) && !sortedList() &&
         (startRef.current.index > -1) && (startRef.current.index !== i)) {
       const name = allType.concat({ type: 'dataType', name: 'profile.dataTypeSupports', defKey: 'defKey' }).filter(t => t.type === startRef.current.type)[0];
       if (name) {
@@ -258,6 +267,17 @@ const Menu = React.memo(forwardRef(({contextMenus = [], onContextMenu, fieldName
             </span>
           </span>
           <span className={`${currentPrefix}-menu-container-fold-item-right-group`}>
+            {sortsRef.current.onListSort && NAV_LISTS.includes(menu.type) && <span
+              title={FormatMessage.string({id: `navSort.${sortsRef.current.listSorts[menu.type] || 'none'}`})}
+              className={`${currentPrefix}-menu-container-fold-item-sort${sortsRef.current.listSorts[menu.type] ? ' on' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                sortsRef.current.onListSort(menu.type);
+              }}
+            >
+              <Icon type={sortsRef.current.listSorts[menu.type] ? 'fa-sort-alpha-asc' : 'fa-sort'}/>
+              {sortsRef.current.listSorts[menu.type] && <em>{FormatMessage.string({id: `navSort.short.${sortsRef.current.listSorts[menu.type]}`})}</em>}
+            </span>}
             <Icon
               style={{
                   transform: `${isOpen ? 'rotate(0deg)' : 'rotate(90deg)'}`,

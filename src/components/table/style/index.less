@@ -153,6 +153,26 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    // a dropdown follows the width of its column instead of keeping its own
+    td {
+      .@{prefix}-multiple-select {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        > .@{prefix}-multiple-select-data {
+          width: 100% !important;
+        }
+      }
+      .@{prefix}-table-dict {
+        > .@{prefix}-multiple-select {
+          flex: 1;
+        }
+        > span {
+          flex-shrink: 0;
+          white-space: nowrap;
+        }
+      }
+    }
   }
   th:first-of-type {
     border-left: 1px solid @primary-border-color;

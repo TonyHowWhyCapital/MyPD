@@ -98,6 +98,19 @@ body[theme='themeNigh'] {
   :where(.@{prefix}-multiple-select-children *) {
     background-color: @n-raised !important;
   }
+  .@{prefix}-tooltip-content > div:last-child {
+    border-color: transparent !important;
+    border-bottom-color: @n-raised !important;
+    background-color: transparent !important;
+  }
+  .@{prefix}-tooltip-content-text,
+  .@{prefix}-tooltip-content-text > div:first-child {
+    color: #fff !important;
+    background-color: @primary-color !important;
+  }
+  .@{prefix}-tooltip-content-text > div:last-child {
+    border-bottom-color: @primary-color !important;
+  }
   .@{prefix}-modal-container, .@{prefix}-dropdown-container, .@{prefix}-contextmenu-show, .@{prefix}-tooltip-content,
   .@{prefix}-multiple-select-children {
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);

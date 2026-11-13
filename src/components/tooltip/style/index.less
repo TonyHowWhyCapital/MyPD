@@ -23,6 +23,16 @@
     height: 100%;
     overflow: auto;
   }
+  // A hint of plain text stands out from the page behind it; one that holds a panel
+  // (a menu, a help sheet) stays a white card.
+  &-text {
+    padding: 5px 9px;
+    background: @primary-color;
+    color: #fff;
+    > div:last-child {
+      border-bottom-color: @primary-color;
+    }
+  }
   &-arrow-bottom {
     .arrow();
     top: -10px;

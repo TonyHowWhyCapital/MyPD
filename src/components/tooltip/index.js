@@ -110,7 +110,7 @@ const Tooltip = React.memo(forwardRef(({prefix, children, offsetLeft = 0, offset
     onMouseOver={onContainerMouseOver}
     onMouseLeave={_onMouseLeave}
   >
-    <div className={`${currentPrefix}-tooltip-content ${className}`} ref={containerRef}>
+    <div className={`${currentPrefix}-tooltip-content ${typeof title === 'string' ? `${currentPrefix}-tooltip-content-text` : ''} ${className}`} ref={containerRef}>
       <div ref={titleRef}>{title}</div>
       <div ref={arrowRef} className={`${currentPrefix}-tooltip-content-arrow-${placement}`}>{}</div>
     </div>

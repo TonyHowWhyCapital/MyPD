@@ -78,6 +78,7 @@ npm run lang:zhTW                   # 修改简体语言包后重新生成繁体
 
 # 五、相关资源
 
+- MyPD 使用文件（繁體中文）：[安裝手冊](docs/安裝手冊.md)、[操作手冊](docs/操作手冊.md)、[操作手冊：進階工具與參考](docs/操作手冊-進階工具.md)、[測試說明](docs/測試說明.md)
 - [官方 PDManer 新版本](https://gitee.com/robergroup/pdmaner)
 - [操作手册 - 语雀版](https://www.yuque.com/pdmaner/docs)
 - [OSChina PDMan 专栏](https://my.oschina.net/skymozn?tab=newest&catalogId=5775221&sortType=time)

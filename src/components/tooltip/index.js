@@ -12,10 +12,14 @@ import './style/index.less';
 import {getPrefix} from '../../lib/prefixUtil';
 
 const Tooltip = React.memo(forwardRef(({prefix, children, offsetLeft = 0, offsetTop = 0,
-                                         title, visible = true, className = '', mouseEnterDelay = 0,
+                                         title, visible = true, className = '', mouseEnterDelay,
                                          force, placement = 'bottom', conversion = 1, clickClose, propagation,
                                          compareName = ['clientWidth', 'scrollWidth']}, ref) => {
   const currentPrefix = getPrefix(prefix);
+  // A hint of text waits for the pointer to rest, so passing over a list does not make
+  // hints flash; a panel (a menu, a help sheet) opens at once as before.
+  const restDelay = typeof title === 'string' ? 0.5 : 0;
+  const enterDelay = mouseEnterDelay === undefined ? restDelay : mouseEnterDelay;
   const containerRef = useRef(null);
   const parentRef = useRef(null);
   const statusRef = useRef(null);
@@ -30,6 +34,7 @@ const Tooltip = React.memo(forwardRef(({prefix, children, offsetLeft = 0, offset
   }, []);
   const _onMouseOver = (e) => {
     const currentTarget = e.currentTarget;
+    clearTimeout(overStatusRef.current);
     overStatusRef.current = setTimeout(() => {
       if ((currentTarget[compareName[0]] < currentTarget[compareName[1]] || force)
           && visible && title) {
@@ -39,7 +44,7 @@ const Tooltip = React.memo(forwardRef(({prefix, children, offsetLeft = 0, offset
         parentRef.current = currentTarget;
         setTooltipVisible(true);
       }
-    }, mouseEnterDelay * 1000);
+    }, enterDelay * 1000);
     !propagation && e.stopPropagation();
   };
   const _onMouseLeave = (e) => {

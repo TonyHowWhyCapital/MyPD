@@ -50,7 +50,6 @@ const Header = React.memo(({
             />
           <Tooltip
             placement='top'
-            mouseEnterDelay={0.3}
             className={`${currentPrefix}-tab-header-item-tooltip`}
             key={c.key}
             title={c.props.tooltip}

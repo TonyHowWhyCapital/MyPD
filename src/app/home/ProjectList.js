@@ -13,12 +13,11 @@ const size = (bytes) => {
 
 const SORTS = {
   name: p => `${p.name || ''}`.toLowerCase(),
-  opened: p => p.openedTime || 0,
   modified: p => (p.stat ? p.stat.modifiedTime : 0),
 };
 
-// The recent projects as rows: when each was last opened, when its file last changed and
-// where it lives. The cards show none of that.
+// The recent projects as rows: what each is about, when its file last changed and where
+// it lives. The cards show little of that.
 export default ({
   cls, projects, onOpen, onInfo, onEdit, onReadOnly, onForget, onDelete,
 }) => {
@@ -56,7 +55,6 @@ export default ({
       <tr>
         {head('name', text('colName'), true)}
         {head('describe', text('colDescribe'))}
-        {head('opened', text('colOpened'), true)}
         {head('modified', text('colModified'), true)}
         {head('size', text('colSize'))}
         {head('path', text('colPath'))}
@@ -75,7 +73,6 @@ export default ({
           <span>{p.name}</span>
         </td>
         <td className='describe' title={p.describe}>{p.describe}</td>
-        <td className='time'>{time(p.openedTime)}</td>
         <td className='time'>{p.stat ? time(p.stat.modifiedTime) : <em>{text('fileMissing')}</em>}</td>
         <td className='size'>{p.stat ? size(p.stat.size) : '-'}</td>
         <td className='path' title={p.path}>

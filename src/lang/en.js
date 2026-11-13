@@ -185,7 +185,6 @@ export default {
         view: { card: 'Cards', list: 'List' },
         colName: 'Project',
         colDescribe: 'Description',
-        colOpened: 'Last opened',
         colModified: 'File modified',
         colSize: 'Size',
         colPath: 'Location',

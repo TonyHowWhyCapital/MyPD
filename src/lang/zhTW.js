@@ -189,8 +189,7 @@ export default {
       "list": "清單顯示"
     },
     "colName": "專案名稱",
-    "colDescribe": "描述",
-    "colOpened": "最後開啟",
+    "colDescribe": "專案描述",
     "colModified": "檔案修改時間",
     "colSize": "大小",
     "colPath": "位置",

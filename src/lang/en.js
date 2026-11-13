@@ -480,10 +480,10 @@ export default {
     },
     tableEdit: {
         keys: 'keys',
-        database: 'database',
+        database: 'Database type:',
         columnSetting: 'columnSetting',
         excelMode: 'Table format editing',
-        changeDb: 'change default db',
+        changeDb: 'Change database type',
         data: 'table',
         dbDDL: 'dbDDL',
         appCode: 'appCode',

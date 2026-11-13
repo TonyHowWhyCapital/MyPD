@@ -18,6 +18,9 @@ export default {
       output: '输出',
       view: '显示',
     },
+    connDb: {
+      followed: '数据库类型已跟随连接改为 {name}',
+    },
   },
   en: {
     guard: {
@@ -37,6 +40,9 @@ export default {
       edit: 'Edit and manage',
       output: 'Output',
       view: 'Display',
+    },
+    connDb: {
+      followed: 'Database type now follows the connection: {name}',
     },
   },
 };

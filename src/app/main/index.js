@@ -60,7 +60,7 @@ import {
   resetHeader,
   validateNeedSave,
   toggleCaseDataSource,
-  toggleCaseEntityOrView, getUnGroup, getEmptyEntity,
+  toggleCaseEntityOrView, getUnGroup, getEmptyEntity, transformFieldType,
 } from '../../lib/datasource_util';
 import {
   clearAllTabData,
@@ -76,7 +76,8 @@ import {getPrefix} from '../../lib/prefixUtil';
 import {addBodyEvent, removeBodyEvent} from '../../lib/listener';
 import {firstUp} from '../../lib/string';
 import {
-  connectDB, getLogPath, selectWordFile, selectDir, showItemInFolder, saveFile, getUiState, setUiState,
+  connectDB, getLogPath, selectWordFile, selectDir, showItemInFolder, saveFile,
+  getUiState, setUiState,
 } from '../../lib/middle';
 import { sortNav, nextNavSort, readNavSorts } from '../../lib/nav_sort';
 import { imgAll } from '../../lib/generatefile/img';
@@ -87,6 +88,7 @@ import {
   isPdmFile, createPdm, remarksAsComments, pdmToDataSource, mergePdm, rememberSource, projectToPdm,
 } from '../../lib/pdm';
 import {resolveColumnDomains, keepColumnDomains} from '../../lib/column_domain';
+import {defaultConn, dbToFollow, withDefaultDb} from '../../lib/conn_db';
 import {pickNewGroups} from '../../components/listgroupselect/newGroup';
 import LogicEntity from '../container/logicentity';
 
@@ -516,7 +518,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     const mappings = _.get(dataSourceRef.current, 'dataTypeMapping.mappings', []);
     const domains = finalDomains || _.get(dataSourceRef.current, 'domains', []);
     const dbConn = dataSourceRef.current?.dbConn || [];
-    const currentDb = dbConn.filter(d => d.id === dbKey)[0]?.type || defaultDb;
+    const currentDb = dbConn.filter(d => d.defKey === dbKey)[0]?.type || defaultDb;
     const omitNames = ['autoIncrementName', 'notNullName', 'primaryKeyName', 'typeFullName', 'rowNo', 'typeFullName'];
     return data.map((d) => {
       return {
@@ -552,6 +554,14 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
         }),
       };
     });
+  };
+  const followConn = (dataSource, conn) => {
+    const db = dbToFollow(dataSource, conn);
+    if (!db) {
+      return dataSource;
+    }
+    Message.success({title: FormatMessage.string({id: 'connDb.followed', data: {name: db.defKey}})});
+    return transformFieldType(withDefaultDb(dataSource, db.id), dataSource.profile?.default?.db);
   };
   const injectDataSource = (dataSource, modal) => {
     restProps?.update({...dataSource});
@@ -1143,8 +1153,9 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       };
       const addToProject = (data, dbKey, newGroups) => {
         restProps.openLoading();
-        const connType = dbConn.find(c => c.defKey === dbKey)?.type;
-        const linked = resolveColumnDomains(dataSourceRef.current, data, connType);
+        const conn = dbConn.find(c => c.defKey === dbKey);
+        const linked = resolveColumnDomains(
+            followConn(dataSourceRef.current, conn), data, conn?.type);
         mergeDataSource(linked.dataSource, {viewGroups: newGroups || []},
             keepColumnDomains(calcDomain(data, dbKey, dataSourceRef.current.domains || []),
               linked.links), true, (d) => {
@@ -1548,6 +1559,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     const onOk = () => {
       if (Object.keys(tempData).length !== 0) {
         let tempDataSource = getDataSource();
+        const connBefore = defaultConn(tempDataSource);
         const filterData = ['lang', 'langSetting', 'javaHome', 'autoSave', 'jvm', 'autoBackup'];
         if (name === 'dbreverse') {
           const { value = [], realData : { entities = [], viewGroups = [] } = {} }
@@ -1642,6 +1654,11 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
           needSave = true;
           tempDataSource = _.set(tempDataSource, f, tempData[f]);
         });
+        const conn = defaultConn(tempDataSource);
+        if (name === 'dbConnect' && conn
+            && (conn.defKey !== connBefore?.defKey || conn.type !== connBefore?.type)) {
+          tempDataSource = followConn(tempDataSource, conn);
+        }
         if ('profile.headers' in tempData) {
           tempDataSource = {
             ...tempDataSource,

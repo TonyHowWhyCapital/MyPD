@@ -481,10 +481,10 @@ export default {
     },
     tableEdit: {
         keys: '键',
-        database: '数据库方言:',
+        database: '数据库类型:',
         columnSetting: '列设置',
         excelMode: '表格式编辑',
-        changeDb: '切换数据库方言',
+        changeDb: '切换数据库类型',
         data: '数据表',
         dbDDL: '数据库代码',
         appCode: '程序代码',

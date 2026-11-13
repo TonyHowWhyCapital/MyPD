@@ -486,10 +486,10 @@ export default {
   },
   "tableEdit": {
     "keys": "鍵",
-    "database": "資料庫方言:",
+    "database": "資料庫類型:",
     "columnSetting": "列設定",
     "excelMode": "表格式編輯",
-    "changeDb": "切換資料庫方言",
+    "changeDb": "切換資料庫類型",
     "data": "資料表",
     "dbDDL": "資料庫程式碼",
     "appCode": "程式碼",
@@ -1224,7 +1224,7 @@ export default {
     "defaultGroup": "預設主題域",
     "entityList": "資料表",
     "viewList": "多表透視",
-    "current": "資料庫型別："
+    "current": "資料庫類型："
   },
   "excel": {
     "importExcel": "選擇EXCEL檔案並匯入",
@@ -1519,6 +1519,9 @@ export default {
     "edit": "編輯與管理",
     "output": "輸出",
     "view": "顯示"
+  },
+  "connDb": {
+    "followed": "資料庫類型已跟隨連線改為 {name}"
   },
   "impact": {
     "title": "影響分析",

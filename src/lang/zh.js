@@ -233,6 +233,11 @@ export default {
     emptyAppCode: '暂无程序代码',
     location: '定位到打开的标签页',
     navEmptyHide: '隐藏/显示空目录',
+    navSort: {
+      none: '排序：原始顺序（点击改为按代码）',
+      key: '排序：按代码（点击改为按名称）',
+      name: '排序：按名称（点击恢复原始顺序）',
+    },
     moduleList: '数据模型',
     closeCurrent: '关闭当前',
     closeOthers: '关闭其他',

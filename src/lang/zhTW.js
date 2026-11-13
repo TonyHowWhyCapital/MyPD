@@ -238,6 +238,11 @@ export default {
   "emptyAppCode": "暫無程式碼",
   "location": "定位到開啟的標籤頁",
   "navEmptyHide": "隱藏/顯示空目錄",
+  "navSort": {
+    "none": "排序：原始順序（點選改為按程式碼）",
+    "key": "排序：按程式碼（點選改為按名稱）",
+    "name": "排序：按名稱（點選恢復原始順序）"
+  },
   "moduleList": "資料模型",
   "closeCurrent": "關閉當前",
   "closeOthers": "關閉其他",

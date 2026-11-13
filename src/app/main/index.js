@@ -75,7 +75,10 @@ import './style/index.less';
 import {getPrefix} from '../../lib/prefixUtil';
 import {addBodyEvent, removeBodyEvent} from '../../lib/listener';
 import {firstUp} from '../../lib/string';
-import {connectDB, getLogPath, selectWordFile, selectDir, showItemInFolder, saveFile} from '../../lib/middle';
+import {
+  connectDB, getLogPath, selectWordFile, selectDir, showItemInFolder, saveFile, getUiState, setUiState,
+} from '../../lib/middle';
+import { sortNav, nextNavSort, NAV_SORTS } from '../../lib/nav_sort';
 import { imgAll } from '../../lib/generatefile/img';
 import {compareVersion} from '../../lib/update';
 import {notify} from '../../lib/subscribe';
@@ -1408,6 +1411,13 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     restProps.dataSource?.profile?.default?.db,
     config.lang, menuType]);
   const navEmptyHide = !!restProps.dataSource?.profile?.navEmptyHide;
+  // how the tree orders its lists, kept on this machine
+  const [navSort, setNavSort] = useState(() => (NAV_SORTS.includes(getUiState('navSort')) ? getUiState('navSort') : ''));
+  const changeNavSort = () => {
+    const next = nextNavSort(navSort);
+    setUiState('navSort', next);
+    setNavSort(next);
+  };
   const simpleMenu = useMemo(() => [
     {
       id: 'entities',
@@ -1901,7 +1911,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     }
   };
   // 在过滤为空的数据
-  const tempMenu = menus[groupType];
+  const tempMenu = useMemo(() => sortNav(menus[groupType], navSort), [menus[groupType], navSort]);
   const currentPrefix = getPrefix(prefix);
   const getTabTitle = (t) => {
     if (t.menuKey === 'home-cover') {
@@ -2253,6 +2263,20 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
                       <Icon type={`fa-eye${navEmptyHide ? '-slash' : ''}`}/>
                     </Tooltip>
                   </div>
+                  <div
+                    className={`${currentPrefix}-home-menu-header-opt-position ${navSort ? `${currentPrefix}-home-menu-header-opt-on` : ''}`}
+                    onClick={changeNavSort}
+                  >
+                    <Tooltip
+                      title={<div className={`${currentPrefix}-home-menu-header-opt-title`}>
+                        <FormatMessage id={`navSort.${navSort || 'none'}`}/>
+                      </div>}
+                      force
+                      placement='top'
+                    >
+                      <Icon type={navSort ? 'fa-sort-alpha-asc' : 'fa-sort'}/>
+                    </Tooltip>
+                  </div>
                   <span onClick={_groupMenuChange}>
                     <FormatMessage id='showGroup'/>
                   </span>
@@ -2272,6 +2296,7 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
                 contextMenus={contextMenus}
                 contextMenuClick={_contextMenuClick}
                 draggable={draggable}
+                sortEnable={!navSort}
                 getName={getName}
                 dragTable={createEmptyTable}
                 groupType={groupType}

@@ -233,6 +233,11 @@ export default {
     emptyAppCode: 'There is no data',
     location: 'Navigate to the open tab',
     navEmptyHide: 'Hide/Show Empty Directory',
+    navSort: {
+      none: 'Order: as stored (click for by code)',
+      key: 'Order: by code (click for by name)',
+      name: 'Order: by name (click for as stored)',
+    },
     moduleList: 'Data Model',
     closeCurrent: 'close current',
     closeOthers: 'close others',

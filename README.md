@@ -78,7 +78,7 @@ npm test                            # 執行自動化測試
 
 ```bash
 npm run package-mac                 # dist 下的 dmg（arm64 與 x64）
-npm run package-win                 # dist 下的 Windows 安裝檔（32 位元）
+npm run package-win                 # dist 下的 Windows 安裝檔（64 位元）
 ```
 
 安裝檔沒有經過 Apple 公證，也沒有 Windows 的程式碼簽章。使用者第一次開啟時的放行步驟請看 [安裝手冊](docs/安裝手冊.md)。

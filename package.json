@@ -140,11 +140,12 @@
     },
     "win": {
       "icon": "icon.ico",
+      "artifactName": "${productName}-${os}_${arch}_v${version}.${ext}",
       "target": [
         {
           "target": "nsis",
           "arch": [
-            "ia32"
+            "x64"
           ]
         }
       ]

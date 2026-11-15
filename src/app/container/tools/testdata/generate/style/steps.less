@@ -1,0 +1,280 @@
+// The steps at the top, the output step and the confirmation before writing a database.
+@import "~style";
+
+.@{prefix}-tdgen {
+  &-steps {
+    display: flex;
+    flex: none;
+    margin: 10px 12px;
+    border: 1px solid @primary-border-color;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  &-step {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+    padding: 7px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    color: @second-font-color;
+    border-right: 1px solid @primary-border-color;
+    &:last-child {
+      border-right: none;
+    }
+    > i {
+      flex: none;
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+      border-radius: 50%;
+      font-style: normal;
+      font-size: 12px;
+      line-height: 20px;
+      text-align: center;
+      color: @second-font-color;
+      background: @fourth-primary-color;
+    }
+    > span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    &:hover {
+      background: @tr-background;
+    }
+    &-done > i {
+      color: @primary-color;
+      background: @third-primary-color;
+    }
+    &-active, &-active:hover {
+      font-weight: bold;
+      color: @primary-color;
+      background: @third-primary-color;
+      > i {
+        color: #fff;
+        background: @primary-color;
+      }
+    }
+  }
+  // ---- step 3
+  &-outputs {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    &-intro {
+      margin-bottom: 10px;
+      color: @second-font-color;
+      > div {
+        margin-top: 6px;
+        line-height: 1.5;
+      }
+    }
+  }
+  &-output {
+    margin-bottom: 10px;
+    border: 1px solid @primary-border-color;
+    border-radius: 4px;
+    &-on {
+      border-color: fade(@primary-color, 55%);
+    }
+    &-head {
+      display: flex;
+      align-items: center;
+      padding: 9px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      > .@{prefix}-checkbox {
+        flex: none;
+        margin-right: 10px;
+      }
+      > .fa {
+        flex: none;
+        width: 16px;
+        margin-right: 6px;
+        color: @second-font-color;
+      }
+      > span:last-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+    &-off &-head {
+      cursor: not-allowed;
+    }
+    &-off &-title {
+      color: @third-font-color;
+    }
+    &-title {
+      flex: none;
+      margin-right: 12px;
+      font-weight: bold;
+    }
+    &-body {
+      padding: 2px 12px 10px 38px;
+    }
+  }
+  &-field {
+    display: flex;
+    align-items: flex-start;
+    margin-top: 6px;
+    &-label {
+      flex: none;
+      width: 96px;
+      line-height: 28px;
+      color: @second-font-color;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    &-control {
+      flex: 1;
+      min-width: 0;
+      line-height: 28px;
+      > a {
+        margin-left: 12px;
+      }
+    }
+  }
+  &-path {
+    display: flex;
+    align-items: center;
+    > .@{prefix}-input {
+      flex: 1;
+      min-width: 0;
+    }
+    > a {
+      flex: none;
+      margin-left: 12px;
+    }
+  }
+  &-checks {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: 12px;
+    align-items: center;
+    > span:nth-child(even) {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+  &-check-label {
+    margin-left: 6px;
+  }
+  &-conn {
+    display: flex;
+    align-items: center;
+    .@{prefix}-multiple-select {
+      width: 260px;
+      height: 28px;
+      > .@{prefix}-multiple-select-data {
+        width: 100%;
+      }
+    }
+    > a {
+      margin-left: 12px;
+    }
+  }
+  &-target, &-confirm-where {
+    > span {
+      margin-right: 18px;
+      user-select: text;
+      > i {
+        margin-right: 6px;
+        font-style: normal;
+        color: @third-font-color;
+      }
+    }
+  }
+  // ---- before writing into a database
+  &-confirm {
+    display: flex;
+    flex-direction: column;
+    max-height: 70vh;
+    padding: 12px;
+    overflow: auto;
+    &-target {
+      display: flex;
+      align-items: center;
+      flex: none;
+      padding: 10px 12px;
+      border: 1px solid fade(@warring-color, 55%);
+      border-radius: 4px;
+      background: fade(@warring-color, 7%);
+      > .fa {
+        flex: none;
+        margin-right: 12px;
+        font-size: 22px;
+        color: @warring-color;
+      }
+      > div {
+        min-width: 0;
+      }
+    }
+    &-name {
+      font-size: 15px;
+      font-weight: bold;
+      word-break: break-all;
+    }
+    &-where {
+      margin-top: 2px;
+      word-break: break-all;
+    }
+    &-lead {
+      flex: none;
+      margin: 8px 0;
+      color: @second-font-color;
+    }
+    &-wait, &-fail {
+      padding: 18px 0;
+      text-align: center;
+      line-height: 1.8;
+    }
+    &-tables {
+      flex: none;
+      max-height: 176px;
+    }
+    &-block {
+      flex: none;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+    &-choice {
+      flex: none;
+      margin-top: 12px;
+      .@{prefix}-radio {
+        margin-right: 20px;
+      }
+      .@{prefix}-tdgen-warn {
+        margin-top: 4px;
+        line-height: 1.5;
+      }
+    }
+    &-label {
+      margin-bottom: 4px;
+      font-weight: bold;
+    }
+    &-effect {
+      margin-top: 4px;
+      line-height: 1.5;
+      color: @second-font-color;
+    }
+    &-typed {
+      margin-top: 8px;
+      padding: 8px 10px;
+      border: 1px solid fade(@danger-color, 40%);
+      border-radius: 4px;
+      background: fade(@danger-color, 5%);
+      > div {
+        margin-bottom: 6px;
+        line-height: 1.5;
+      }
+      .@{prefix}-input {
+        width: 100%;
+      }
+    }
+  }
+}

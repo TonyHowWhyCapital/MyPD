@@ -1,11 +1,13 @@
 // The plan of a test data run: which tables are filled, in which order (parents first),
 // with how many rows, where the values of their foreign keys come from, what has to be
 // loaded before the run, and everything that makes the run impossible.
-import { getTestData, validateRule } from './model';
+import { getTestData, validateRule, seedNow } from './model';
 import { entityColumns } from './columns';
 import { fkGroups, uniqueSets, ruleCapacity } from './plan_keys';
 import { orderTables } from './plan_order';
 import { columnRoles, columnOrder } from './plan_columns';
+import { probeTable } from './plan_probe';
+import { makeKeyFit } from './fit';
 
 export const MAX_ROWS = 1000000;
 export const DEFAULT_ROWS = 100;
@@ -39,8 +41,12 @@ const selectEntities = (entityIds, external, byId, problems) => {
 const draftOf = (dataSource, entity, settings, ids, external, byId) => {
   const setting = (settings.tables || {})[entity.id] || {};
   const mode = setting.autoIncrement === 'database' ? 'database' : 'generate';
-  const columns = entityColumns(dataSource, entity)
-    .filter(c => !(c.autoIncrement && mode === 'database'));
+  const all = entityColumns(dataSource, entity);
+  // SQL Server fills timestamp / rowversion columns itself and refuses a value for them.
+  // (Computed columns cannot be inserted either, but the model does not say which they are.)
+  const skipped = all.filter(c => c.subtype === 'rowversion');
+  const columns = all.filter(c => !(c.autoIncrement && mode === 'database')
+    && !skipped.includes(c));
   const fieldOf = id => (entity.fields || []).find(f => f.id === id) || {};
   const groups = fkGroups(entity, byId).map((g) => {
     const pairs = g.pairs.filter(p => columns.some(c => c.id === p.fieldId));
@@ -62,6 +68,7 @@ const draftOf = (dataSource, entity, settings, ids, external, byId) => {
     setting,
     mode,
     columns,
+    skipped,
     groups,
   };
 };
@@ -120,43 +127,88 @@ const rowCount = (draft, settings, sized, report) => {
   };
 };
 
-const ruleProblems = (roles, report) => {
+// reports the rules that do not validate and returns them
+const ruleProblems = (roles, now, report) => {
   const seen = [];
   roles.filter(r => r.role === 'rule' && r.source !== 'auto').forEach((r) => {
-    const codes = typeof validateRule === 'function' ? (validateRule(r.rule) || []) : [];
+    const codes = typeof validateRule === 'function' ? (validateRule(r.rule, { now }) || []) : [];
     if (codes.length > 0 && !seen.includes(r.rule)) {
       seen.push(r.rule);
       report('badRule', r.column.id, codes);
     }
   });
+  return seen;
 };
 
-const uniqueProblems = (dataSource, table, roles, count, sized, report) => {
-  const capacity = (id) => {
-    const r = roles.find(o => o.column.id === id);
-    if (r.role === 'increment') {
-      return Infinity;
+// The numbers of an auto increment column must all go into the column.
+const incrementProblems = (table, roles, count, report) => {
+  roles.filter(r => r.role === 'increment').forEach((r) => {
+    const fit = makeKeyFit(r.column);
+    const last = table.startAt + Math.max(0, (count.maxRows === null ? 1 : count.maxRows) - 1);
+    try {
+      fit(table.startAt);
+      fit(last);
+    } catch (e) {
+      report('incrementOverflow', r.column.id, {
+        startAt: table.startAt,
+        rows: count.maxRows,
+        last,
+      });
     }
-    if (r.role === 'foreign') {
-      const parent = r.foreign.source === 'generated' && !r.foreign.self
-        ? sized.get(r.foreign.refEntityId) : undefined;
-      return parent && parent.maxRows !== null ? parent.maxRows : Infinity;
-    }
-    return ruleCapacity(r.rule, r.column, dataSource, r.field);
-  };
+  });
+};
+
+// A unique group cannot hold more rows than its columns have combinations of values. The
+// columns of one foreign key count once (they are copied from one parent row).
+const uniqueProblems = (table, roles, count, sized, ctx, report) => {
+  const perParent = table.perParent ? table.perParent.field : null;
   table.uniques.forEach((set) => {
-    const total = set.reduce((n, id) => n * capacity(id), 1);
+    const keys = [];
+    let total = 1;
+    let others = 1; // combinations besides the key the rows are counted per
+    let counted = false;
+    set.forEach((id) => {
+      const r = roles.find(o => o.column.id === id);
+      let capacity = Infinity;
+      if (r.role === 'foreign') {
+        if (keys.includes(r.foreign.group)) {
+          return;
+        }
+        keys.push(r.foreign.group);
+        const parent = r.foreign.source === 'generated' && !r.foreign.self
+          ? sized.get(r.foreign.refEntityId) : undefined;
+        capacity = parent && parent.maxRows !== null ? parent.maxRows : Infinity;
+        if ((table.foreignKeys || []).some(k => k.group === r.foreign.group
+          && k.fieldId === perParent)) {
+          counted = true;
+          total *= capacity;
+          return;
+        }
+      } else if (r.role === 'rule') {
+        capacity = ruleCapacity(r.rule, r.column, ctx.dataSource, r.field, ctx);
+      }
+      total *= capacity;
+      others *= capacity;
+    });
     if (total < count.minRows) {
       report('uniqueImpossible', set[0], {
         fields: set,
         capacity: total,
         rows: count.minRows,
       });
+    } else if (counted && others < table.perParent.max) {
+      // every parent row gets up to `max` children, which must differ in the other columns
+      report('uniqueImpossible', set[0], {
+        fields: set,
+        capacity: others,
+        rows: table.perParent.max,
+        perParent: true,
+      });
     }
   });
 };
 
-const tableOf = (dataSource, draft, settings, sized, drafts, problems) => {
+const tableOf = (dataSource, draft, settings, sized, drafts, problems, ctx) => {
   const { entity, setting, mode, columns, groups } = draft;
   const report = (code, fieldId, detail) => problems.push({
     code,
@@ -208,15 +260,45 @@ const tableOf = (dataSource, draft, settings, sized, drafts, problems) => {
       }
     });
   });
-  ruleProblems(roles, report);
-  columnOrder(roles).problems.forEach(p => report(p.code, p.fieldId, p.detail));
-  uniqueProblems(dataSource, table, roles, count, sized, report);
+  const invalid = ruleProblems(roles, ctx.now, report);
+  const ordered = columnOrder(roles);
+  ordered.problems.forEach(p => report(p.code, p.fieldId, p.detail));
+  incrementProblems(table, roles, count, report);
+  if (!ordered.problems.some(p => p.code === 'exprCycle' || p.code === 'selfReference')) {
+    const tried = probeTable(table, roles, ordered.order, ordered.deps,
+      count.maxRows === null ? DEFAULT_ROWS : count.maxRows, {
+        ...ctx,
+        invalid,
+      });
+    // a formula that names an unknown column is reported as that already
+    tried.problems.filter(p => !ordered.problems.some(o => o.fieldId === p.fieldId))
+      .forEach(p => problems.push({
+        entityId: entity.id,
+        ...p,
+      }));
+    ctx.samples.set(entity.id, tried.samples);
+  }
+  uniqueProblems(table, roles, count, sized, ctx, report);
   sized.set(entity.id, count);
   return {
     table,
     roles,
   };
 };
+
+// What the user should know although it does not stop the run.
+const noticesOf = (draft, roles) => draft.skipped.map(c => ({
+  code: 'columnSkipped',
+  entityId: draft.entity.id,
+  fieldId: c.id,
+  detail: c.subtype,
+})).concat(roles.filter(r => r.nullRateIgnored !== undefined).map(r => ({
+  // a column of a key or unique index is never NULL: databases disagree on NULLs there
+  code: 'nullRateIgnored',
+  entityId: draft.entity.id,
+  fieldId: r.column.id,
+  detail: { nullRate: r.nullRateIgnored },
+})));
 
 const collectNeeds = (drafts, built, missingParents, needs) => {
   drafts.forEach((d) => {
@@ -246,9 +328,21 @@ const collectNeeds = (drafts, built, missingParents, needs) => {
   }));
 };
 
-export const buildPlan = (dataSource, { entityIds = [], external = {} } = {}) => {
+// options.lists ({file, query}) and options.now (Date) let the rules be tried with what the
+// run will use; without them file and query rules are tried when the run starts.
+export const buildPlan = (dataSource, {
+  entityIds = [], external = {}, lists, now,
+} = {}) => {
   const td = getTestData(dataSource) || {};
   const settings = td.settings || {};
+  const seed = settings.seed || {};
+  const ctx = {
+    dataSource,
+    lists,
+    now: now instanceof Date ? now : seedNow(settings, new Date()),
+    seed: seed.fixed !== false && Number.isFinite(Number(seed.value)) ? Number(seed.value) : 1,
+    samples: new Map(),
+  };
   const answers = external || {};
   const byId = new Map(((dataSource && dataSource.entities) || []).map(e => [e.id, e]));
   const problems = [];
@@ -275,7 +369,7 @@ export const buildPlan = (dataSource, { entityIds = [], external = {} } = {}) =>
   }));
   const sized = new Map();
   const ordered = order.map(i => drafts[i]);
-  const built = ordered.map(d => tableOf(dataSource, d, settings, sized, drafts, problems));
+  const built = ordered.map(d => tableOf(dataSource, d, settings, sized, drafts, problems, ctx));
   const missingParents = [];
   const needs = {
     files: [],
@@ -288,5 +382,6 @@ export const buildPlan = (dataSource, { entityIds = [], external = {} } = {}) =>
     missingParents,
     needs,
     problems,
+    notices: ordered.reduce((list, d, i) => list.concat(noticesOf(d, built[i].roles)), []),
   };
 };

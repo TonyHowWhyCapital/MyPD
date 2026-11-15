@@ -34,6 +34,7 @@ import ToggleCase from '../container/tools/togglecase';
 import CompareTable from '../container/tools/comparetable';
 import ImpactAnalysis from '../container/tools/impactanalysis';
 import { RuleLibrary as TestDataRules } from '../container/tools/testdata';
+import TestData from '../container/tools/testdata/generate';
 import ModelCompare from '../container/tools/modelcompare';
 import DbObject from '../container/tools/dbobject';
 import Report from '../container/tools/report';
@@ -347,6 +348,13 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     updateContextMenus(getMenus(key, type, selectedMenu, parentKey, groupTypeRef.current));
   };
   const _contextMenuClick = (e, m, callback) => {
+    if (m.key === 'testData') {
+      // the table under the pointer and the other tables selected with it
+      const ids = (m.otherMenus || []).filter(o => o.type === 'entity').map(o => o.key);
+      // eslint-disable-next-line no-use-before-define
+      openTestData(ids.includes(m.dataKey) ? ids : ids.concat(m.dataKey));
+      return;
+    }
     dealMenuClick(dataSourceRef.current, m, restProps?.update, _tabClose,
         // eslint-disable-next-line no-use-before-define
         callback, genImg, _jumpDetail);
@@ -1305,9 +1313,8 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     report: [Report, 'report.title'],
     entityTemplate: [EntityTemplate, 'entityTemplate.title', '70%'],
     modelEdit: [ModelEdit, 'modelEdit.title'],
-    // test data: the rule library; the generate window registers here as `testData`
+    // test data: the rule library; the generate window is opened by `openTestData`
     testDataRules: [TestDataRules, 'testDataRule.title'],
-    // testData: [TestData, 'testData.title'],
   };
   const openExtTool = (key) => {
     let modal;
@@ -1728,6 +1735,28 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
         </Button>],
     });
   };
+  // The "generate test data" window; `entityIds` are ticked when it opens. It closes
+  // itself (after asking while a run is at work), so it brings its own buttons.
+  const openTestData = (entityIds) => {
+    let modal;
+    let guard = null;
+    const tryClose = () => (guard ? guard(() => modal && modal.close()) : modal && modal.close());
+    modal = openModal(<TestData
+      onCloseGuard={(fn) => { guard = fn; }}
+      onClose={tryClose}
+      dataSource={dataSourceRef.current}
+      getDataSource={getDataSource}
+      updateDataSource={restProps.update}
+      config={configRef.current}
+      projectFile={projectInfoRef.current}
+      entityIds={entityIds}
+      openConnSettings={() => _openModal('dbConnect')}
+    />, {
+      bodyStyle: { width: '90%' },
+      beforeClose: tryClose,
+      title: FormatMessage.string({id: 'testData.title'}),
+    });
+  };
   const _jumpDetail = (d, key) => {
     if (key === 'standardFields') {
       standardFieldRef.current?.openEdit(d);
@@ -1919,7 +1948,8 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       case 'report':
       case 'entityTemplate': openExtTool(key);break;
       case 'modelEdit': openExtTool(key);break;
-      // case 'testData': (generate test data, added with its window)
+      // eslint-disable-next-line no-use-before-define
+      case 'testData': openTestData();break;
       case 'testDataRules': openExtTool(key);break;
       case 'polygon': createPolygonNode(e);break;
       case 'group': createGroupNode(e);break;

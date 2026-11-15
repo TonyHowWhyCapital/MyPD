@@ -2,19 +2,15 @@
 // children point at is kept in memory.
 import { createRandom } from './random';
 import { makeValueGenerator } from './values';
-import { getTestData } from './model';
+import { getTestData, seedNow } from './model';
 import { MAX_ROWS } from './plan';
-import { neverRepeats } from './plan_keys';
 import { columnRoles, columnOrder } from './plan_columns';
-import { createUniqueTracker } from './generate_unique';
+import { dialectOf } from './sql';
+import { makeFit, makeKeyFit } from './fit';
+import { setupUnique, driveRow, makeUnique } from './generate_strategy';
 import {
   fail, listKeys, createSchedule, buildGroups, pickParent,
 } from './generate_fk';
-
-// new random values are tried this often for a row that repeats a unique value, then the
-// value is changed step by step this often before the run gives up
-const RETRIES = 30;
-const PROBES = 2000;
 
 const pause = () => new Promise((resolve) => {
   if (typeof setImmediate === 'function') {
@@ -24,11 +20,13 @@ const pause = () => new Promise((resolve) => {
   }
 });
 
+const settingsOf = dataSource => (getTestData(dataSource) || {}).settings || {};
+
 const seedOf = (dataSource, seed) => {
   if (typeof seed === 'number' && Number.isFinite(seed)) {
     return seed;
   }
-  const setting = ((getTestData(dataSource) || {}).settings || {}).seed || {};
+  const setting = settingsOf(dataSource).seed || {};
   if (setting.fixed === false) {
     return Date.now() % 2147483647;
   }
@@ -36,23 +34,48 @@ const seedOf = (dataSource, seed) => {
   return Number.isFinite(value) ? value : 1;
 };
 
+// The numbers of an auto increment column: startAt, startAt + 1 ... They must all go into
+// the column; a column that is too small stops the table before its first row.
+const counterOf = (table, column, total) => {
+  const fit = makeKeyFit(column);
+  try {
+    fit(table.startAt);
+    fit(table.startAt + Math.max(0, total - 1));
+  } catch (e) {
+    throw fail('incrementOverflow',
+      `${table.defKey}.${column.defKey}: ${table.startAt} + ${total} rows do not fit`, {
+        entityId: table.entityId,
+        fieldId: column.id,
+        startAt: table.startAt,
+        rows: total,
+      });
+  }
+  if (column.kind === 'int' || column.kind === 'decimal') {
+    return i => table.startAt + i;
+  }
+  const plain = makeFit(column);
+  return i => plain(table.startAt + i);
+};
+
 // How each column of a row is filled: fill[position](rowIndex) -> value
 const makeFillers = (state) => {
   const { table, roles, groups, env } = state;
+  const rowRandom = env.stream(`${table.entityId}/#row`);
   return roles.map((r, position) => {
     if (r.role === 'increment') {
-      return i => table.startAt + i;
+      return counterOf(table, r.column, state.fullTotal);
     }
     if (r.role === 'foreign') {
       const group = groups.find(g => g.positions.includes(position));
       const keys = group.keys[group.positions.indexOf(position)];
       const own = roles.findIndex(o => o.column.id === r.foreign.refFieldId);
+      const fit = makeKeyFit(r.column);
       // a row of a table that points at itself may be its own parent
       return (i) => {
         if (group.current < 0) {
           return null;
         }
-        return group.self && group.current === i ? state.row[own] : keys.at(group.current);
+        return fit(group.self && group.current === i ? state.row[own] : keys.at(group.current));
       };
     }
     const label = `${table.entityId}/${r.column.id}`;
@@ -60,6 +83,7 @@ const makeFillers = (state) => {
     try {
       make = makeValueGenerator(r.rule, r.column, {
         random: env.stream(label),
+        rowRandom,
         dataSource: env.dataSource,
         field: r.field,
         lists: env.lists,
@@ -77,105 +101,6 @@ const makeFillers = (state) => {
     const nulls = env.stream(`${label}/null`);
     return i => (nulls.next() * 100 < r.nullRate ? null : make(i, state.named));
   });
-};
-
-// For every unique group: the columns to make again when a row repeats one of its values
-// (its own columns, the whole foreign key they belong to, and every formula reading them).
-const makeRepairs = (state, sets, deps, order) => sets.map((set) => {
-  const { roles, groups } = state;
-  const picks = groups.filter(g => !g.perParent && !g.deferred
-    && g.positions.some(p => set.includes(p)));
-  const seeds = set.concat(...picks.map(g => g.positions))
-    .filter(p => !groups.some(g => g.perParent && g.positions.includes(p)));
-  const again = seeds.slice();
-  let grown = true;
-  while (grown) {
-    grown = false;
-    for (let i = 0; i < deps.length; i += 1) {
-      if (!again.includes(i) && deps[i].some(d => again.includes(d))) {
-        again.push(i);
-        grown = true;
-      }
-    }
-  }
-  const free = set.find(p => roles[p].role === 'rule'
-    && (roles[p].column.kind === 'string' || roles[p].column.kind === 'int'));
-  return {
-    set,
-    picks,
-    again: order.filter(p => again.includes(p)),
-    after: order.filter(p => again.includes(p) && !seeds.includes(p)),
-    free: free === undefined ? -1 : free,
-  };
-});
-
-// Step by step change of a row that still repeats after all random tries: the next parent
-// row for a foreign key, else a counter worked into a text or whole number column.
-const probe = (state, repair, i, step) => {
-  const { roles, row, named, fill } = state;
-  const refill = positions => positions.forEach((p) => {
-    row[p] = fill[p](i);
-    named[roles[p].column.defKey] = row[p];
-  });
-  const group = repair.picks.filter(g => g.current >= 0 && g.count(i) > 1).pop();
-  if (group) {
-    group.current = (group.current + 1) % group.count(i);
-    refill(repair.again);
-    return true;
-  }
-  if (repair.free < 0) {
-    return false;
-  }
-  const { column } = roles[repair.free];
-  if (step === 1) {
-    state.base = row[repair.free];
-  }
-  let value;
-  if (column.kind === 'int') {
-    value = (Number(state.base) || 0) + step;
-    value = column.len !== null && `${value}`.length > column.len ? step : value;
-  } else {
-    const tail = `~${i.toString(36)}${step > 1 ? `.${step.toString(36)}` : ''}`;
-    const text = `${state.base === null ? '' : state.base}`;
-    value = column.len === null ? text + tail
-      : (text.slice(0, Math.max(0, column.len - tail.length)) + tail).slice(-column.len);
-  }
-  row[repair.free] = value;
-  named[column.defKey] = value;
-  refill(repair.after);
-  return true;
-};
-
-const makeUnique = (state, i) => {
-  const { tracker, repairs, table, roles, groups } = state;
-  let bad = tracker.violated(state.row);
-  let tries = 0;
-  while (bad) {
-    tries += 1;
-    const repair = repairs[bad[0]];
-    let changed = tries <= RETRIES + PROBES;
-    if (changed && tries <= RETRIES) {
-      repair.picks.forEach(g => pickParent(table, g, i, null));
-      repair.again.forEach((p) => {
-        state.row[p] = state.fill[p](i);
-        state.named[roles[p].column.defKey] = state.row[p];
-      });
-    } else if (changed) {
-      changed = probe(state, repair, i, tries - RETRIES);
-    }
-    if (!changed) {
-      const columns = repair.set.map(p => roles[p].column.defKey);
-      throw fail('uniqueExhausted',
-        `No more unique values for ${table.defKey} (${columns.join(', ')}) at row ${i + 1}`, {
-          entityId: table.entityId,
-          fieldId: roles[repair.set[0]].column.id,
-          row: i,
-        });
-    }
-    bad = tracker.violated(state.row);
-  }
-  tracker.accept();
-  return groups;
 };
 
 const prepare = (env, table, limit) => {
@@ -205,10 +130,13 @@ const prepare = (env, table, limit) => {
       kept[k.refFieldId] = {
         at: i => table.startAt + i,
         size: () => counter.done,
+        distinct: true,
       };
     } else {
       const list = [];
-      kept[k.refFieldId] = listKeys(list);
+      // a column that is unique on its own never gives two parents the same key
+      kept[k.refFieldId] = listKeys(list, (table.uniques || [])
+        .some(set => set.length === 1 && set[0] === k.refFieldId));
       keep.push([at, list]);
     }
   }));
@@ -228,18 +156,36 @@ const prepare = (env, table, limit) => {
       rows: total,
     });
   }
+  const fullTotal = total;
   total = limit === undefined ? total : Math.min(total, limit);
   const state = {
-    table, roles, groups, env, schedule, total, order, counter, row: null, named: {}, base: null,
+    table,
+    roles,
+    groups,
+    env,
+    schedule,
+    total,
+    fullTotal,
+    order,
+    counter,
+    row: null,
+    named: {},
+    cursor: -1,
   };
   state.fill = makeFillers(state);
-  const sets = (table.uniques || []).map(set => set.map(position))
-    .filter(set => !set.includes(-1) && !set.some(p => roles[p].role === 'rule'
-      && !(roles[p].nullRate > 0) && neverRepeats(roles[p].rule, roles[p].column, total)));
-  state.tracker = sets.length > 0 ? createUniqueTracker(sets, total) : null;
-  state.repairs = makeRepairs(state, sets, deps, order);
+  setupUnique(state, deps, fullTotal);
   state.keep = keep;
   return state;
+};
+
+// what went wrong, where: the table, the column being filled and the row (0-based)
+const located = (e, state, i) => {
+  const column = state.cursor >= 0 ? state.roles[state.cursor].column : null;
+  return Object.assign(e, {
+    entityId: e.entityId || state.table.entityId,
+    ...(e.fieldId === undefined && column ? { fieldId: column.id } : {}),
+    ...(e.row === undefined ? { row: i } : {}),
+  });
 };
 
 const makeRow = (state, i) => {
@@ -249,17 +195,29 @@ const makeRow = (state, i) => {
   } = s;
   const row = new Array(roles.length);
   s.row = row;
-  for (let g = 0; g < groups.length; g += 1) {
-    pickParent(table, groups[g], i, s.schedule);
-  }
-  for (let k = 0; k < order.length; k += 1) {
-    const p = order[k];
-    const value = fill[p](i);
-    row[p] = value;
-    named[roles[p].column.defKey] = value;
-  }
-  if (s.tracker) {
-    makeUnique(s, i);
+  s.cursor = -1;
+  let at = -1; // the column being filled, for the error
+  try {
+    for (let g = 0; g < groups.length; g += 1) {
+      pickParent(table, groups[g], i, s.schedule);
+    }
+    if (s.drivers.length > 0) {
+      driveRow(s, i);
+    }
+    for (at = 0; at < order.length; at += 1) {
+      const p = order[at];
+      const value = fill[p](i);
+      row[p] = value;
+      named[roles[p].column.defKey] = value;
+    }
+    if (s.tracker) {
+      makeUnique(s, i);
+    }
+  } catch (e) {
+    if (at >= 0 && at < order.length) {
+      s.cursor = order[at];
+    }
+    throw located(e, s, i);
   }
   for (let k = 0; k < keep.length; k += 1) {
     keep[k][1].push(row[keep[k][0]]);
@@ -323,7 +281,10 @@ export const createGenerator = (dataSource, plan, options = {}) => {
       ...(options.lists || {}),
     },
     parentKeys: options.parentKeys || {},
-    now: options.now || new Date(),
+    // a fixed seed fixes the clock too, see seedNow in model.js
+    now: options.now instanceof Date ? options.now
+      : seedNow(settingsOf(dataSource), new Date()),
+    dialect: dialectOf(dataSource),
     lenient: !!options.lenient,
     store: new Map(),
     // every stream starts from the seed and its own label, so a table gives the same rows
@@ -332,6 +293,7 @@ export const createGenerator = (dataSource, plan, options = {}) => {
   };
   return {
     seed,
+    now: env.now,
     table: (entityId, opts) => runTable(env, entityId, opts),
   };
 };

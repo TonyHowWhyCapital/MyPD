@@ -6,7 +6,8 @@
 //
 // Errors are Error objects with a stable `code` and the 0-based `pos` in the text.
 import {
-  parseDateTime, formatDate, formatDateTime, addMonths, naiveNow, DAY_MS, HOUR_MS,
+  parseDateTime, formatDate, formatDateTime, addMonths, naiveNow, formatNumber, inDateRange,
+  DAY_MS, HOUR_MS,
 } from './pattern';
 
 const MAX_LENGTH = 4000;
@@ -97,8 +98,6 @@ const tokenize = (text) => {
 };
 
 // ---- runtime helpers ------------------------------------------------------
-const formatNumber = n => String(Number(n.toFixed(10)));
-
 const toText = (v) => {
   if (v === null || v === undefined) return '';
   if (typeof v === 'number') return formatNumber(v);
@@ -149,7 +148,21 @@ const dateOf = (v) => {
   return d;
 };
 
-const formatLike = (d, ms) => (d.hasTime ? formatDateTime(ms) : formatDate(ms));
+// a date the arithmetic carried out of the years 1 to 9999 is an error, not a text
+const inRange = (ms) => {
+  if (!inDateRange(ms)) {
+    throw exprError('expr.date.range', undefined, String(ms));
+  }
+  return ms;
+};
+
+const formatLike = (d, ms) => (d.hasTime ? formatDateTime(inRange(ms))
+  : formatDate(inRange(ms)));
+
+// Text functions count characters, not UTF-16 units: an emoji is one character and is
+// never cut in two.
+const SURROGATE = /[\uD800-\uDFFF]/;
+const charsOf = text => (SURROGATE.test(text) ? Array.from(text) : null);
 
 // null in -> null out, for plain value functions
 const lift = fn => args => (row, i, env) => {
@@ -203,11 +216,19 @@ const FUNCTIONS = {
     make: lift((v) => {
       const start = Math.max(1, Math.trunc(toNumber(v[1]))) - 1;
       const text = toText(v[0]);
-      if (v.length < 3) return text.slice(start);
-      return text.slice(start, start + Math.max(0, Math.trunc(toNumber(v[2]))));
+      const end = v.length < 3 ? undefined : start + Math.max(0, Math.trunc(toNumber(v[2])));
+      const chars = charsOf(text);
+      return chars ? chars.slice(start, end).join('') : text.slice(start, end);
     }),
   },
-  len: { min: 1, max: 1, make: args => (row, i, env) => toText(args[0](row, i, env)).length },
+  len: {
+    min: 1,
+    max: 1,
+    make: args => (row, i, env) => {
+      const text = toText(args[0](row, i, env));
+      return (charsOf(text) || text).length;
+    },
+  },
   // left pad to n characters, default pad character 0
   pad: {
     min: 2,
@@ -215,7 +236,15 @@ const FUNCTIONS = {
     make: lift((v) => {
       const width = Math.max(0, Math.min(MAX_PAD, Math.trunc(toNumber(v[1]))));
       const fill = v.length > 2 && toText(v[2]) !== '' ? toText(v[2]) : '0';
-      return toText(v[0]).padStart(width, fill);
+      const text = toText(v[0]);
+      const chars = charsOf(text + fill);
+      if (!chars) return text.padStart(width, fill);
+      const lead = Array.from(fill);
+      let out = '';
+      for (let k = 0; k < width - Array.from(text).length; k += 1) {
+        out += lead[k % lead.length];
+      }
+      return out + text;
     }),
   },
   // only the chosen branch is evaluated
@@ -256,7 +285,8 @@ const FUNCTIONS = {
   addhours: {
     min: 2,
     max: 2,
-    make: lift(v => formatDateTime(dateOf(v[0]).ms + Math.round(toNumber(v[1]) * HOUR_MS))),
+    make: lift(v => formatDateTime(inRange(
+      dateOf(v[0]).ms + Math.round(toNumber(v[1]) * HOUR_MS)))),
   },
   today: { min: 0, max: 0, make: () => (row, i, env) => formatDate(naiveNow(env.now)) },
   now: { min: 0, max: 0, make: () => (row, i, env) => formatDateTime(naiveNow(env.now)) },
@@ -308,8 +338,11 @@ const comparison = (op, a, b) => (row, i, env) => {
 // ---- parser ---------------------------------------------------------------
 const COMPARE_OPS = ['=', '==', '<>', '!=', '<', '<=', '>', '>='];
 
-// text -> {columns: [defKey], run(row, rowIndex, env) -> value}; env = {random, now}
-export const compileExpr = (source) => {
+// text -> {columns: [defKey], run(row, rowIndex, env) -> value}; env = {random, now}.
+// resolve(name) gives the real name of the column written as [name] (the caller knows the
+// columns of the table and may throw for an unknown one); without it names are taken as
+// written.
+export const compileExpr = (source, resolve) => {
   if (typeof source !== 'string' || source.trim() === '') {
     throw exprError('expr.empty', 0);
   }
@@ -365,7 +398,7 @@ export const compileExpr = (source) => {
       return () => value;
     }
     if (token.type === 'col') {
-      const key = token.value;
+      const key = resolve ? resolve(token.value) : token.value;
       if (!columns.includes(key)) columns.push(key);
       return (row) => {
         // own values only: [constructor] must not reach Object.prototype

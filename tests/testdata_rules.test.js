@@ -162,7 +162,9 @@ describe('builtin generators', () => {
   test('tw.taxId passes the 統一編號 check', () => {
     const ids = sample('tw.taxId', 5000);
     ids.forEach(id => expect(validTaxId(id)).toBe(true));
-    expect(ids.some(id => id.charAt(6) === '7')).toBe(true);
+    // checkers disagree on a 7 in the 7th place, so none is made
+    expect(ids.some(id => id.charAt(6) === '7')).toBe(false);
+    expect(new Set(ids.map(id => id.charAt(6))).size).toBe(9);
     expect(new Set(ids.map(id => id.charAt(7))).size).toBe(10);
   });
 

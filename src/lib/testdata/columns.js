@@ -2,6 +2,7 @@
 // field (taken through its base type and its domain, the same way the DDL does) reduced
 // to a small set of kinds, plus the rule that fills the column.
 import { getTestData } from './model';
+import { dialectOf } from './sql';
 
 export const COLUMN_KINDS = ['int', 'decimal', 'string', 'date', 'datetime', 'time', 'bool', 'binary'];
 
@@ -47,6 +48,25 @@ export const parseType = (text) => {
   };
 };
 
+// What the words around the type name say: 'INT(10) UNSIGNED' -> unsigned,
+// 'VARCHAR2(20 CHAR)' -> length in characters, "ENUM('a','b')" -> the listed values.
+export const typeTraits = (text) => {
+  const raw = `${text === undefined || text === null ? '' : text}`.trim();
+  const inner = (/\(([^)]*)\)/.exec(raw) || [])[1] || '';
+  const values = [];
+  const quoted = /'((?:[^']|'')*)'/g;
+  let found = quoted.exec(inner);
+  while (found) {
+    values.push(found[1].replace(/''/g, "'"));
+    found = quoted.exec(inner);
+  }
+  return {
+    unsigned: /\bUNSIGNED\b/i.test(raw),
+    lengthIn: (/^\s*\d+\s+(CHAR|BYTE)\s*$/i.exec(inner) || [])[1],
+    values,
+  };
+};
+
 const dbOf = (dataSource) => {
   const profile = (dataSource && dataSource.profile) || {};
   const supports = profile.dataTypeSupports || [];
@@ -71,11 +91,18 @@ export const fieldType = (dataSource, field) => {
     && dataSource.dataTypeMapping.mappings) || [];
   const baseType = f.baseType || (domain && domain.applyFor);
   const mapping = baseType ? mappings.find(m => m.id === baseType) : undefined;
-  const parsed = parseType((mapping && mapping[db.id]) || f.type);
+  const text = (mapping && mapping[db.id]) || f.type;
+  const parsed = parseType(text);
   const own = domain || f;
   const len = toNumber(own.len);
   const scale = toNumber(own.scale);
+  const traits = typeTraits(text);
+  // "ENUM" with the values written where the length goes
+  const listed = traits.values.length > 0 ? traits.values : typeTraits(`(${own.len})`).values;
   return {
+    unsigned: traits.unsigned,
+    lengthIn: traits.lengthIn ? traits.lengthIn.toUpperCase() : '',
+    values: listed,
     type: parsed.name,
     // a length written inside the type text ("VARCHAR(50)") counts when no other is given
     len: len === null && parsed.args.length > 0 ? parsed.args[0] : len,
@@ -129,12 +156,56 @@ const kindOf = (t) => {
 
 export const columnKind = (dataSource, field) => kindOf(fieldType(dataSource, field));
 
-const lengthOf = (t, kind) => {
+// What a column holds beyond its kind, where the automatic rule has to know:
+// 'uuid', 'year', 'enum', 'set', 'json', 'interval', 'rowversion' (SQL Server writes that
+// one itself, it cannot be inserted), else ''.
+const subtypeOf = (t, kind, dialect) => {
+  if (t.type === 'ROWVERSION' || (t.type === 'TIMESTAMP'
+    && (dialect === 'mssql' || /SQLSERVER|MSSQL/.test(t.db)))) {
+    return 'rowversion';
+  }
+  if (t.type === 'YEAR') {
+    return 'year';
+  }
+  if (kind !== 'string') {
+    return '';
+  }
+  if (UUID_TYPES.includes(t.type)) {
+    return 'uuid';
+  }
+  if (t.type === 'ENUM' || t.type === 'SET') {
+    return t.type.toLowerCase();
+  }
+  if (t.type === 'JSON' || t.type === 'JSONB') {
+    return 'json';
+  }
+  return /^INTERVAL\b/.test(t.type) ? 'interval' : '';
+};
+
+// How the length of a text column is counted: '' = characters (UTF-16 units, what
+// NVARCHAR of SQL Server and NVARCHAR2 of Oracle count, and never more than the characters
+// MySQL and PostgreSQL count), 'dbcs' = bytes of a double byte code page (VARCHAR and CHAR
+// of SQL Server), 'utf8' = bytes of UTF-8 (VARCHAR2 and CHAR of Oracle unless the type says
+// CHAR; NLS_LENGTH_SEMANTICS is BYTE by default).
+const lengthUnit = (t, kind, dialect) => {
+  if (kind !== 'string' || !/^(VARCHAR2?|CHAR|CHARACTER|CHARACTER VARYING)$/.test(t.type)) {
+    return '';
+  }
+  if (dialect === 'mssql') {
+    return 'dbcs';
+  }
+  return dialect === 'oracle' && t.lengthIn !== 'CHAR' ? 'utf8' : '';
+};
+
+const lengthOf = (t, kind, subtype) => {
   if (kind !== 'string') {
     return t.len;
   }
-  if (UUID_TYPES.includes(t.type)) {
+  if (subtype === 'uuid') {
     return 36;
+  }
+  if (subtype !== '') {
+    return null; // the numbers of ENUM(...), JSON and INTERVAL DAY(2) are no text length
   }
   if (t.len === null && /^(N?CHAR|CHARACTER|BPCHAR)$/.test(t.type)) {
     return 1;
@@ -145,17 +216,26 @@ const lengthOf = (t, kind) => {
 export const fieldColumn = (dataSource, field) => {
   const t = fieldType(dataSource, field);
   const kind = kindOf(t);
+  const dialect = dialectOf(dataSource);
+  const subtype = subtypeOf(t, kind, dialect);
+  const unit = lengthUnit(t, kind, dialect);
   return {
     id: field.id,
     defKey: field.defKey,
     defName: field.defName || '',
     kind,
     type: t.type,
-    len: lengthOf(t, kind),
+    len: lengthOf(t, kind, subtype),
     scale: t.scale,
     notNull: !!field.notNull,
     primaryKey: !!field.primaryKey,
     autoIncrement: !!field.autoIncrement,
+    // what the limits of the column depend on; only present when they say something
+    dialect,
+    ...(t.unsigned ? { unsigned: true } : {}),
+    ...(subtype ? { subtype } : {}),
+    ...(unit ? { lenUnit: unit } : {}),
+    ...((subtype === 'enum' || subtype === 'set') ? { values: t.values } : {}),
   };
 };
 

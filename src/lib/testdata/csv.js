@@ -12,7 +12,13 @@ const READY = Promise.resolve();
 
 const quote = text => `"${text.replace(/"/g, '""')}"`;
 
-export const csvField = (value) => {
+// A text that starts with one of these is read as a formula by Excel and LibreOffice.
+const FORMULA_START = /^[=+\-@\t\r]/;
+
+// options.guardFormulas: put an apostrophe in front of a text a spreadsheet would run as a
+// formula (numbers are not touched). Off by default: the file is data, and a loader would
+// store the apostrophe. (An object, so that `values.map(csvField)` cannot switch it on.)
+export const csvField = (value, options) => {
   if (value === null || value === undefined) {
     return '';
   }
@@ -22,15 +28,19 @@ export const csvField = (value) => {
   if (typeof value === 'boolean') {
     return value ? '1' : '0';
   }
-  const text = typeof value === 'string' ? value : String(value);
+  let text = typeof value === 'string' ? value : String(value);
   if (text === '') {
     return '""';
+  }
+  if (options && options.guardFormulas === true && FORMULA_START.test(text)) {
+    text = `'${text}`;
   }
   // a leading or trailing blank is quoted too, some readers trim it otherwise
   return /[",\r\n]|^\s|\s$/.test(text) ? quote(text) : text;
 };
 
-export const csvLine = values => `${values.map(csvField).join(',')}\r\n`;
+export const csvLine = (values, options) => `${
+  values.map(v => csvField(v, options)).join(',')}\r\n`;
 
 const guarded = (fn) => {
   try {
@@ -40,9 +50,10 @@ const guarded = (fn) => {
   }
 };
 
-// createCsvWriter(dir) -> { beginTable, rows, endTable, close }
+// createCsvWriter(dir, { guardFormulas = false }) -> { beginTable, rows, endTable, close }
 // close() -> { dir, files: [{table, file, path, rows}], rows }
-export const createCsvWriter = (dir) => {
+export const createCsvWriter = (dir, options = {}) => {
+  const guard = { guardFormulas: !!(options && options.guardFormulas) };
   fs.mkdirSync(dir, { recursive: true });
   const state = createTableState();
   const used = new Set();
@@ -74,7 +85,7 @@ export const createCsvWriter = (dir) => {
         const row = rows[r] || [];
         let line = '';
         for (let c = 0; c < width; c += 1) {
-          line += c ? `,${csvField(row[c])}` : csvField(row[c]);
+          line += c ? `,${csvField(row[c], guard)}` : csvField(row[c], guard);
         }
         out += `${line}\r\n`;
       }

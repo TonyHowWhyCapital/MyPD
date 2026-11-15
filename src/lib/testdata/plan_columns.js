@@ -28,6 +28,9 @@ export const columnRoles = (dataSource, entity, table) => {
       rule: resolved.rule,
       source: resolved.source,
       nullRate: keyed.includes(column.id) ? 0 : resolved.nullRate,
+      // the null rate the user asked for and a unique column cannot have
+      ...(keyed.includes(column.id) && resolved.nullRate > 0
+        ? { nullRateIgnored: resolved.nullRate } : {}),
     };
   });
 };

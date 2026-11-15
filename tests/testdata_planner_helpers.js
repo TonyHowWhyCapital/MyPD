@@ -2,6 +2,8 @@
 // the planner and generator tests do not depend on how the rules are implemented.
 
 export const fakeModel = {
+  // everything else (numberOf, seedNow ...) is the real thing
+  ...jest.requireActual('../src/lib/testdata/model'),
   getTestData: (dataSource) => {
     const td = (dataSource && dataSource.profile && dataSource.profile.testData) || {};
     const settings = td.settings || {};

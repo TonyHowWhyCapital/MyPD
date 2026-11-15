@@ -1,0 +1,407 @@
+// Grids of the window: the tables of the run, the columns of a table, the preview.
+@import "~style";
+
+.@{prefix}-tdgen {
+  &-grid-wrap, &-columns-wrap, &-preview-body, &-confirm-tables, &-run-tables {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    border: 1px solid @primary-border-color;
+    border-radius: 4px;
+  }
+  &-grid {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+    th, td {
+      height: 34px;
+      padding: 3px 8px;
+      box-sizing: border-box;
+      text-align: left;
+      vertical-align: middle;
+      border-bottom: 1px solid @primary-border-color-simple;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      height: 30px;
+      font-weight: bold;
+      color: @second-font-color;
+      background: @tr-background;
+      > span > .fa, > .fa {
+        margin: 0;
+        font-weight: normal;
+        color: @third-font-color;
+      }
+    }
+    tbody tr:hover > td {
+      background: @tr-background;
+    }
+    tr&-active > td {
+      background: @third-primary-color !important;
+    }
+    &-name {
+      width: 21%;
+      > div {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        > * + * {
+          margin-left: 8px;
+        }
+      }
+    }
+    &-increment {
+      width: 196px;
+    }
+    &-rules {
+      width: 84px;
+    }
+    &-state {
+      width: 68px;
+    }
+    &-act {
+      width: 36px;
+      padding: 0 !important;
+      text-align: center !important;
+      text-overflow: clip !important;
+    }
+    &-links {
+      text-align: right !important;
+    }
+    &-external > td {
+      color: @second-font-color;
+      background: @tr-background;
+    }
+  }
+  // in a narrow window the grids keep a width that works and scroll sideways
+  &-grid-wrap > &-grid {
+    min-width: 770px;
+  }
+  &-columns-wrap > &-grid {
+    min-width: 660px;
+  }
+  // inputs inside a grid
+  &-rows, &-increment, &-rate {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    > * {
+      flex: none;
+      margin-right: 6px;
+    }
+    .@{prefix}-numberinput {
+      width: 74px;
+      height: 25px;
+    }
+    .@{prefix}-multiple-select {
+      width: 104px;
+      height: 25px;
+      > .@{prefix}-multiple-select-data {
+        width: 100%;
+      }
+    }
+  }
+  &-rows {
+    flex-wrap: wrap;
+    > * {
+      margin-top: 2px;
+      margin-bottom: 2px;
+    }
+    .@{prefix}-multiple-select&-parent {
+      width: 170px;
+    }
+    &-parent-name {
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .@{prefix}-numberinput {
+      width: 92px;
+    }
+    &-range .@{prefix}-numberinput {
+      width: 56px;
+    }
+    &-group {
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
+      max-width: 100%;
+      > * {
+        flex: none;
+        margin-right: 6px;
+      }
+    }
+    &-dash {
+      margin: 0 6px 0 0;
+    }
+    &-total {
+      flex: 0 1 auto !important;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  &-increment {
+    .@{prefix}-multiple-select {
+      width: 116px;
+    }
+    .@{prefix}-numberinput {
+      width: 58px;
+      margin-right: 0;
+    }
+  }
+  &-rate {
+    .@{prefix}-numberinput {
+      width: 44px;
+      margin-right: 4px;
+      text-align: right;
+    }
+  }
+  &-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 20px;
+    white-space: nowrap;
+    > .fa:last-child {
+      margin-right: 0;
+    }
+    &-ok {
+      color: @success-color;
+      background: fade(@success-color, 10%);
+    }
+    &-bad {
+      color: @danger-color;
+      background: fade(@danger-color, 10%);
+    }
+  }
+  // ---- step 2: tables on the left
+  &-tables {
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    width: 220px;
+    margin-right: 12px;
+    padding-right: 12px;
+    border-right: 1px solid @primary-border-color;
+    &-title {
+      flex: none;
+      padding: 4px 8px 8px;
+      font-weight: bold;
+      color: @second-font-color;
+    }
+    &-list {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+    &-item {
+      padding: 5px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      &:hover {
+        background: @tr-background;
+      }
+      &-active, &-active:hover {
+        background: @third-primary-color;
+      }
+    }
+    &-name {
+      display: flex;
+      align-items: center;
+      > span {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+    &-sub {
+      display: flex;
+      font-size: 12px;
+      color: @third-font-color;
+      > span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      > span:first-child {
+        flex: 1;
+        min-width: 0;
+        margin-right: 8px;
+      }
+      > span:last-child {
+        flex: none;
+      }
+    }
+  }
+  &-dot-bad {
+    flex: none;
+    width: 7px;
+    height: 7px;
+    margin-left: 6px;
+    border-radius: 50%;
+    background: @danger-color;
+  }
+  &-detail-head {
+    display: flex;
+    align-items: baseline;
+    flex: none;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    > * {
+      margin-right: 10px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  &-detail-title {
+    flex: none;
+    font-size: 14px;
+    font-weight: bold;
+  }
+  // ---- the columns of a table
+  &-columns-wrap {
+    flex: 3 1 0;
+    min-height: 150px;
+  }
+  &-columns {
+    &-name {
+      width: 22%;
+      > div > span + span {
+        margin-left: 8px;
+      }
+    }
+    &-type {
+      width: 124px;
+      color: @second-font-color;
+    }
+    &-marks {
+      width: 78px;
+    }
+    &-rule {
+      width: 29%;
+      overflow: visible !important;
+    }
+    &-rate {
+      width: 88px;
+    }
+    &-notes {
+      font-size: 12px;
+      > div {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+    &-off > td {
+      color: @third-font-color;
+    }
+  }
+  &-fixed {
+    display: block;
+    color: @second-font-color;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    > a {
+      margin-left: 8px;
+    }
+  }
+  &-columns-off &-dim > a {
+    margin-left: 8px;
+  }
+  &-marks {
+    display: inline-flex;
+  }
+  &-mark {
+    margin-right: 3px;
+    padding: 0 4px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-style: normal;
+    line-height: 16px;
+    color: @second-font-color;
+    background: @fourth-primary-color;
+    &-pk {
+      color: #fff;
+      background: @warring-color;
+    }
+    &-fk {
+      color: #fff;
+      background: @primary-color;
+    }
+  }
+  // ---- the preview
+  &-preview {
+    display: flex;
+    flex-direction: column;
+    flex: 2 1 0;
+    min-height: 130px;
+    margin-top: 8px;
+    &-head {
+      display: flex;
+      align-items: baseline;
+      flex: none;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      > * {
+        margin-right: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+    &-title {
+      flex: none;
+      font-weight: bold;
+    }
+    &-tools {
+      flex: 1 0 auto;
+      margin-right: 0;
+      text-align: right;
+    }
+    &-errors {
+      flex: none;
+      max-height: 60px;
+      margin-bottom: 4px;
+      overflow: auto;
+    }
+    &-grid {
+      width: auto;
+      min-width: 100%;
+      table-layout: auto;
+      th, td {
+        height: 24px;
+        max-width: 220px;
+        padding: 2px 8px;
+        font-size: 12px;
+        user-select: text;
+      }
+      th {
+        height: 26px;
+      }
+    }
+    &-no {
+      width: 34px;
+      color: @third-font-color;
+      text-align: right !important;
+    }
+    &-number {
+      text-align: right !important;
+    }
+    &-null {
+      font-style: italic;
+      color: @third-font-color;
+    }
+  }
+}

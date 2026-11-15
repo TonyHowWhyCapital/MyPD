@@ -1,0 +1,149 @@
+@import "~style";
+// the tones of the night theme (only the variables are taken, no rule is repeated)
+@import (reference) "../../../../../../style/night.less";
+
+@n-bad: #ff7b86;
+@n-warn: #ffa45c;
+@n-good: #5fd08f;
+
+// Night mode. The theme turns every element dark with rules of no weight but with
+// !important; what must keep a meaning of its own (a warning, a dimmed note, a selected
+// row, a bar) is given back here with real selectors.
+body[theme='themeNigh'] {
+  .@{prefix}-tdgen a, .@{prefix}-tdgen a > .fa {
+    color: @n-accent !important;
+  }
+  .@{prefix}-tdgen-dim, .@{prefix}-tdgen-dim > .fa, .@{prefix}-tdgen-picker-count, .@{prefix}-tdgen-picker-item-name, .@{prefix}-tdgen-tables-sub, .@{prefix}-tdgen-tables-sub > span,
+  .@{prefix}-tdgen-preview-null, .@{prefix}-tdgen-preview-no, .@{prefix}-tdgen-run-count, .@{prefix}-tdgen-run-time, .@{prefix}-tdgen-columns-type, .@{prefix}-tdgen-raw,
+  .@{prefix}-tdgen-field-label, .@{prefix}-tdgen-confirm-lead, .@{prefix}-tdgen-confirm-effect, .@{prefix}-tdgen-outputs-intro, .@{prefix}-tdgen-fixed, .@{prefix}-tdgen-fixed > .fa,
+  .@{prefix}-tdgen-target i, .@{prefix}-tdgen-confirm-where i, .@{prefix}-tdgen-icon-button, .@{prefix}-tdgen-icon-button > .fa, .@{prefix}-tdgen-link-off,
+  .@{prefix}-tdgen-settings-label > .fa, .@{prefix}-tdgen-grid th > span > .fa, .@{prefix}-tdgen-columns-off > td,
+  .@{prefix}-tdgen-picker-group-head > .fa, .@{prefix}-tdgen-output-head > .fa, .@{prefix}-tdgen-step, .@{prefix}-tdgen-step > span,
+  .@{prefix}-tdgen-output-off .@{prefix}-tdgen-output-title, .@{prefix}-tdgen-tables-title, .@{prefix}-tdgen-grid-external > td {
+    color: @n-dim !important;
+  }
+  .@{prefix}-tdgen-bad, .@{prefix}-tdgen-bad > .fa, a.@{prefix}-tdgen-bad, a.@{prefix}-tdgen-bad > .fa, .@{prefix}-tdgen-problems-head, .@{prefix}-tdgen-problems-head > span,
+  .@{prefix}-tdgen-problems-head > .fa, .@{prefix}-tdgen-run-col > .fa-times, .@{prefix}-tdgen-run-col > .fa-ban,
+  .@{prefix}-tdgen-run-head-bad > .fa, .@{prefix}-tdgen-icon-button:hover, .@{prefix}-tdgen-icon-button:hover > .fa {
+    color: @n-bad !important;
+  }
+  .@{prefix}-tdgen-warn, .@{prefix}-tdgen-warn > .fa, .@{prefix}-tdgen-note, .@{prefix}-tdgen-note > .fa, .@{prefix}-tdgen-problems-mild .@{prefix}-tdgen-problems-head,
+  .@{prefix}-tdgen-problems-mild .@{prefix}-tdgen-problems-head > span, .@{prefix}-tdgen-problems-mild .@{prefix}-tdgen-problems-head > .fa,
+  .@{prefix}-tdgen-run-head-warn > .fa, .@{prefix}-tdgen-confirm-target > .fa {
+    color: @n-warn !important;
+  }
+  .@{prefix}-tdgen-badge-ok, .@{prefix}-tdgen-badge-ok > .fa, .@{prefix}-tdgen-run-col > .fa-check, .@{prefix}-tdgen-run-head-ok > .fa {
+    color: @n-good !important;
+  }
+  .@{prefix}-tdgen-badge-bad, .@{prefix}-tdgen-badge-bad > .fa {
+    color: @n-bad !important;
+  }
+  .@{prefix}-tdgen-badge-ok {
+    background-color: fade(@n-good, 14%) !important;
+  }
+  .@{prefix}-tdgen-badge-bad {
+    background-color: fade(@n-bad, 14%) !important;
+  }
+  .@{prefix}-tdgen-run-head-working > .fa {
+    color: @n-accent !important;
+  }
+  // boxes that carry a meaning
+  .@{prefix}-tdgen-problems, .@{prefix}-tdgen-confirm-typed, .@{prefix}-tdgen-run-head-bad {
+    border-color: fade(@n-bad, 45%) !important;
+  }
+  .@{prefix}-tdgen-problems-mild, .@{prefix}-tdgen-confirm-target, .@{prefix}-tdgen-run-head-warn {
+    border-color: fade(@n-warn, 45%) !important;
+  }
+  .@{prefix}-tdgen-run-head-ok {
+    border-color: fade(@n-good, 45%) !important;
+  }
+  .@{prefix}-tdgen-output-on {
+    border-color: fade(@n-accent, 60%) !important;
+  }
+  // grids: heading, stripes of the pointer, the row in focus
+  .@{prefix}-tdgen-grid th, .@{prefix}-tdgen-grid th * {
+    background-color: @n-raised !important;
+  }
+  .@{prefix}-tdgen-grid td,
+  .@{prefix}-tdgen-grid td *:not(input):not(.@{prefix}-tdgen-mark):not(.@{prefix}-tdgen-bar):not(.@{prefix}-tdgen-bar > i):not(.@{prefix}-multiple-select-data):not(.@{prefix}-multiple-select-data *) {
+    background-color: @n-row !important;
+  }
+  .@{prefix}-tdgen-grid td .@{prefix}-multiple-select-data {
+    background-color: @n-field !important;
+  }
+  .@{prefix}-tdgen-grid td .@{prefix}-multiple-select-data * {
+    background-color: transparent !important;
+  }
+  .@{prefix}-tdgen-grid tbody tr:hover > td,
+  .@{prefix}-tdgen-grid tbody tr:hover > td *:not(input):not(.@{prefix}-tdgen-mark):not(.@{prefix}-tdgen-bar):not(.@{prefix}-tdgen-bar > i):not(.@{prefix}-multiple-select-data):not(.@{prefix}-multiple-select-data *) {
+    background-color: @n-row-hover !important;
+  }
+  .@{prefix}-tdgen-grid tr.@{prefix}-tdgen-grid-active > td,
+  .@{prefix}-tdgen-grid tr.@{prefix}-tdgen-grid-active > td *:not(input):not(.@{prefix}-tdgen-mark):not(.@{prefix}-tdgen-bar):not(.@{prefix}-tdgen-bar > i):not(.@{prefix}-multiple-select-data):not(.@{prefix}-multiple-select-data *) {
+    background-color: @n-selected !important;
+  }
+  .@{prefix}-tdgen-grid-external > td, .@{prefix}-tdgen-grid-external > td * {
+    background-color: @n-stripe !important;
+  }
+  .@{prefix}-tdgen-grid td .@{prefix}-tdgen-badge-ok, .@{prefix}-tdgen-grid td .@{prefix}-tdgen-badge-ok > .fa {
+    background-color: #20362c !important;
+  }
+  .@{prefix}-tdgen-grid td .@{prefix}-tdgen-badge-bad, .@{prefix}-tdgen-grid td .@{prefix}-tdgen-badge-bad > .fa {
+    background-color: #3d2730 !important;
+  }
+  .@{prefix}-tdgen-mark {
+    color: @n-text !important;
+    background-color: #3a4558 !important;
+  }
+  .@{prefix}-tdgen-mark-pk {
+    color: #1a1e27 !important;
+    background-color: @n-warn !important;
+  }
+  .@{prefix}-tdgen-mark-fk {
+    color: #fff !important;
+    background-color: @primary-color !important;
+  }
+  .@{prefix}-tdgen-dot-bad {
+    background-color: @n-bad !important;
+  }
+  // rows that answer to the pointer
+  .@{prefix}-tdgen-picker-item:hover, .@{prefix}-tdgen-picker-item:hover *, .@{prefix}-tdgen-tables-item:hover, .@{prefix}-tdgen-tables-item:hover *,
+  .@{prefix}-tdgen-step:hover, .@{prefix}-tdgen-step:hover * {
+    background-color: @n-hover !important;
+  }
+  .@{prefix}-tdgen-tables-item-active, .@{prefix}-tdgen-tables-item-active *, .@{prefix}-tdgen-tables-item-active:hover,
+  .@{prefix}-tdgen-tables-item-active:hover *, .@{prefix}-tdgen-step-active, .@{prefix}-tdgen-step-active > span, .@{prefix}-tdgen-step-active:hover,
+  .@{prefix}-tdgen-step-active:hover > span {
+    background-color: @n-selected !important;
+  }
+  .@{prefix}-tdgen-tables-item .@{prefix}-tdgen-dot-bad, .@{prefix}-tdgen-tables-item:hover .@{prefix}-tdgen-dot-bad {
+    background-color: @n-bad !important;
+  }
+  .@{prefix}-tdgen-step-active, .@{prefix}-tdgen-step-active > span {
+    color: #fff !important;
+  }
+  .@{prefix}-tdgen-step > i {
+    color: @n-text !important;
+    background-color: #3a4558 !important;
+  }
+  .@{prefix}-tdgen-step-done > i {
+    color: @n-accent !important;
+  }
+  .@{prefix}-tdgen-step-active > i, .@{prefix}-tdgen-step-active:hover > i {
+    color: #fff !important;
+    background-color: @primary-color !important;
+  }
+  // bars
+  .@{prefix}-tdgen-bar {
+    background-color: #3a4558 !important;
+  }
+  .@{prefix}-tdgen-bar > i {
+    background-color: @n-accent !important;
+  }
+  .@{prefix}-tdgen-bar-done > i {
+    background-color: @n-good !important;
+  }
+  .@{prefix}-tdgen-bar-stopped > i, .@{prefix}-tdgen-bar-failed > i {
+    background-color: @n-dim !important;
+  }
+}

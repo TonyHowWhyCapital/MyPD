@@ -1,5 +1,6 @@
 // What the model says about keys: which columns point at a parent row, which groups of
 // columns must be unique, and how many different values a rule can give at most.
+import { spaceSize, sequenceRows } from './value_space';
 
 const same = (a, b) => `${a}`.toLowerCase() === `${b}`.toLowerCase();
 
@@ -80,124 +81,23 @@ export const uniqueSets = (entity, columns, ruleOf) => {
     && o.every(id => s.includes(id))));
 };
 
-const CHARSETS = {
-  alnum: 62,
-  alpha: 52,
-  digit: 10,
-  hex: 16,
-  zh: 3000,
-};
+// Upper bound of the number of different values a rule gives for a column: what the
+// generator can really draw (see value_space.js); Infinity when it cannot be told before
+// the data is there (files and queries not loaded, formulas, most builtins).
+// ctx = { lists, now } when the caller has them.
+export const ruleCapacity = (rule, column, dataSource, field, ctx) => spaceSize(rule, column, {
+  ...(ctx || {}),
+  dataSource,
+  field,
+});
 
-const power = (base, exp) => (exp > 18 ? Infinity : base ** Math.max(0, exp));
-
-const maskCapacity = (mask) => {
-  let total = 1;
-  const text = `${mask || ''}`;
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    if (ch === '\\') {
-      i += 1;
-    } else if (ch === '#') {
-      total *= 10;
-    } else if (ch === 'A' || ch === 'a') {
-      total *= 26;
-    } else if (ch === '*') {
-      total *= 62;
-    }
-    if (total > 1e15) {
-      return Infinity;
-    }
-  }
-  return total;
-};
-
-const distinct = values => values.filter((v, i) => values.indexOf(v) === i).length;
-
-const autoCapacity = (column) => {
-  if (column.kind === 'string') {
-    return column.len === null ? Infinity : power(36, column.len);
-  }
-  if (column.kind === 'int') {
-    const byType = {
-      TINYINT: 128,
-      SMALLINT: 32768,
-      INT2: 32768,
-    }[column.type];
-    return byType || (column.len === null ? Infinity : power(10, column.len));
-  }
-  return Infinity;
-};
-
-const sequenceCapacity = (params, column) => {
-  if (column.len === null) {
-    return Infinity;
-  }
-  if (column.kind === 'string') {
-    const fixed = `${params.prefix || ''}${params.suffix || ''}`.length;
-    return column.len > fixed ? power(10, column.len - fixed) : 1;
-  }
-  return column.kind === 'int' ? power(10, column.len) : Infinity;
-};
-
-const dictCapacity = (params, dataSource, field) => {
-  const id = params.dict || (field && field.refDict);
-  const dict = ((dataSource && dataSource.dicts) || []).find(d => d.id === id);
-  if (!dict) {
-    return Infinity;
-  }
-  const items = (dict.items || []).filter(i => i && i.enabled !== false);
-  return distinct(items.map(i => `${params.use === 'name' ? i.defName : i.defKey}`));
-};
-
-// Upper bound of the number of different values a rule gives for a column; Infinity when
-// it cannot be told before the data is there (files, queries, formulas).
-export const ruleCapacity = (rule, column, dataSource, field) => {
-  const params = (rule && rule.params) || {};
-  const limit = column.kind === 'bool' ? 2 : Infinity;
-  let capacity = Infinity;
-  switch (rule && rule.kind) {
-    case 'auto': capacity = autoCapacity(column); break;
-    case 'sequence': capacity = sequenceCapacity(params, column); break;
-    case 'constant': capacity = 1; break;
-    case 'list':
-      capacity = distinct((params.items || []).map(i => `${i && i.value}`));
-      break;
-    case 'dict': capacity = dictCapacity(params, dataSource, field); break;
-    case 'pattern': capacity = maskCapacity(params.mask); break;
-    case 'builtin': capacity = params.name === 'boolean' ? 2 : Infinity; break;
-    case 'number': {
-      const span = Number(params.max) - Number(params.min);
-      const decimals = Math.max(0, Number(params.decimals) || 0);
-      capacity = Number.isNaN(span) || span < 0 ? Infinity
-        : Math.floor(span * power(10, decimals)) + 1;
-      break;
-    }
-    case 'text': {
-      const max = Number(params.max);
-      const len = column.len === null ? max : Math.min(max, column.len);
-      capacity = Number.isNaN(len) ? Infinity : power(CHARSETS[params.charset] || 62, len);
-      break;
-    }
-    default: break;
-  }
-  return Math.min(limit, capacity);
-};
-
-// A sequence never repeats while it fits the column, so its values need no checking.
+// A sequence never repeats while it stays inside the column, so its values need no
+// checking. It leaves the column when a number is too large for the type (127 for a
+// TINYINT) or a text too long; such a sequence stops the run instead of repeating.
 export const neverRepeats = (rule, column, rows) => {
-  if (!rule || rule.kind !== 'sequence' || (column.kind !== 'string' && column.kind !== 'int')) {
+  if (!rule || rule.kind !== 'sequence' || !['int', 'decimal', 'string'].includes(column.kind)) {
     return false;
   }
-  const params = rule.params || {};
-  const start = params.start === undefined ? 1 : Number(params.start);
-  const step = params.step === undefined ? 1 : Number(params.step);
-  if (!step || Number.isNaN(step) || Number.isNaN(start) || start < 0 || step < 0) {
-    return false;
-  }
-  if (column.len === null) {
-    return true;
-  }
-  const fixed = column.kind === 'string' ? `${params.prefix || ''}${params.suffix || ''}`.length : 0;
-  const digits = `${Math.floor(start + (Math.max(1, rows) - 1) * step)}`.length;
-  return Math.max(digits, Number(params.pad) || 0) <= column.len - fixed;
+  const count = Math.max(1, rows || 0);
+  return sequenceRows(rule.params || {}, column, count) >= count;
 };

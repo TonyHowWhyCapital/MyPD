@@ -23,9 +23,14 @@ export const TW_ROADS = [
   '力行路', '莒光路', '介壽路', '府前路', '市政路', '向上路',
 ];
 
-// two of these make the leading part of a company name
-export const TW_COMPANY_CHARS = ('永豐盛昌順發泰華隆鑫祥瑞興利達弘富聯嘉信宏鼎冠銘廣新大正'
-  + '和安益誠德茂源豪傑群毅').split('');
+// One character of each list makes the leading part of a company name. The characters are
+// chosen away from the ones real companies are usually named with (永, 華, 聯, 宏, 大, 新 ...),
+// so that no combination with a kind below is the name of a well-known company; the test
+// goes through every combination against a list of such names.
+export const TW_COMPANY_HEADS = '禾沐晴杉嵐澄岳楓柏雁鹿鯨霧曦棠樺湛漾熙禧穗聿芮荷蔚霏頤曜朔昀暘'.split('');
+
+export const TW_COMPANY_TAILS = '森川原野田谷嶼岸洋月雲樹果木丘里境域匯點線格序翼途徑橋塔舟灣堂坊舍居閣苑園庭'
+  .split('');
 
 export const TW_COMPANY_KINDS = [
   '科技', '實業', '企業', '國際', '貿易', '工業', '電子', '資訊', '建設', '開發', '食品',

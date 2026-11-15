@@ -105,6 +105,9 @@ export const excelSerial = (text, kind) => {
     return null;
   }
   const [year, month, day] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  if (year < 1900) {
+    return null; // also keeps Date.UTC from reading the years 0 to 99 as 1900 to 1999
+  }
   const utc = Date.UTC(year, month - 1, day);
   const back = new Date(utc);
   if (year > 9999 || back.getUTCMonth() !== month - 1 || back.getUTCDate() !== day
@@ -130,7 +133,12 @@ export const cellXml = (ref, value, kind) => {
   }
   if (typeof value === 'number') {
     const text = plainNumber(value);
-    return text === null ? '' : `<c r="${ref}"><v>${text}</v></c>`;
+    if (text === null) {
+      return '';
+    }
+    // Excel keeps 15 digits: a longer whole number (an id, a BIGINT) stays text
+    return Number.isInteger(value) && Math.abs(value) >= 1e15 ? textCell(ref, text, '')
+      : `<c r="${ref}"><v>${text}</v></c>`;
   }
   if (typeof value === 'boolean') {
     return `<c r="${ref}" t="b"><v>${value ? 1 : 0}</v></c>`;

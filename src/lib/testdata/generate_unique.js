@@ -72,38 +72,59 @@ export const createHashSet = (expected = 1024) => {
   };
 };
 
-// Text of the values of a row at the given positions. Letters are compared without case
-// and trailing blanks ignored, the way the usual collations of SQL Server and MySQL do.
-const plain = (v) => {
+// The text two values are compared by. Letters are compared without case and without
+// accents and trailing blanks are ignored, the way the usual collations of SQL Server and
+// MySQL do (a database that tells 'é' from 'e' only loses a few values by this). NULL and
+// booleans have keys no text has: NULL is not the text 'null'.
+const ACCENTED = /[\u00C0-\u024F\u0300-\u036F\u1E00-\u1EFF]/;
+
+export const uniqueKey = (v) => {
   if (typeof v !== 'string') {
+    if (v === null || v === undefined) {
+      return '\u0000';
+    }
+    if (typeof v === 'boolean') {
+      return v ? '\u0000t' : '\u0000f';
+    }
     return `${v}`;
   }
-  return (v.charCodeAt(v.length - 1) === 32 ? v.replace(/ +$/, '') : v).toLowerCase();
+  let text = v.charCodeAt(v.length - 1) === 32 ? v.replace(/ +$/, '') : v;
+  if (ACCENTED.test(text)) {
+    text = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  return text.toLowerCase();
 };
 
-const keyText = (row, at) => {
+// null when one of the values is NULL and NULLs count as different from each other
+const keyText = (row, at, nullsDiffer) => {
   if (at.length === 1) {
-    return plain(row[at[0]]);
+    return nullsDiffer && row[at[0]] === null ? null : uniqueKey(row[at[0]]);
   }
   let text = '';
   for (let i = 0; i < at.length; i += 1) {
-    text += `${plain(row[at[i]])}\u0001`;
+    if (nullsDiffer && row[at[i]] === null) {
+      return null;
+    }
+    text += `${uniqueKey(row[at[i]])}\u0001`;
   }
   return text;
 };
 
-// sets: [[position of a column in the row, ...], ...]
-export const createUniqueTracker = (sets, expected) => {
+// sets: [[position of a column in the row, ...], ...]. options.nullsDiffer: a row with a
+// NULL in a set never repeats another one (every database but SQL Server reads a unique
+// index that way).
+export const createUniqueTracker = (sets, expected, options = {}) => {
   const stores = sets.map(() => createHashSet(expected));
   const keys = new Array(sets.length);
+  const nullsDiffer = !!options.nullsDiffer;
   return {
     sets,
     // indices of the sets the row collides with; remembers the keys for accept()
     violated: (row) => {
       let list = null;
       for (let i = 0; i < sets.length; i += 1) {
-        keys[i] = keyText(row, sets[i]);
-        if (stores[i].has(keys[i])) {
+        keys[i] = keyText(row, sets[i], nullsDiffer);
+        if (keys[i] !== null && stores[i].has(keys[i])) {
           list = list || [];
           list.push(i);
         }
@@ -113,7 +134,9 @@ export const createUniqueTracker = (sets, expected) => {
     // call right after violated() returned null for the same row
     accept: () => {
       for (let i = 0; i < sets.length; i += 1) {
-        stores[i].add(keys[i]);
+        if (keys[i] !== null) {
+          stores[i].add(keys[i]);
+        }
       }
     },
   };

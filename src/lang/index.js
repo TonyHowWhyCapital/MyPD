@@ -15,10 +15,12 @@ import groupNew from './ext/groupNew';
 import guard from './ext/guard';
 import testDataRule from './ext/testDataRule';
 import testDataRuleEn from './ext/testDataRuleEn';
+import testData from './ext/testData';
+import testDataEn from './ext/testDataEn';
 
 // 每个扩展功能的语言包独占一个顶层命名空间
 const ext = [impact, modelCompare, dbObject, report, entityTemplate, pdm, dbConnImport, modelEdit,
-  gridView, dbDatabase, groupNew, guard, testDataRule, testDataRuleEn];
+  gridView, dbDatabase, groupNew, guard, testDataRule, testDataRuleEn, testData, testDataEn];
 const merge = (base, lang) => ext.reduce((p, n) => ({...p, ...n[lang]}), base);
 
 export default {

@@ -1,0 +1,159 @@
+// A run: progress and the summary at the end.
+@import "~style";
+
+.@{prefix}-tdgen {
+  &-run {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding-top: 12px;
+    overflow: auto;
+    &-head {
+      display: flex;
+      align-items: flex-start;
+      flex: none;
+      padding: 12px 14px;
+      border: 1px solid @primary-border-color;
+      border-radius: 4px;
+      > .fa {
+        flex: none;
+        margin: 1px 12px 0 0;
+        font-size: 20px;
+      }
+      > div {
+        flex: 1;
+        min-width: 0;
+      }
+      &-working > .fa {
+        color: @primary-color;
+      }
+      &-ok {
+        border-color: fade(@success-color, 45%);
+        background: fade(@success-color, 6%);
+        > .fa {
+          color: @success-color;
+        }
+      }
+      &-warn {
+        border-color: fade(@warring-color, 50%);
+        background: fade(@warring-color, 7%);
+        > .fa {
+          color: @warring-color;
+        }
+      }
+      &-bad {
+        border-color: fade(@danger-color, 45%);
+        background: fade(@danger-color, 5%);
+        > .fa {
+          color: @danger-color;
+        }
+      }
+    }
+    &-headline {
+      font-size: 15px;
+      font-weight: bold;
+    }
+    &-explain {
+      margin-top: 4px;
+      line-height: 1.6;
+      user-select: text;
+    }
+    &-time {
+      flex: none;
+      margin-left: 16px;
+      color: @second-font-color;
+      white-space: nowrap;
+    }
+    &-tables {
+      flex: none;
+      max-height: none;
+      overflow: visible;
+    }
+    &-col {
+      width: 36%;
+      > .fa {
+        width: 14px;
+        margin-right: 6px;
+        color: @third-font-color;
+      }
+      > .fa-check {
+        color: @success-color;
+      }
+      > .fa-times, > .fa-ban {
+        color: @danger-color;
+      }
+    }
+    &-count {
+      margin-left: 8px;
+      font-size: 12px;
+      color: @second-font-color;
+    }
+  }
+  &-bar {
+    display: inline-block;
+    width: 38%;
+    height: 8px;
+    border-radius: 4px;
+    vertical-align: middle;
+    background: @fourth-primary-color;
+    overflow: hidden;
+    > i {
+      display: block;
+      height: 100%;
+      border-radius: 4px;
+      background: @primary-color;
+      transition: width 0.15s linear;
+    }
+    &-done > i {
+      background: @success-color;
+    }
+    &-stopped > i, &-failed > i {
+      background: @third-font-color;
+    }
+  }
+  &-summary {
+    &-block {
+      flex: none;
+      margin-top: 14px;
+    }
+    &-title {
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+    &-file {
+      display: flex;
+      align-items: baseline;
+      padding: 4px 0;
+      white-space: nowrap;
+      > * {
+        flex: none;
+        margin-right: 14px;
+      }
+    }
+    &-kind {
+      width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    &-path {
+      flex: 0 1 auto !important;
+      min-width: 0;
+      white-space: normal;
+      word-break: break-all;
+      user-select: text;
+    }
+    &-detail {
+      height: auto !important;
+      padding: 4px 8px 8px 20px !important;
+      white-space: normal !important;
+    }
+    &-error {
+      padding: 2px 0;
+      line-height: 1.5;
+      > span:first-child {
+        white-space: normal;
+      }
+    }
+  }
+}

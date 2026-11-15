@@ -96,6 +96,11 @@ const opt = [{
   {
     key: 'extract',
     icon: 'fa-retweet'
+  },
+  {
+    // opens the "generate test data" window; handled in app/main/index.js
+    key: 'testData',
+    icon: 'fa-magic'
   }]; // 所有菜单操作的的KEY;
 
 const normalOpt = ['add', 'copy', 'cut', 'paste', 'delete'];
@@ -104,7 +109,7 @@ const domainChildNormalOpt = ['add', 'copy', 'paste', 'delete'];
 const menusType = {
   groups: ['add', 'edit', 'clear', 'delete'],
   entities: normalOpt.concat('all'),
-  entity: normalOpt.concat('move', 'all', 'notes', 'extract'),
+  entity: normalOpt.concat('move', 'all', 'notes', 'extract', 'testData'),
   logicEntities: normalOpt.concat('all'),
   logicEntity: normalOpt.concat('move', 'all', 'notes', 'extract'),
   views: normalOpt.concat('all'),
@@ -124,6 +129,9 @@ const menusType = {
 
 export const getMenu = (m, key, type, selectedMenu, groupType, parentKey, tempType = type) => {
   const getName = () => {
+    if (m === 'testData') {
+      return FormatMessage.string({id: 'testData.contextMenu'});
+    }
     const base = FormatMessage.string({id: `menus.opt.${m}`});
     if (type === 'appCode' || type === 'dataType' || type === 'mapping'
         || type === 'domain' || type === 'groups' || type === 'entity' || type === 'view'

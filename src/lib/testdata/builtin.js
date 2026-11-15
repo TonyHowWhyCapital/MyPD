@@ -1,7 +1,7 @@
 // Builtin value generators (Taiwan first, plus English). Every generator is a
 // cheap function of a random stream: (random) => string | boolean.
 import {
-  TW_SURNAMES, TW_GIVEN_CHARS, TW_ROADS, TW_COMPANY_CHARS, TW_COMPANY_KINDS,
+  TW_SURNAMES, TW_GIVEN_CHARS, TW_ROADS, TW_COMPANY_HEADS, TW_COMPANY_TAILS, TW_COMPANY_KINDS,
   TW_COMPANY_SUFFIXES, EN_FIRST_NAMES, EN_LAST_NAMES, EN_COMPANY_WORDS, EN_COMPANY_KINDS,
   EN_COMPANY_SUFFIXES, SAFE_DOMAINS, URL_PATHS,
 } from './builtin_data';
@@ -17,7 +17,7 @@ export const TW_CITIES = TW_REGIONS.map(([city, text]) => ({
 }));
 
 // flat list so that every district is equally likely
-const TW_PLACES = TW_CITIES.reduce((all, c) => all.concat(c.districts.map(d => ({
+export const TW_PLACES = TW_CITIES.reduce((all, c) => all.concat(c.districts.map(d => ({
   city: c.city,
   district: d.name,
   zip: d.zip,
@@ -64,8 +64,13 @@ const twPhone = (random) => {
   return `${area[0]}-${random.int(2, 8)}${digits(random, area[1] - 1)}`;
 };
 
-const twAddress = (random) => {
-  const place = pick(random, TW_PLACES);
+// The place of a row: city, district, postal code and address of one row read the same
+// `place` (a number in [0,1) the caller draws once per row), so they agree with each other.
+const placeOf = (random, place) => TW_PLACES[Math.floor(
+  (place === undefined ? random.next() : place) * TW_PLACES.length)];
+
+const twAddress = (random, where) => {
+  const place = placeOf(random, where);
   const road = pick(random, TW_ROADS);
   let text = place.city + place.district + road;
   if (road.charAt(road.length - 1) === '路' && random.next() < 0.3) {
@@ -81,24 +86,25 @@ const twAddress = (random) => {
   return text;
 };
 
-const twCompany = random => pick(random, TW_COMPANY_CHARS) + pick(random, TW_COMPANY_CHARS)
+const twCompany = random => pick(random, TW_COMPANY_HEADS) + pick(random, TW_COMPANY_TAILS)
   + pick(random, TW_COMPANY_KINDS) + pick(random, TW_COMPANY_SUFFIXES);
 
 const digitSum = n => Math.floor(n / 10) + (n % 10);
 
-// 8 digits; the weighted digit sum must be divisible by 5 (rule in force since 2023).
-// A 7 in the 7th position gives 28 -> 2 + 8 = 10, which may count as 1 or as 0;
-// it is counted as 1 here, so the number passes in both readings of the check.
+// 統一編號, 8 digits. Each digit is multiplied by its weight and the digits of the products
+// are added up. The old rule wants that sum divisible by 10, the rule in force since 2023
+// divisible by 5; a sum divisible by 10 passes both. When the 7th digit is 7 its product is
+// 28 -> 2 + 8 = 10, which a checker may count as 1 or as 0 (either may make the number
+// valid): checkers differ there, so no number with a 7 in the 7th place is made.
 const twTaxId = (random) => {
-  const head = digits(random, 7);
+  let head = digits(random, 6);
+  const seventh = Math.floor(random.next() * 9);
+  head += seventh >= 7 ? seventh + 1 : seventh;
   let sum = 0;
   for (let i = 0; i < 7; i += 1) {
-    const product = digitSum(Number(head.charAt(i)) * TAX_ID_WEIGHTS[i]);
-    sum += product === 10 ? 1 : product;
+    sum += digitSum(Number(head.charAt(i)) * TAX_ID_WEIGHTS[i]);
   }
-  // two last digits fit (0-4 and 5-9)
-  const last = ((5 - (sum % 5)) % 5) + (random.next() < 0.5 ? 0 : 5);
-  return head + last;
+  return head + ((10 - (sum % 10)) % 10);
 };
 
 // letter + gender digit (1/2) + 7 digits + check digit
@@ -151,9 +157,9 @@ export const BUILTINS = {
   'tw.mobile': random => `09${digits(random, 8)}`,
   'tw.phone': twPhone,
   'tw.address': twAddress,
-  'tw.city': random => pick(random, TW_CITIES).city,
-  'tw.district': random => pick(random, TW_PLACES).district,
-  'tw.zip': random => pick(random, TW_PLACES).zip,
+  'tw.city': (random, place) => placeOf(random, place).city,
+  'tw.district': (random, place) => placeOf(random, place).district,
+  'tw.zip': (random, place) => placeOf(random, place).zip,
   'tw.company': twCompany,
   'tw.taxId': twTaxId,
   'tw.nationalId': twNationalId,
@@ -171,7 +177,28 @@ export const BUILTINS = {
   color: random => `#${hex(random, 6).toUpperCase()}`,
 };
 
-// (random) => value, or undefined for an unknown name
+// (random[, place]) => value, or undefined for an unknown name
 export const builtinGenerator = name => (
   Object.prototype.hasOwnProperty.call(BUILTINS, name) ? BUILTINS[name] : undefined
 );
+
+// builtins whose value depends on the place of the row
+export const PLACE_BUILTINS = ['tw.city', 'tw.district', 'tw.zip', 'tw.address'];
+
+// Every value of the builtins that pick from a list (they may repeat, the caller sorts
+// that out), a mask for the ones that are one; undefined when the values cannot be listed.
+const LISTS = {
+  'tw.surname': () => TW_SURNAMES,
+  'tw.city': () => TW_CITIES.map(c => c.city),
+  'tw.district': () => TW_PLACES.map(p => p.district),
+  'tw.zip': () => TW_PLACES.map(p => p.zip),
+  'en.firstName': () => EN_FIRST_NAMES,
+  'en.lastName': () => EN_LAST_NAMES,
+  boolean: () => [true, false],
+};
+
+export const builtinList = name => (
+  Object.prototype.hasOwnProperty.call(LISTS, name) ? LISTS[name]() : undefined
+);
+
+export const builtinMask = name => (name === 'tw.mobile' ? '09########' : undefined);

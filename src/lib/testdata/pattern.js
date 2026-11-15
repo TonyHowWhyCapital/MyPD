@@ -49,16 +49,14 @@ export const maskProblem = (mask) => {
   return null;
 };
 
-// mask -> (random) => string. `#` digit, `A` upper, `a` lower, `*` alnum,
-// `\x` literal x, anything else literal.
-export const compileMask = (mask) => {
+// mask -> [{text} = literal run | {chars} = one character of that set]
+export const maskParts = (mask) => {
   const problem = maskProblem(mask);
   if (problem) {
     const error = new Error(problem);
     error.code = problem;
     throw error;
   }
-  // parts: {text} = literal run, {chars} = one random character of that set
   const parts = [];
   let literal = '';
   const flush = () => {
@@ -80,6 +78,13 @@ export const compileMask = (mask) => {
     }
   }
   flush();
+  return parts;
+};
+
+// mask -> (random) => string. `#` digit, `A` upper, `a` lower, `*` alnum,
+// `\x` literal x, anything else literal.
+export const compileMask = (mask) => {
+  const parts = maskParts(mask);
   const count = parts.length;
   return (random) => {
     let text = '';
@@ -95,9 +100,19 @@ export const compileMask = (mask) => {
   };
 };
 
+// ---- numbers as text ------------------------------------------------------
+// 0.1 + 0.2 is written 0.3: ten decimals at most, no trailing zeros, no exponent below 1e21
+export const formatNumber = n => String(Number(n.toFixed(10)));
+
 // ---- canonical dates ------------------------------------------------------
 export const DAY_MS = 86400000;
 export const HOUR_MS = 3600000;
+// 0001-01-01 00:00:00 and 9999-12-31 23:59:59 on the naive time line: the years every
+// database takes and the canonical text can show
+export const MIN_DATE_MS = -62135596800000;
+export const MAX_DATE_MS = 253402300799000;
+
+export const inDateRange = ms => ms >= MIN_DATE_MS && ms <= MAX_DATE_MS;
 
 const two = n => (n < 10 ? `0${n}` : String(n));
 const four = (n) => {
@@ -177,8 +192,12 @@ export const naiveNow = (date) => {
     d.getSeconds());
 };
 
-// month arithmetic keeps the day when possible: 01-31 + 1 month = 02-28/29
+// month arithmetic keeps the day when possible: 01-31 + 1 month = 02-28/29.
+// NaN when the result is no date at all (the caller checks the range).
 export const addMonths = (ms, months) => {
+  if (!(Math.abs(months) <= 240000)) {
+    return NaN;
+  }
   const d = new Date(ms);
   const day = d.getUTCDate();
   d.setUTCDate(1);
@@ -193,7 +212,8 @@ export const addMonths = (ms, months) => {
 const RELATIVE_RE = /^now(?:\s*([+-])\s*(\d{1,6})\s*([dhMy]))?$/;
 
 // a `from`/`to` of a date rule: a canonical date, `now`, `now-365d`, `now+30d`
-// (units: d days, h hours, M months, y years) -> {ms, hasTime} or null
+// (units: d days, h hours, M months, y years) -> {ms, hasTime}; null when it is no date
+// or lies outside the years 1 to 9999
 export const resolveDateSpec = (spec, nowMs) => {
   if (typeof spec !== 'string') {
     return null;
@@ -215,6 +235,9 @@ export const resolveDateSpec = (spec, nowMs) => {
     } else {
       ms = addMonths(ms, amount * 12);
     }
+  }
+  if (!inDateRange(ms)) {
+    return null;
   }
   return {
     ms,

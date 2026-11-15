@@ -6,10 +6,12 @@ export const fail = (code, message, extra) => {
   return Object.assign(error, extra || {});
 };
 
-// Key values of a parent: `at(i)` is the value of row i, `size()` the number of rows.
-export const listKeys = list => ({
+// Key values of a parent: `at(i)` is the value of row i, `size()` the number of rows,
+// `distinct` is set when no value is known to come twice.
+export const listKeys = (list, distinct) => ({
   at: i => list[i],
   size: () => list.length,
+  distinct: !!distinct,
 });
 
 // Every parent row gets between min and max children; the children of one parent follow
@@ -23,6 +25,7 @@ export const createSchedule = (parents, min, max, makeRandom) => {
   const random = makeRandom();
   let parent = -1;
   let left = 0;
+  let taken = 0;
   return {
     total,
     // must be called once per row, in row order
@@ -30,10 +33,14 @@ export const createSchedule = (parents, min, max, makeRandom) => {
       while (left === 0 && parent < parents) {
         parent += 1;
         left = min === max ? min : random.int(min, max);
+        taken = 0;
       }
       left -= 1;
+      taken += 1;
       return parent;
     },
+    // which child of its parent the row of the last next() is, 0 for the first
+    ordinal: () => taken - 1,
   };
 };
 

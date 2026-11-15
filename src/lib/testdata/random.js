@@ -90,6 +90,18 @@ const createStream = (key) => {
     }
     return last;
   };
+  // A number in [0,1) that depends only on the stream and `index`, not on how much of the
+  // stream was used: columns that must agree within a row read the same index.
+  const base = hashString(`${key}\u0001#at`);
+  const at = (index) => {
+    let h = base ^ Math.imul((index | 0) + 0x9E3779B9, 0x85EBCA6B);
+    h ^= h >>> 16;
+    h = Math.imul(h, 2246822507);
+    h ^= h >>> 13;
+    h = Math.imul(h, 3266489909);
+    h ^= h >>> 16;
+    return (h >>> 0) / TWO_32;
+  };
   // \u0001 separates labels so that fork('a').fork('b') differs from fork('ab')
   const fork = label => createStream(`${key}\u0001${String(label)}`);
   return {
@@ -98,6 +110,7 @@ const createStream = (key) => {
     pick,
     weighted,
     fork,
+    at,
   };
 };
 

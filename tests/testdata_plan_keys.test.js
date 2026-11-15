@@ -164,9 +164,11 @@ describe('uniqueness', () => {
     expect(cap('builtin', { name: 'boolean' })).toBe(2);
     expect(cap('builtin', { name: 'tw.name' })).toBe(Infinity);
     expect(cap('sequence', {})).toBe(Infinity);
-    expect(cap('sequence', { prefix: 'AB' }, col('string', 4))).toBe(100);
+    // AB1 ... AB99
+    expect(cap('sequence', { prefix: 'AB' }, col('string', 4))).toBe(99);
     expect(cap('auto', {}, col('string', 1))).toBe(36);
-    expect(cap('auto', {}, col('int', null, 'TINYINT'))).toBe(128);
+    // 1 ... 127 where the database is not known
+    expect(cap('auto', {}, col('int', null, 'TINYINT'))).toBe(127);
     expect(cap('auto', {}, col('bool'))).toBe(2);
     expect(cap('file', {})).toBe(Infinity);
     const s = {

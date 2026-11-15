@@ -2,7 +2,9 @@
 // import and export. Nothing here mutates its input.
 import '../Math';
 import { checkExpr } from './expr';
-import { maskProblem, resolveDateSpec, naiveNow, CHARSETS } from './pattern';
+import {
+  maskProblem, resolveDateSpec, naiveNow, parseDateTime, formatDate, CHARSETS,
+} from './pattern';
 
 // kinds a user can choose; `foreign` is internal (set by the planner for FK columns)
 export const RULE_KINDS = [
@@ -70,6 +72,12 @@ export const numberOf = (v) => {
 
 const isInt = n => n !== undefined && Number.isInteger(n);
 
+// 'YYYY-MM-DD' of a real day, else undefined
+const dayOf = (v) => {
+  const d = typeof v === 'string' ? parseDateTime(v.trim()) : null;
+  return d && !d.hasTime ? formatDate(d.ms) : undefined;
+};
+
 // ---- reading and writing --------------------------------------------------
 export const getTestData = (dataSource) => {
   const raw = isObject(dataSource?.profile?.testData) ? dataSource.profile.testData : {};
@@ -91,6 +99,8 @@ export const getTestData = (dataSource) => {
       seed: {
         fixed: seed.fixed !== false,
         value: seedValue === undefined || Number.isNaN(seedValue) ? 1 : seedValue,
+        // the day `now` stands for while the seed is fixed (see seedNow)
+        ...(dayOf(seed.baseDate) ? { baseDate: dayOf(seed.baseDate) } : {}),
       },
       tables: isObject(settings.tables) ? { ...settings.tables } : {},
     },
@@ -104,6 +114,53 @@ export const setTestData = (dataSource, testData) => ({
     testData,
   },
 });
+
+// ---- the clock of a run ---------------------------------------------------
+// Rules read the clock (`now-365d`, today(), dates of the automatic rule). With a fixed
+// seed the same settings must give the same data on any day, so the clock is fixed too:
+// 00:00 of `settings.seed.baseDate`. Without a base date it is 00:00 of the real day (the
+// data then changes from one day to the next); with a random seed it is the real time.
+export const seedNow = (settings, realNow) => {
+  const real = realNow instanceof Date && !Number.isNaN(realNow.getTime()) ? realNow
+    : new Date();
+  const seed = (settings && settings.seed) || {};
+  if (seed.fixed === false) {
+    return real;
+  }
+  const day = dayOf(seed.baseDate);
+  if (!day) {
+    return new Date(real.getFullYear(), real.getMonth(), real.getDate());
+  }
+  const [y, m, d] = day.split('-').map(Number);
+  const base = new Date(2000, m - 1, d);
+  base.setFullYear(y);
+  return base;
+};
+
+// Writes today as the base date of a fixed seed that has none yet; `td` comes back
+// unchanged (the same object) when there is nothing to do. Call it when the settings are
+// first saved or the user fixes the seed, and store the result in the project.
+export const stampSeedBase = (td, realNow) => {
+  const settings = (td && td.settings) || {};
+  const seed = isObject(settings.seed) ? settings.seed : {};
+  if (seed.fixed === false || dayOf(seed.baseDate)) {
+    return td;
+  }
+  const real = realNow instanceof Date && !Number.isNaN(realNow.getTime()) ? realNow
+    : new Date();
+  return {
+    ...td,
+    settings: {
+      ...settings,
+      seed: {
+        fixed: true,
+        value: 1,
+        ...seed,
+        baseDate: formatDate(naiveNow(real)),
+      },
+    },
+  };
+};
 
 export const newRule = (kind = 'auto') => ({
   id: Math.uuid(),
@@ -129,10 +186,18 @@ const sqlHead = sql => sql.replace(/^(\s|--[^\n]*\n|\/\*[\s\S]*?\*\/)+/, '').sli
 
 const PARAM_CHECKS = {
   auto: () => {},
+  // start and step: at most ten decimals and inside the whole numbers a double keeps
+  // exactly. Decimals are only for decimal and text columns; that is checked against the
+  // column when the plan is built (`sequence.fraction`).
   sequence: (p, problems) => {
-    if (Number.isNaN(numberOf(p.start))) problems.push('sequence.start.invalid');
+    const exact = n => n === undefined || (Math.abs(n) <= Number.MAX_SAFE_INTEGER
+      && Number(n.toFixed(10)) === n);
+    const start = numberOf(p.start);
+    if (Number.isNaN(start) || !exact(start)) problems.push('sequence.start.invalid');
     const step = numberOf(p.step);
-    if (Number.isNaN(step) || step === 0) problems.push('sequence.step.invalid');
+    if (Number.isNaN(step) || step === 0 || !exact(step)) {
+      problems.push('sequence.step.invalid');
+    }
     const pad = numberOf(p.pad);
     if (pad !== undefined && (!isInt(pad) || pad < 0 || pad > 50)) {
       problems.push('sequence.pad.invalid');
@@ -333,7 +398,8 @@ export const importRules = (text) => {
   if (text.length > MAX_IMPORT_CHARS) return fail('import.tooLarge');
   let data;
   try {
-    data = JSON.parse(text);
+    // files saved by Windows editors start with a byte order mark
+    data = JSON.parse(text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text);
   } catch (e) {
     return fail('import.json');
   }

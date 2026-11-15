@@ -87,10 +87,18 @@ describe('uniqueness', () => {
       rules: [letters],
       settings: { tables: { T: { rows: 6 } } },
     });
-    const { data } = await run(ds, ['T']);
-    expect(distinct(values(data.T, 1).map(v => v.toLowerCase()))).toBe(6);
-    // four of them had to be changed, and still fit the column
-    values(data.T, 1).forEach(v => expect(v.length).toBeLessThanOrEqual(10));
+    // 'a' and 'A' are one value for the database: four values, never a made-up fifth
+    expect(buildPlan(ds, { entityIds: ['T'] }).problems).toEqual([expect.objectContaining({
+      code: 'uniqueImpossible',
+      detail: expect.objectContaining({ capacity: 4, rows: 6 }),
+    })]);
+    await expect(run(ds, ['T'])).rejects.toMatchObject({ code: 'uniqueExhausted', row: 4 });
+    const four = project(ds.entities, {
+      rules: [letters],
+      settings: { tables: { T: { rows: 4 } } },
+    });
+    const { data } = await run(four, ['T']);
+    expect(values(data.T, 1).map(v => v.toLowerCase()).sort()).toEqual(['a', 'b', 'c', 'd']);
   });
 
   test('composite primary key and composite unique index are unique as tuples', async () => {

@@ -118,6 +118,9 @@ test('lengths: uuid columns hold 36 characters, a bare CHAR one', () => {
     notNull: false,
     primaryKey: false,
     autoIncrement: false,
+    // what the limits of the column depend on
+    dialect: 'postgresql',
+    subtype: 'uuid',
   });
 });
 
@@ -149,7 +152,7 @@ test('type comes from the base type in the project database, size from the domai
     domain: 'dom',
     baseType: 'map-double',
   };
-  expect(fieldType(ds, f)).toEqual({
+  expect(fieldType(ds, f)).toMatchObject({
     type: 'DECIMAL',
     len: 24,
     scale: 6,

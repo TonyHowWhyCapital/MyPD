@@ -64,7 +64,10 @@ describe('auto', () => {
   test('keys count up so that they are unique', () => {
     expect(gen(auto, col('int', { primaryKey: true }), {}, 3)).toEqual([1, 2, 3]);
     expect(gen(auto, col('int', { autoIncrement: true }), {}, 3)).toEqual([1, 2, 3]);
-    expect(gen(auto, col('int', { type: 'TINYINT', primaryKey: true }), {}, 200)[199]).toBe(127);
+    // past the last number of the column the counter starts again (the generator stops a
+    // table whose key alone must be unique there, see testdata_unique_space.test.js)
+    const tiny = gen(auto, col('int', { type: 'TINYINT', primaryKey: true }), {}, 200);
+    expect([tiny[126], tiny[127]]).toEqual([127, 1]);
     expect(gen(auto, col('string', { primaryKey: true, len: 32 }), {}, 2))
       .toEqual(['0000000001', '0000000002']);
     expect(gen(auto, col('string', { primaryKey: true, len: 3 }), {}, 2)).toEqual(['001', '002']);
@@ -96,9 +99,12 @@ describe('sequence, number, date, text', () => {
       .toEqual(['-002x', '-001x', '000x']);
     expect(gen({ kind: 'sequence', params: { start: '7', step: '2' } }, col('decimal'), {}, 2))
       .toEqual([7, 9]);
-    expect(gen(rule, col('string', { len: 5 }), {}, 1)).toEqual(['ORD00']);
-    expect(gen({ kind: 'sequence', params: { start: 126 } }, col('int', { type: 'tinyint' }), {}, 3))
-      .toEqual([126, 127, 127]);
+    // a sequence is never cut or clamped: that would repeat a value
+    expect(codeOf(rule, col('string', { len: 5 }))).toBe('value.length');
+    const tiny = makeValueGenerator({ kind: 'sequence', params: { start: 126 } },
+      col('int', { type: 'tinyint' }), ctxOf());
+    expect([tiny(0), tiny(1)]).toEqual([126, 127]);
+    expect(() => tiny(2)).toThrow('value.range');
     expect(codeOf(rule, col('int'))).toBe('sequence.affix.type');
     expect(codeOf({ kind: 'sequence', params: { step: 0 } }, col('int')))
       .toBe('sequence.step.invalid');
@@ -157,7 +163,8 @@ describe('sequence, number, date, text', () => {
     expect(stamps.some(v => v > '2026-01-03 00:00:00')).toBe(true);
     gen(rule, col('string')).forEach(v => expect(v).toMatch(DATE));
     gen(rule, col('time')).forEach(v => expect(v).toMatch(TIME));
-    gen(rule, col('string', { len: 7 })).forEach(v => expect(v).toBe('2026-01'));
+    // half a date is no date: the column is too short for the rule
+    expect(codeOf(rule, col('string', { len: 7 }))).toBe('value.length');
     const timed = { kind: 'date', params: { from: '2026-01-01 08:00:00', to: '2026-01-01 09:00:00' } };
     gen(timed, col('string')).forEach((v) => {
       expect(v >= '2026-01-01 08:00:00' && v <= '2026-01-01 09:00:00').toBe(true);
@@ -238,8 +245,8 @@ describe('list, pattern, constant, builtin', () => {
   test('pattern', () => {
     gen({ kind: 'pattern', params: { mask: 'A-####' } }, col('string'))
       .forEach(v => expect(v).toMatch(/^[A-Z]-\d{4}$/));
-    gen({ kind: 'pattern', params: { mask: 'A-####' } }, col('string', { len: 4 }))
-      .forEach(v => expect(v).toMatch(/^[A-Z]-\d\d$/));
+    expect(codeOf({ kind: 'pattern', params: { mask: 'A-####' } }, col('string', { len: 4 })))
+      .toBe('value.length');
     gen({ kind: 'pattern', params: { mask: '9###' } }, col('int'))
       .forEach(v => expect(v >= 9000 && v <= 9999).toBe(true));
     gen({ kind: 'pattern', params: { mask: '20##-11-1#' } }, col('date'))
@@ -252,8 +259,8 @@ describe('list, pattern, constant, builtin', () => {
     expect(gen({ kind: 'constant', params: { value: 'x' } }, col('string'), {}, 2)).toEqual(['x', 'x']);
     expect(gen({ kind: 'constant', params: { value: '12.345' } }, col('decimal', { len: 6, scale: 2 }), {}, 1))
       .toEqual([12.35]);
-    expect(gen({ kind: 'constant', params: { value: 12345 } }, col('decimal', { len: 4, scale: 1 }), {}, 1))
-      .toEqual([999.9]);
+    expect(codeOf({ kind: 'constant', params: { value: 12345 } }, col('decimal', { len: 4, scale: 1 })))
+      .toBe('value.range');
     expect(gen({ kind: 'constant', params: { value: 0 } }, col('bool'), {}, 1)).toEqual([false]);
     expect(gen({ kind: 'constant', params: { value: true } }, col('string', { len: 1 }), {}, 1))
       .toEqual(['1']);
@@ -362,7 +369,7 @@ describe('dict, file, query, expr, foreign', () => {
     const make = makeValueGenerator(rule, col('decimal', { len: 8, scale: 2 }), ctxOf({ dataSource }));
     expect(make(0, { PRICE: 12.345, QTY: 3 })).toBe(37.04);
     expect(make(1, { PRICE: null, QTY: 3 })).toBe(null);
-    expect(make(2, { PRICE: 1e9, QTY: 1 })).toBe(999999.99);
+    expect(() => make(2, { PRICE: 1e9, QTY: 1 })).toThrow('value.range');
     const text = makeValueGenerator({ kind: 'expr', params: { expr: "'N' & pad(seq(), 4)" } },
       col('string', { len: 4 }), ctxOf());
     expect([text(0, {}), text(41, {})]).toEqual(['N000', 'N004']);

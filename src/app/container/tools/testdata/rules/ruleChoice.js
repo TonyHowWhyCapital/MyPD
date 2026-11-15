@@ -5,9 +5,10 @@ import { MultipleSelect, Message } from 'components';
 import { tr } from './i18n';
 import { effectiveLabel } from './ruleText';
 import {
-  projectRules, effectiveRule, fieldValue, addProjectRules, findTwin,
+  projectRules, effectiveRule, fieldValue, addProjectRules, findTwin, rulesFor,
 } from './libraryOps';
 import { getMachineRules } from './machine';
+import { getProjectFile } from './projectFile';
 import { openRuleEditor, openRuleLibrary } from './ruleModals';
 import RuleLibrary from './RuleLibrary';
 
@@ -29,13 +30,15 @@ export const ruleChoice = ({
   const own = value && value.rule && rules.some(r => r.id === value.rule) ? value.rule : '';
   const rate = value ? value.nullRate : undefined;
   const canWrite = !!(getDataSource && updateDataSource);
-  const machine = canWrite ? getMachineRules().filter(r => !findTwin(rules, r)) : [];
+  // the rules of this machine as they would be stored in this project
+  const offered = () => rulesFor('project', getMachineRules(), getProjectFile());
+  const machine = canWrite ? offered().filter(r => !findTwin(rules, r)) : [];
   const table = entityOf(dataSource, field, entity);
   const choose = (id) => {
     if (!id) {
       apply(fieldValue('', rate));
     } else if (`${id}`.startsWith(MACHINE)) {
-      const rule = getMachineRules().find(r => r.id === id.slice(MACHINE.length));
+      const rule = offered().find(r => r.id === id.slice(MACHINE.length));
       if (rule) {
         const current = getDataSource();
         const twin = findTwin(projectRules(current), rule);

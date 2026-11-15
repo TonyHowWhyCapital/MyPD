@@ -695,6 +695,8 @@ export const validateFields = (fields) => {
     refDict: f?.refDict || '',
     extProps: f?.extProps || {},
     notes: f?.notes || {},
+    // 测试数据规则（粘贴时已换成当前项目的规则，见 testdata/field_copy.js）
+    ...(f?.testData ? {testData: f.testData} : {}),
     ...attNames.reduce((p, n) => {
       return {
         ...p,

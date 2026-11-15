@@ -9,6 +9,7 @@ import { randomText, compileMask, naiveNow } from './pattern';
 import { createRandom } from './random';
 import { makeFit, fail, allowsNull } from './fit';
 import { AUTO, dateBetween } from './values_auto';
+import { fileListKey } from './file_list';
 import {
   numberSteps, dateSteps, textShape, listItems, dictValues, loadedValues,
   maskSlots, sequenceValues,
@@ -92,7 +93,7 @@ const KINDS = {
     const places = ctx.rowRandom || ctx.random.fork('#row');
     return rowIndex => generate(ctx.random, places.at(rowIndex));
   },
-  file: (p, column, ctx, fit) => loadedList('file', p.path, p, column, ctx, fit),
+  file: (p, column, ctx, fit) => loadedList('file', fileListKey(p), p, column, ctx, fit),
   query: (p, column, ctx, fit) => loadedList('query', p.sql, p, column, ctx, fit),
   expr: (p, column, ctx) => {
     const entity = ctx.field && ((ctx.dataSource && ctx.dataSource.entities) || [])

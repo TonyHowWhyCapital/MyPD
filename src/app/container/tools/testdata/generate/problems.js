@@ -1,8 +1,9 @@
 // Problems of a plan and errors of a run, as text a user can act on. Pure: `tr(id, data)`
 // gives the text of `testData.<id>` and `ruleTr` the one of `testDataRule.<id>`, so the
 // same code runs in the app and in the tests.
-import { problemText as ruleProblemText, problemKey } from '../rules/ruleText';
+import { problemText as ruleProblemText, problemKey, plainDetail } from '../rules/ruleText';
 import { count } from './format';
+import { fkGroups } from '../../../../../lib/testdata/plan_keys';
 
 const MAX_ROWS = 1000000;
 
@@ -35,7 +36,7 @@ export const PLAN_FIXES = {
 // codes the generator and the writers stop a run with
 export const RUN_CODES = ['uniqueExhausted', 'tableNotPlanned', 'tooManyRows', 'noParentRows',
   'parentKeysMissing', 'parentNotGenerated', 'incrementOverflow', 'foreignKeyFit',
-  'missingParent', 'cycle', 'testdata.writer.closed',
+  'missingParent', 'cycle', 'testdata.writer.closed', 'testdata.writer.aborted',
   'testdata.writer.noTable', 'testdata.writer.table', 'testdata.writer.tableOpen',
   'testdata.sql.dialect', 'testdata.sql.emptyName', 'NO_CONNECTION'];
 
@@ -82,7 +83,8 @@ export const unknownText = (tr, code, detail) => (has(detail)
 export const codeText = (tr, ruleTr, code, said) => {
   const own = lookup(tr, 'problem', problemKey(code));
   const text = own || ruleProblemText(ruleTr, code);
-  return has(said) ? tr('problem.withDetail', { text, detail: short(said, 120) }) : text;
+  const detail = plainDetail(code, said);
+  return has(detail) ? tr('problem.withDetail', { text, detail: short(detail, 120) }) : text;
 };
 
 // "value.range: 123 (0..99)" -> "123 (0..99)"
@@ -96,6 +98,18 @@ const saidOf = (code, message) => {
 
 const nameOf = o => (o ? (o.defKey || o.defName || '') : '');
 
+// "foreignKeyFit: value.changed: AB12 -> AB" -> "e.g. AB12 would become AB";
+// "foreignKeyFit: value.range: 500" -> "e.g. 500"
+export const keyFitReason = (tr, reason) => {
+  const said = saidOf('foreignKeyFit', reason);
+  const changed = /^value\.changed: ([\s\S]*) -> ([\s\S]*)$/.exec(said);
+  if (changed) {
+    return tr('problem.keyChanged', { from: short(changed[1], 40), to: short(changed[2], 40) });
+  }
+  const value = said.replace(/^value\.\w+: /, '');
+  return value ? tr('problem.keyExample', { value: short(value, 60) }) : '';
+};
+
 // names of what a problem points at, for the placeholders of its message
 export const problemNames = (dataSource, problem) => {
   const p = problem || {};
@@ -104,14 +118,25 @@ export const problemNames = (dataSource, problem) => {
   const entities = (dataSource && dataSource.entities) || [];
   const entity = entities.find(e => e.id === p.entityId);
   const fieldOf = (e, id) => ((e && e.fields) || []).find(f => f.id === id);
-  const parent = entities.find(e => e.id === (detail.refEntityId || p.refEntityId));
+  // an error of a run names the column only: the key it belongs to says the parent
+  const pair = !(detail.refEntityId || p.refEntityId) && entity && has(p.fieldId)
+    ? fkGroups(entity, new Map(entities.map(e => [e.id, e])))
+      .reduce((found, g) => found || (g.pairs.some(x => x.fieldId === p.fieldId) ? {
+        refEntityId: g.refEntityId,
+        refFieldId: g.pairs.find(x => x.fieldId === p.fieldId).refFieldId,
+      } : null), null) : null;
+  const ref = pair || {
+    refEntityId: detail.refEntityId || p.refEntityId,
+    refFieldId: detail.refFieldId || p.refFieldId,
+  };
+  const parent = entities.find(e => e.id === ref.refEntityId);
   const columns = Array.isArray(detail.fields)
     ? detail.fields.map(id => nameOf(fieldOf(entity, id)) || id) : [];
   return {
     table: nameOf(entity) || (has(p.table) ? `${p.table}` : ''),
     column: nameOf(fieldOf(entity, p.fieldId)),
     parent: nameOf(parent),
-    parentColumn: nameOf(fieldOf(parent, detail.refFieldId)),
+    parentColumn: nameOf(fieldOf(parent, ref.refFieldId)),
     columns: columns.join(', '),
   };
 };
@@ -148,7 +173,7 @@ export const planProblemText = (tr, ruleTr, problem, dataSource) => {
   } else if (p.code === 'uniqueImpossible' && detail.perParent) {
     key = 'uniqueImpossiblePerParent';
   } else if (p.code === 'foreignKeyFit') {
-    data.reason = saidOf('foreignKeyFit', detail.reason).replace(/^value\.\w+: /, '');
+    data.reason = keyFitReason(tr, detail.reason);
   }
   const text = lookup(tr, 'problem', key, data);
   if (text) {
@@ -207,7 +232,7 @@ export const runErrorText = (tr, ruleTr, error, dataSource) => {
     detail: detailText(e.detail),
     startAt: '',
     last: '',
-    reason: saidOf(code, e.message),
+    reason: code === 'foreignKeyFit' ? keyFitReason(tr, e.message) : saidOf(code, e.message),
     code,
   });
   if (text) {
@@ -219,7 +244,7 @@ export const runErrorText = (tr, ruleTr, error, dataSource) => {
         detail: body,
         row: count(e.row + 1),
       }) : body;
-      return where ? `${where}：${full}` : full;
+      return where ? tr('problem.where', { where, text: full }) : full;
     }
     return text;
   }
@@ -237,7 +262,7 @@ export const runErrorText = (tr, ruleTr, error, dataSource) => {
         row: count(e.row + 1),
       });
     }
-    return where ? `${where}：${body}` : body;
+    return where ? tr('problem.where', { where, text: body }) : body;
   }
   // an unknown code: the code and whatever the engine said, never a blank
   return unknownText(tr, code, has(e.message) && e.message !== code

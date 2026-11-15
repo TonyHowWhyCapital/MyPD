@@ -5,6 +5,7 @@ import { checkExpr } from './expr';
 import {
   maskProblem, resolveDateSpec, naiveNow, parseDateTime, formatDate, CHARSETS,
 } from './pattern';
+import { FILE_ENCODINGS } from './file_list';
 
 // kinds a user can choose; `foreign` is internal (set by the planner for FK columns)
 export const RULE_KINDS = [
@@ -53,6 +54,7 @@ const PARAM_KEYS = {
     [kind]: Object.keys(DEFAULT_PARAMS[kind]()),
   }), {}),
   dict: ['dict', 'use'],
+  file: ['path', 'column', 'header', 'order', 'encoding'],
 };
 
 const isObject = v => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -251,6 +253,9 @@ const PARAM_CHECKS = {
       problems.push('file.column.invalid');
     }
     if (!missing(p.order) && !ORDERS.includes(p.order)) problems.push('file.order.unknown');
+    if (!missing(p.encoding) && !FILE_ENCODINGS.includes(p.encoding)) {
+      problems.push('file.encoding.unknown');
+    }
   },
   query: (p, problems) => {
     if (typeof p.sql !== 'string' || p.sql.trim() === '') {

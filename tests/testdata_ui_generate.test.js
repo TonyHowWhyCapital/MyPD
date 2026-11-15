@@ -275,7 +275,7 @@ reason: 'foreignKeyFit: value.range: 500',
       code: 'uniqueExhausted', entityId: 'users', fieldId: 'u_name', row: 41,
     })).toBe('USERS.U_NAME ran out of unique values at row 42. Widen the rule or lower the number of rows');
     expect(en({ code: 'file.missing', entityId: 'users', fieldId: 'u_name' }))
-      .toBe(`USERS.U_NAME：${langs.en.testDataRule.problem.file_missing}`);
+      .toBe(`USERS.U_NAME: ${langs.en.testDataRule.problem.file_missing}`);
     expect(en({ code: 'ENOSPC', path: '/x' })).toBe('The disk is full');
     expect(en({ code: 'EACCES', path: '/x/y.sql' })).toBe('No permission to write /x/y.sql');
     expect(en({ code: 'EWHATEVER', path: '/x' })).toContain('EWHATEVER');

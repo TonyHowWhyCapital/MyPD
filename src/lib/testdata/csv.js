@@ -4,7 +4,9 @@
 // (PostgreSQL COPY and most loaders read it that way). Booleans are 1 and 0.
 import fs from 'fs';
 import path from 'path';
-import { createSink, createTableState, safeFileName } from './files';
+import {
+  createSink, createTableState, safeFileName, removeQuietly,
+} from './files';
 import { plainNumber } from './sql_dialects';
 
 const BOM = String.fromCharCode(0xFEFF);
@@ -50,13 +52,16 @@ const guarded = (fn) => {
   }
 };
 
-// createCsvWriter(dir, { guardFormulas = false }) -> { beginTable, rows, endTable, close }
+// createCsvWriter(dir, { guardFormulas = false })
+//   -> { beginTable, rows, endTable, close, abort }
 // close() -> { dir, files: [{table, file, path, rows}], rows }
 export const createCsvWriter = (dir, options = {}) => {
   const guard = { guardFormulas: !!(options && options.guardFormulas) };
   fs.mkdirSync(dir, { recursive: true });
   const state = createTableState();
   const used = new Set();
+  const files = [];
+  let aborted = null;
 
   const endTable = () => guarded(() => {
     const cur = state.current();
@@ -73,6 +78,7 @@ export const createCsvWriter = (dir, options = {}) => {
     beginTable: table => guarded(() => {
       const cur = state.begin(table, { width: table.columns.length });
       cur.file = `${safeFileName(table.defKey, used)}.csv`;
+      files.push(path.join(dir, cur.file));
       cur.sink = createSink(path.join(dir, cur.file));
       // a column name is never NULL: an empty one is written as ""
       return cur.sink.write(BOM + csvLine(table.columns.map(c => `${c.defKey || ''}`)));
@@ -101,5 +107,14 @@ export const createCsvWriter = (dir, options = {}) => {
         rows: state.done.reduce((sum, t) => sum + t.rows, 0),
       };
     }),
+    // stops at once and removes the files written so far; the folder stays
+    abort: () => {
+      if (!aborted) {
+        const open = state.abort();
+        aborted = (open && open.sink ? open.sink.destroy() : READY)
+          .then(() => files.forEach(removeQuietly));
+      }
+      return aborted;
+    },
   };
 };

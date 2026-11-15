@@ -8,6 +8,7 @@
 import { createRandom } from './random';
 import { makeValueGenerator } from './values';
 import { makeKeyFit } from './fit';
+import { fileListKey } from './file_list';
 
 const FIRST = 16;
 const SPREAD = 47;
@@ -28,7 +29,7 @@ export const sampleRows = (rows) => {
 
 const loaded = (rule, lists) => {
   const params = rule.params || {};
-  const key = rule.kind === 'file' ? params.path : params.sql;
+  const key = rule.kind === 'file' ? fileListKey(params) : params.sql;
   const list = (lists && lists[rule.kind]) || {};
   return Object.prototype.hasOwnProperty.call(list, key);
 };

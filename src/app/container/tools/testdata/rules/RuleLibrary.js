@@ -23,10 +23,11 @@ import { tr } from './i18n';
 import { usageLabel } from './ruleText';
 import {
   projectRules, deleteProjectRules, addRules, bindDomain, libraryProblems, usageNames,
-  findTwin,
+  findTwin, rulesFor,
 } from './libraryOps';
 import { getMachineRules, setMachineRules, projectOnScreen } from './machine';
 import { exportToFile, importFromFile } from './ruleFiles';
+import { getProjectFile } from './projectFile';
 import RuleList from './RuleList';
 import RuleEditor from './RuleEditor';
 import DomainRules from './DomainRules';
@@ -95,7 +96,7 @@ export default React.memo(({
   const add = () => leave(() => edit(newRule('builtin')));
   const save = () => {
     const others = rules.filter(r => r.id !== draft.id);
-    if (libraryProblems(draft, others).length > 0) {
+    if (libraryProblems(draft, others, tab).length > 0) {
       setShowAll(true);
       Message.error({ title: tr('msg.invalid') });
       return;
@@ -157,7 +158,8 @@ export default React.memo(({
     });
   };
   const copyOver = () => {
-    const list = targets();
+    // a file path is rewritten for the library it goes to (see rulesFor)
+    const list = rulesFor(isProject ? 'machine' : 'project', targets(), getProjectFile());
     const other = isProject ? machine : projectRules(ds);
     const fresh = list.filter(r => !findTwin(other, r));
     if (fresh.length === 0) {
@@ -173,9 +175,11 @@ export default React.memo(({
     setChecked([]);
     Message.success({ title: tr(isProject ? 'msg.toMachine' : 'msg.toProject', { count: fresh.length }) });
   };
-  const doExport = () => exportToFile(checked.length > 0 ? targets() : rules);
+  const doExport = () => exportToFile(rulesFor('file',
+    checked.length > 0 ? targets() : rules, getProjectFile()));
   // rules of the file that the library already has, to the letter, are not added again
-  const doImport = () => leave(() => importFromFile(base, (imported) => {
+  const doImport = () => leave(() => importFromFile(base, (read) => {
+    const imported = rulesFor(tab, read, getProjectFile());
     const { rules: all, added } = addRules(rules, imported.filter(r => !findTwin(rules, r)));
     if (added.length > 0) {
       saveRules(all);
@@ -278,6 +282,7 @@ export default React.memo(({
             rules={rules.filter(r => r.id !== draft.id)}
             showAll={showAll}
             extra={usageLine}
+            scope={isProject ? 'project' : 'machine'}
           />
           <div className={`${base}-actions`}>
             <Button type='primary' disable={!dirty && !!stored} onClick={save}>

@@ -34,6 +34,7 @@ import StandardGroupSelect from '../../app/container/standardfield/StandardGroup
 import Note from '../../app/container/tools/note';
 import {getCopyRealData, putCopyRealData} from '../../lib/contextMenuUtil';
 import {TEST_DATA_KEY, ruleCellText} from '../../app/container/tools/testdata/rules/gridColumn';
+import {testDataFromText} from '../../lib/testdata/field_copy';
 
 const empty = [];
 
@@ -628,10 +629,16 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
             } catch (error) {
               // 判断是否来自excel粘贴
               // eslint-disable-next-line no-use-before-define
-              // a rule is a reference, not text that can be pasted
+              // the rule column holds the name of a rule: the rule of the project with
+              // that name is bound, any other text ("automatic", a domain's rule) is not
               // eslint-disable-next-line no-use-before-define
-              pasteFields = parseExcel(value, finalTempHeaders)
-                .map(f => _.omit(f, TEST_DATA_KEY));
+              pasteFields = parseExcel(value, finalTempHeaders).map((f) => {
+                const rule = testDataFromText(dataSource, f[TEST_DATA_KEY]);
+                return {
+                  ..._.omit(f, TEST_DATA_KEY),
+                  ...(rule ? {[TEST_DATA_KEY]: rule} : {}),
+                };
+              });
               // Component.Message.error({
               //   title: Component.FormatMessage.string({id: 'tableValidate.invalidJsonData'}),
               // });

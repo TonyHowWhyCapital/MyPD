@@ -2,7 +2,7 @@
 // `query` rules and the existing keys of parent tables that are not generated. Everything
 // read is kept, so a preview that runs again after a keystroke reads nothing twice; an
 // error is kept as well until the user asks to read again.
-import { resolveRule } from '../../../../../lib/testdata/columns';
+import { resolvePath } from '../../../../../lib/testdata/file_list';
 
 export const NO_CONNECTION = 'NO_CONNECTION';
 export const PARENT_EMPTY = 'PARENT_EMPTY';
@@ -10,26 +10,6 @@ export const PARENT_EMPTY = 'PARENT_EMPTY';
 const entityOf = (dataSource, id) => ((dataSource && dataSource.entities) || [])
   .find(e => e.id === id);
 const fieldOf = (entity, id) => ((entity && entity.fields) || []).find(f => f.id === id);
-
-// {path: {column, header}} of the file rules the planned tables use
-const fileParams = (dataSource, plan) => {
-  const found = {};
-  plan.tables.forEach((table) => {
-    const entity = entityOf(dataSource, table.entityId);
-    table.columns.forEach((column) => {
-      const field = fieldOf(entity, column.id);
-      const { rule } = field ? resolveRule(dataSource, entity, field) : {};
-      const p = (rule && rule.params) || {};
-      if (rule && rule.kind === 'file' && p.path && !found[p.path]) {
-        found[p.path] = {
-          column: p.column,
-          header: !!p.header,
-        };
-      }
-    });
-  });
-  return found;
-};
 
 // Parent keys read from the database, per parent table. The columns of a composite key
 // are read together so that they come from the same row; a parent some child points at
@@ -86,16 +66,23 @@ const parentRequests = (dataSource, plan, connKey) => {
 };
 
 // everything the plan needs read, each with an id that changes when its source changes
-export const requestsOf = (dataSource, plan, connKey = '') => {
+export const requestsOf = (dataSource, plan, connKey = '', projectFile = '') => {
   const needs = plan.needs || {};
-  const params = fileParams(dataSource, plan);
-  const files = (needs.files || []).map((path) => {
-    const p = params[path] || {};
+  // a list is one file read one way: the file as it is found from the project file, the
+  // column, the heading line and the encoding (the plan names each of them once)
+  const files = (needs.files || []).map((need) => {
+    const file = resolvePath(need.path, projectFile);
     return {
       kind: 'file',
-      id: `file|${path}|${p.column === undefined ? 0 : p.column}|${p.header ? 1 : 0}`,
-      path,
-      params: p,
+      id: `file|${file}|${need.key}`,
+      key: need.key,
+      path: need.path,
+      file,
+      params: {
+        column: need.column,
+        header: need.header,
+        encoding: need.encoding,
+      },
     };
   });
   const queries = (needs.queries || []).map(sql => ({
@@ -107,7 +94,7 @@ export const requestsOf = (dataSource, plan, connKey = '') => {
   return files.concat(queries, parentRequests(dataSource, plan, connKey));
 };
 
-// io = { readFile(path, params), runQuery(sql), readKeys(table, column),
+// io = { readFile(file, params), runQuery(sql), readKeys(table, column),
 //        readKeyRows(table, columns) } each -> Promise; hasConnection() -> bool
 export const createLoader = (io) => {
   const kept = new Map();   // id -> {values} | {error}
@@ -129,7 +116,7 @@ export const createLoader = (io) => {
       return Promise.reject(error);
     }
     switch (request.kind) {
-      case 'file': return io.readFile(request.path, request.params);
+      case 'file': return io.readFile(request.file, request.params);
       case 'query': return io.runQuery(request.sql);
       case 'keys': return io.readKeys(request.table, request.columns[0]).then(filled(request));
       default: return io.readKeyRows(request.table, request.columns).then(filled(request));
@@ -174,7 +161,7 @@ export const createLoader = (io) => {
             error,
           });
         } else if (request.kind === 'file') {
-          out.lists.file[request.path] = values;
+          out.lists.file[request.key] = values;
         } else if (request.kind === 'query') {
           out.lists.query[request.sql] = values;
         } else {

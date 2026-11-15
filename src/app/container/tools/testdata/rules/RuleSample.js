@@ -31,7 +31,7 @@ export const targetOf = (dataSource, target) => {
 };
 
 export default React.memo(({
-  base, tr, rule, dataSource, target, onTargetChange, lists, nullRate, fixed,
+  base, tr, rule, dataSource, target, onTargetChange, lists, nullRate, fixed, listError,
 }) => {
   const [seed, setSeed] = useState(SAMPLE_SEED);
   // `fixed` = {entity, field}: the column is given and cannot be changed here
@@ -51,6 +51,14 @@ export default React.memo(({
     dataSource, lists, seed, nullRate]);
   // what is wrong with the rule itself is told beside the form, not here again
   const invalid = !!rule && validateRule({ kind: rule.kind, params: rule.params }).length > 0;
+  // The list of a file that is not there: `listError` says why the file could not be
+  // read; without it the form beside the samples says so already.
+  let errorLine = '';
+  if (result.error && result.error.code === 'file.missing') {
+    errorLine = listError ? problemText(tr, listError.code) : '';
+  } else if (result.error) {
+    errorLine = problemText(tr, result.error.code, result.error);
+  }
   const entities = (dataSource && dataSource.entities) || [];
   const setEntity = (entityId) => {
     const next = entities.find(e => e.id === entityId);
@@ -108,11 +116,11 @@ export default React.memo(({
     {rule && rule.kind === 'query' && <div className={`${base}-sample-note`}>
       {tr('sample.queryNote')}
     </div>}
-    {result.error && (invalid
-      ? <div className={`${base}-sample-note`}>{tr('sample.fixFirst')}</div>
-      : <div className={`${base}-sample-error`}>
-        {problemText(tr, result.error.code, result.error)}
-      </div>)}
+    {result.error && invalid
+      && <div className={`${base}-sample-note`}>{tr('sample.fixFirst')}</div>}
+    {result.error && !invalid && errorLine && <div className={`${base}-sample-error`}>
+      {errorLine}
+    </div>}
     {result.values.length > 0 && <ol className={`${base}-sample-values`}>
       {result.values.map((v, i) => (
         // eslint-disable-next-line react/no-array-index-key

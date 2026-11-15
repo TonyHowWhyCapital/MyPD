@@ -348,7 +348,9 @@ describe('rules', () => {
       domainRules: { dom: 'q1' },
     });
     expect(buildPlan(ds, { entityIds: ['T'] }).needs).toEqual({
-      files: ['/tmp/a.txt'],
+      files: [{
+        key: '/tmp/a.txt', path: '/tmp/a.txt', column: 0, header: false, encoding: 'auto',
+      }],
       queries: ['select 1'],
       parentKeys: [],
     });

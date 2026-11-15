@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 import {simplePackageChanges, getChanges} from './datasource_version_util';
 import {_transform} from './utils';
 import {getDbObjectDDL} from './dbobject_util';
+import {copiedRule, pastedTestData} from './testdata/field_copy';
 import './Math';
 
 const lower = (s) => `${s === undefined || s === null ? '' : s}`.toLocaleLowerCase();
@@ -313,6 +314,11 @@ const convertField = (field, source, target, sourceDb, targetDb) => {
   };
   delete literal.domain;
   delete literal.baseType;
+  // the rule of the test data belongs to the source model: the rule of the target with
+  // the same name is bound, never an id the target does not have
+  const testData = pastedTestData(target, field, copiedRule(source, field));
+  delete literal.testData;
+  if (testData) literal.testData = testData;
   if (tDomain || tMapping) {
     const attempt = {...literal};
     if (tDomain) attempt.domain = tDomain.id;

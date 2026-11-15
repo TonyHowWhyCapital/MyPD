@@ -4,6 +4,49 @@ import { spaceSize, sequenceRows } from './value_space';
 
 const same = (a, b) => `${a}`.toLowerCase() === `${b}`.toLowerCase();
 
+// "n", "0,n", "1,n": this end of a relation has many rows
+const many = rows => /n/i.test(`${rows === undefined || rows === null ? '' : rows}`);
+const isKey = (entity, fieldId) => ((entity && entity.fields) || [])
+  .some(f => f.id === fieldId && f.primaryKey);
+
+// A correlation is kept on ONE of its two tables, and not always on the child: the app
+// writes it on the table a relation line of a diagram STARTS from (a line drawn from the
+// parent gives `myRows: '1', refRows: 'n'` on the parent), an imported model writes it on
+// the child (`n` : `1`). The child is the end with many rows; where the rows do not tell
+// (1:1, n:n, nothing), the end that is not a primary key, else the table that has it.
+const heldByOther = (c, owner, entityById) => {
+  const mine = many(c.myRows);
+  const theirs = many(c.refRows);
+  if (mine !== theirs) {
+    return theirs;
+  }
+  return isKey(owner, c.myField) && !isKey(entityById.get(c.refEntity), c.refField);
+};
+
+// The column pairs of `entity` as the child: {myField, refEntity, refField}, whichever
+// table the correlation is kept on.
+export const childPairs = (entity, entityById) => {
+  const pairs = [];
+  if (!entity) {
+    return pairs;
+  }
+  const owners = [entity];
+  entityById.forEach(e => e !== entity && e.id !== entity.id && owners.push(e));
+  owners.forEach(owner => (owner.correlations || []).forEach((c) => {
+    if (!c) {
+      return;
+    }
+    const other = heldByOther(c, owner, entityById);
+    if (owner === entity && !other) {
+      pairs.push({ myField: c.myField, refEntity: c.refEntity, refField: c.refField });
+    }
+    if (c.refEntity === entity.id && other) {
+      pairs.push({ myField: c.refField, refEntity: owner.id, refField: c.myField });
+    }
+  }));
+  return pairs;
+};
+
 // Foreign keys of a table. A correlation carries one column pair and no name of the
 // reference it belongs to, so the pairs are grouped here: pairs to the same parent table
 // that read different parent columns are one (composite) key and take all their values from
@@ -12,7 +55,7 @@ export const fkGroups = (entity, entityById) => {
   const fields = (entity && entity.fields) || [];
   const groups = [];
   const used = [];
-  ((entity && entity.correlations) || []).forEach((c) => {
+  childPairs(entity, entityById).forEach((c) => {
     const parent = c && entityById.get(c.refEntity);
     if (!parent || used.includes(c.myField) || !fields.some(f => f.id === c.myField)
       || !(parent.fields || []).some(f => f.id === c.refField)) {

@@ -1,7 +1,7 @@
 // The test data settings of one column: its rule, the null rate of this column and
 // sample values made for exactly this column. Opened from a rule picker.
 import React, {
-  forwardRef, useImperativeHandle, useState,
+  forwardRef, useImperativeHandle, useMemo, useState,
 } from 'react';
 import { MultipleSelect } from 'components';
 import { getPrefix } from '../../../../../lib/prefixUtil';
@@ -10,9 +10,11 @@ import { ruleSummary, sourceLabel } from './ruleText';
 import { effectiveRule, fieldValue, projectRules } from './libraryOps';
 import { openRuleEditor } from './ruleModals';
 import { ruleChoice } from './ruleChoice';
-import useFileList from './useFileList';
+import useFileList, { listsOf } from './useFileList';
 import RuleSample from './RuleSample';
 import { Row, NumberField } from './params/common';
+import { columnFacts, columnNoteLines } from './columnNotes';
+import { tr as genTr } from '../generate/i18n';
 
 export default forwardRef(({
   prefix, field, entity, value, dataSource, getDataSource, updateDataSource,
@@ -35,9 +37,11 @@ export default forwardRef(({
   const resolved = effectiveRule(ds, field, current);
   const source = choice.own ? 'field' : resolved.source;
   const fileState = useFileList(resolved.rule);
-  const lists = fileState.path && (fileState.values || []).length > 0
-    ? { file: { [fileState.path]: fileState.values } } : undefined;
+  const lists = listsOf(fileState);
   const nullable = !field.notNull && !field.primaryKey && !field.autoIncrement;
+  // what a run would do with this column: a key, a number that will not fit, …
+  const notes = useMemo(() => columnNoteLines(tr, genTr, columnFacts(ds, entity, field, current)),
+    [ds, entity, field, current]);
   const ruleRate = Number(resolved.rule.nullRate) || 0;
   const setRate = rate => setCurrent(fieldValue(choice.own,
     typeof rate === 'number' ? rate : undefined));
@@ -83,6 +87,10 @@ export default forwardRef(({
           <span>{ruleSummary(tr, resolved.rule, { dicts: ds.dicts })}</span>
           {editable && <a onClick={edit}>{tr('action.edit')}</a>}
         </div>
+        {notes.map(n => (
+          <div key={n.text} className={`${base}-detail-note ${base}-detail-note-${n.level}`}>
+            {n.text}
+          </div>))}
       </Row>
       <Row
         base={base}
@@ -111,6 +119,7 @@ export default forwardRef(({
       fixed={{ entity, field }}
       target={{}}
       lists={lists}
+      listError={fileState.error || (fileState.loading ? null : { code: 'file.missing' })}
       nullRate={resolved.nullRate}
     />
   </div>;

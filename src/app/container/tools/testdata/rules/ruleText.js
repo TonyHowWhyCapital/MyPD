@@ -65,6 +65,10 @@ const cut = (text, max = MAX_TEXT) => {
 
 const has = v => v !== undefined && v !== null && v !== '';
 
+// what the engine adds to a code, without its own shorthand: "datetime: abc" -> "abc"
+export const plainDetail = (code, detail) => (code === 'value.type' && typeof detail === 'string'
+  ? detail.replace(/^(int|decimal|string|date|datetime|time|bool|binary): /, '') : detail);
+
 // extra: {detail, pos}; `pos` is the 0-based place in a formula
 export const problemText = (tr, code, extra = {}) => {
   const key = `problem.${problemKey(code)}`;
@@ -75,8 +79,9 @@ export const problemText = (tr, code, extra = {}) => {
   if (extra.pos !== undefined && extra.pos !== null && `${code}`.startsWith('expr.')) {
     text += tr('problemAt', { pos: extra.pos + 1 });
   }
-  if (has(extra.detail) && typeof extra.detail !== 'object') {
-    text += tr('problemDetail', { detail: cut(extra.detail, 60) });
+  const detail = plainDetail(code, extra.detail);
+  if (has(detail) && typeof detail !== 'object') {
+    text += tr('problemDetail', { detail: cut(detail, 60) });
   }
   return text;
 };

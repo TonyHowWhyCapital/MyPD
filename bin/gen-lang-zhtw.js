@@ -30,6 +30,7 @@ var terms = [
     ['主題域', '主題領域'],
     // 测试数据规则的种类
     ['規則型別', '規則類型'],
+    ['公元', '西元'],
 ];
 var convert = function (text) {
     return terms.reduce(function (p, t) {

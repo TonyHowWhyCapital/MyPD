@@ -1,6 +1,8 @@
 // Streaming writers for generated test data: the SQL script and the bundle the Java tool
 // loads into a database. A writer gets one table after the other:
 //   beginTable(table) -> rows(rows) ... -> endTable() -> ... -> close()
+// abort() instead of close() stops at once, whatever is under way (a write, the close
+// itself), and removes every file the writer made; its promise resolves when that is done.
 // Every call returns a promise; the one of rows() settles when the file has taken the
 // data (backpressure), so a caller that waits for it never piles up a table in memory.
 import fs from 'fs';
@@ -20,20 +22,49 @@ export const writerError = (code, detail) => {
 
 // ---------------------------------------------------------------- file sink
 
-// A file write stream whose write() tells when to go on.
+// resolves when every stream has let go of its file (so that the file can be removed on
+// Windows too), or after a moment when one of them never says so
+const CLOSED = new WeakSet();
+// a stream made here, remembered once it has closed its file
+export const tracked = (stream) => {
+  stream.once('close', () => CLOSED.add(stream));
+  return stream;
+};
+
+export const streamsClosed = (streams, patience = 2000) => Promise.all(streams.map(stream => (
+  new Promise((resolve) => {
+    if (!stream || CLOSED.has(stream)) {
+      resolve();
+      return;
+    }
+    const timer = setTimeout(resolve, patience);
+    stream.once('close', () => {
+      clearTimeout(timer);
+      resolve();
+    });
+  }))));
+
+// A file write stream whose write() tells when to go on. destroy() stops at once: what
+// waits for the stream is rejected with `testdata.writer.aborted`, and the promise it
+// returns resolves when the file is closed.
 export const createSink = (filePath) => {
-  const stream = fs.createWriteStream(filePath);
+  const stream = tracked(fs.createWriteStream(filePath));
   let failure = null;
   let waiters = [];
+  let ending = null;
   const settle = () => {
     const list = waiters;
     waiters = [];
     list.forEach(w => (failure ? w.reject(failure) : w.resolve()));
   };
-  stream.on('error', (e) => {
+  const fail = (e) => {
     failure = failure || e;
     settle();
-  });
+    if (ending) {
+      ending.reject(failure);
+    }
+  };
+  stream.on('error', fail);
   stream.on('drain', settle);
   return {
     write: (chunk) => {
@@ -51,11 +82,15 @@ export const createSink = (filePath) => {
         reject(failure);
         return;
       }
-      stream.once('error', reject);
+      ending = { reject };
       stream.once('finish', () => resolve(stream.bytesWritten));
       stream.end();
     }),
-    destroy: () => stream.destroy(),
+    destroy: () => {
+      fail(writerError('testdata.writer.aborted'));
+      stream.destroy();
+      return streamsClosed([stream]);
+    },
   };
 };
 
@@ -114,7 +149,7 @@ export const createTableState = () => {
     },
     current: () => {
       if (!current) {
-        throw writerError('testdata.writer.noTable');
+        throw writerError(closed ? 'testdata.writer.closed' : 'testdata.writer.noTable');
       }
       return current;
     },
@@ -128,6 +163,13 @@ export const createTableState = () => {
         throw writerError('testdata.writer.closed');
       }
       closed = true;
+    },
+    // after abort() nothing more is taken; -> the table that was open, if any
+    abort: () => {
+      const open = current;
+      closed = true;
+      current = null;
+      return open;
     },
     done,
   };
@@ -180,9 +222,16 @@ export const createSqlWriter = (filePath, dialect, options = {}) => {
   };
   body.write(sqlFilePrelude(dialect, options));
 
+  let joining = null; // the streams of assemble() while it runs
+  let aborted = null;
   const assemble = () => new Promise((resolve, reject) => {
-    const out = fs.createWriteStream(filePath);
-    const input = fs.createReadStream(partPath);
+    if (aborted) {
+      reject(writerError('testdata.writer.aborted'));
+      return;
+    }
+    const out = tracked(fs.createWriteStream(filePath));
+    const input = tracked(fs.createReadStream(partPath));
+    joining = { out, input, reject };
     out.on('error', reject);
     input.on('error', reject);
     out.on('finish', () => resolve(out.bytesWritten));
@@ -239,6 +288,7 @@ export const createSqlWriter = (filePath, dialect, options = {}) => {
       .then(() => body.end())
       .then(assemble)
       .then((bytes) => {
+        joining = null;
         removeQuietly(partPath);
         return {
           file: filePath,
@@ -246,11 +296,27 @@ export const createSqlWriter = (filePath, dialect, options = {}) => {
           tables: state.done,
           rows: state.done.reduce((sum, t) => sum + t.rows, 0),
         };
-      }, (e) => {
-        body.destroy();
-        removeQuietly(partPath);
+      }, e => (aborted || body.destroy().then(() => removeQuietly(partPath))).then(() => {
         throw e;
-      }),
+      })),
+    abort: () => {
+      if (!aborted) {
+        state.abort();
+        const streams = joining ? [joining.out, joining.input] : [];
+        if (joining) {
+          joining.reject(writerError('testdata.writer.aborted'));
+          joining.input.unpipe();
+          streams.forEach(stream => stream.destroy());
+        }
+        aborted = Promise.all([body.destroy(), streamsClosed(streams)]).then(() => {
+          removeQuietly(partPath);
+          if (streams.length > 0) {
+            removeQuietly(filePath);
+          }
+        });
+      }
+      return aborted;
+    },
   };
 };
 
@@ -290,6 +356,8 @@ export const createDbBundleWriter = (dir, dialect = 'generic') => {
   const manifestPath = path.join(dir, 'manifest.json');
   removeQuietly(manifestPath);
   const state = createTableState();
+  const files = [];
+  let aborted = null;
 
   const endTable = () => guarded(() => {
     const cur = state.current();
@@ -311,6 +379,7 @@ export const createDbBundleWriter = (dir, dialect = 'generic') => {
         file: `${n < 10000 ? `000${n}`.slice(-4) : n}.ndjson`,
         width: table.columns.length,
       });
+      files.push(path.join(dir, cur.file));
       cur.sink = createSink(path.join(dir, cur.file));
       return READY;
     }),
@@ -342,5 +411,15 @@ export const createDbBundleWriter = (dir, dialect = 'generic') => {
         rows: state.done.reduce((sum, t) => sum + t.rows, 0),
       };
     }),
+    // the folder itself was the caller's and stays
+    abort: () => {
+      if (!aborted) {
+        const open = state.abort();
+        aborted = (open && open.sink ? open.sink.destroy() : READY).then(() => {
+          files.concat(manifestPath, `${manifestPath}.tmp`).forEach(removeQuietly);
+        });
+      }
+      return aborted;
+    },
   };
 };

@@ -66,6 +66,7 @@ export default React.memo(({
   });
   const { view, settings } = project;
   const exists = id => (view.entities || []).some(e => e.id === id);
+  const hasTables = (view.entities || []).length > 0;
   const [step, setStep] = useState('tables');
   const [selected, setSelected] = useState(() => ((entityIds || []).length > 0
     ? entityIds : remembered.selected).filter(exists));
@@ -132,8 +133,10 @@ export default React.memo(({
   }), []);
   const errorText = error => runErrorText(tr, ruleTr, error, view);
   const loadErrorText = ({ request, error }) => tr(`load.${request.kind}`, {
-    name: request.path || request.table || '',
-    reason: errorText(error),
+    name: request.file || request.path || request.table || '',
+    // the name says which file it is: the reason does not repeat the path
+    reason: errorText(request.kind === 'file' && error && error.code
+      ? { code: error.code } : error),
   });
   const gotoTable = (id) => {
     setActive(id);
@@ -323,9 +326,11 @@ export default React.memo(({
             setBaseDate={project.setBaseDate}
           />
           {plan.tables.length === 0 ? <div className={`${base}-empty ${base}-empty-big`}>
-            <Icon type='fa-hand-o-left'/>
-            <div>{tr('tables.empty')}</div>
-            <div className={`${base}-dim`}>{tr('tables.emptyHint')}</div>
+            <Icon type={hasTables ? 'fa-hand-o-left' : 'fa-table'}/>
+            <div>{tr(hasTables ? 'tables.empty' : 'tables.none')}</div>
+            <div className={`${base}-dim`}>
+              {tr(hasTables ? 'tables.emptyHint' : 'tables.noneHint')}
+            </div>
           </div> : <TableGrid
             base={base}
             dataSource={view}

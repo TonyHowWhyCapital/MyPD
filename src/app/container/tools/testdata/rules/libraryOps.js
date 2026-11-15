@@ -4,6 +4,9 @@ import {
   copyRules, validateRule, RULE_KINDS,
 } from '../../../../../lib/testdata/model';
 import { resolveRule } from '../../../../../lib/testdata/columns';
+import {
+  isFullPath, withProjectPaths, withFullPaths,
+} from '../../../../../lib/testdata/file_list';
 
 export const projectRules = dataSource => getTestData(dataSource).rules;
 
@@ -60,11 +63,22 @@ export const nameTaken = (rules, rule) => {
     && `${r.name || ''}`.trim().toLowerCase() === name);
 };
 
-// problems of a rule about to be stored in `rules`
-export const libraryProblems = (rule, rules) => {
+// problems of a rule about to be stored in `rules`; a rule of the machine library
+// belongs to no project, so its file needs a full path
+export const libraryProblems = (rule, rules, scope) => {
   const problems = validateRule(rule, { library: true });
+  const path = rule && rule.kind === 'file' && rule.params ? rule.params.path : '';
+  if (scope === 'machine' && typeof path === 'string' && path.trim() && !isFullPath(path)) {
+    problems.push('file.path.relative');
+  }
   return nameTaken(rules, rule) ? problems.concat('rule.name.duplicate') : problems;
 };
+
+// Rules on their way into a library. Into the project: a file inside the project folder
+// is stored relative to it. Out of the project (machine library, export file): every
+// path becomes a full one, because a relative path means nothing outside its project.
+export const rulesFor = (scope, rules, projectFile) => (scope === 'project'
+  ? withProjectPaths(rules, projectFile) : withFullPaths(rules, projectFile));
 
 const label = o => (o ? (o.defKey || o.defName || '') : '');
 

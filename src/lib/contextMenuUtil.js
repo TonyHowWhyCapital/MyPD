@@ -16,6 +16,7 @@ import Domain from '../app/container/domain';
 import Preview from '../app/container/database';
 import AppCode from '../app/container/appcode';
 import {analyzeImpact} from './impact_util';
+import {copiedRule, pastedTestData} from './testdata/field_copy';
 import Quickedit from '../app/container/tools/quickedit';
 import Extract from '../app/container/tools/extract';
 import {
@@ -1101,6 +1102,8 @@ export const getCopyRealData = (dataSource, data) => {
           otherData: {
             ..._.pick(transform(f, dataSource, db), ['domainData', 'refDictData', 'uiHintData', 'type', 'baseTypeData']),
             id: f.id,
+            // the rule of the test data goes along by name (see testdata/field_copy.js)
+            testDataRule: copiedRule(dataSource, f),
           },
         }
       })
@@ -1135,8 +1138,10 @@ export const putCopyRealData = (dataSource, data, needOldId) => {
     indexes: (data.indexes || []).map(i => ({...i, id: Math.uuid()})),
     fields: (data.fields || []).map(f => {
       const domain = getDataId(dataSource.domains || [], f.otherData?.domainData, f.domain);
+      const testData = pastedTestData(dataSource, f, f.otherData?.testDataRule);
       return {
-        ..._.omit(f, ['otherData']),
+        ..._.omit(f, ['otherData', 'testData']),
+        ...(testData ? {testData} : {}),
         id: Math.uuid(),
         ...(needOldId ? {oldId: f.otherData?.id || f.id} : {}),
         type: (domain ? null : f.otherData?.type) || f.type,

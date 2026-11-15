@@ -11,6 +11,7 @@
 //   showAll     report every problem at once (after a failed save); otherwise an empty
 //               name is not reported before the user has typed anything
 //   extra       optional node shown under the form (e.g. where the rule is used)
+//   scope       'project' (default) or 'machine': the library the rule belongs to
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Input, Select, Checkbox, Icon,
@@ -21,7 +22,7 @@ import { tr } from './i18n';
 import { problemText, KIND_ICONS } from './ruleText';
 import { libraryProblems } from './libraryOps';
 import { defaultGenericKind } from './sample';
-import useFileList from './useFileList';
+import useFileList, { listsOf } from './useFileList';
 import PARAMS from './params';
 import { Row, NumberField } from './params/common';
 import RuleSample, { targetOf } from './RuleSample';
@@ -31,6 +32,7 @@ const { Option } = Select;
 
 export default React.memo(({
   prefix, rule, onChange, dataSource, rules = [], entity, field, showAll, extra,
+  scope = 'project',
 }) => {
   const base = `${getPrefix(prefix)}-testdata`;
   const [touched, setTouched] = useState(false);
@@ -46,8 +48,7 @@ export default React.memo(({
   }, [rule && rule.id]);
   const target = chosen.generic ? chosen : { ...chosen, generic: defaultGenericKind(rule) };
   const fileState = useFileList(rule);
-  const lists = useMemo(() => (fileState.path && fileState.values && fileState.values.length > 0
-    ? { file: { [fileState.path]: fileState.values } } : {}), [fileState]);
+  const lists = useMemo(() => listsOf(fileState) || {}, [fileState]);
   if (!rule) {
     return null;
   }
@@ -73,7 +74,7 @@ export default React.memo(({
     const { nullRate, ...rest } = rule;
     change(value === '' || value === 0 ? rest : { ...rest, nullRate: value });
   };
-  const problems = libraryProblems(rule, rules)
+  const problems = libraryProblems(rule, rules, scope)
     .filter(code => showAll || touched || code !== 'rule.name.empty')
     // a formula shows what is wrong with it under its own box
     .filter(code => rule.kind !== 'expr' || !code.startsWith('expr.') || code === 'expr.empty');
@@ -109,6 +110,7 @@ export default React.memo(({
         entity={picked.entity || entity}
         field={picked.field || field}
         fileState={fileState}
+        scope={scope}
       />
       <div className={`${base}-form-line`}/>
       <Row base={base} label={tr('editor.nullRate')} hint={tr('editor.nullRateHint')}>

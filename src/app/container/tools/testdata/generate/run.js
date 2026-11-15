@@ -4,7 +4,8 @@
 //
 // sink = {
 //   key,                    'sql' | 'csv' | 'xlsx' | 'db'
-//   create() -> writer      {beginTable, rows, endTable, close}, every call a promise
+//   create() -> writer      {beginTable, rows, endTable, close, abort}, every call a
+//                           promise; abort() stops at once and removes what was written
 //   commit(result) -> info  called when all rows are written: puts the output in place
 //   discard()               removes everything the sink made (also after commit for 'db')
 // }
@@ -103,10 +104,29 @@ export const runAll = async ({
     ...more,
     elapsed: now() - started,
   });
-  const dropAll = async () => {
-    await eachInTurn(open, o => (o.closed ? null : quiet(() => o.writer.close())));
-    sinks.forEach(s => quiet(() => s.discard()));
+  // a writer is stopped where it stands (never finished first), then its files go
+  const stop = (o) => {
+    if (!o.closed && !o.stopping) {
+      Object.assign(o, {
+        stopping: quiet(() => (o.writer.abort ? o.writer.abort() : o.writer.close())),
+      });
+    }
+    return o.stopping || null;
   };
+  const stopAll = () => Promise.all(open.map(stop));
+  const dropAll = async () => {
+    await stopAll();
+    // last made first: a folder two outputs share was made by the first of them
+    sinks.slice().reverse().forEach(s => quiet(() => s.discard()));
+  };
+  // "cancel" reaches a writer in the middle of a write or of its close
+  let aborted = false;
+  Object.assign(control, {
+    abort: () => {
+      aborted = true;
+      return stopAll();
+    },
+  });
   // ---- the rows
   onEvent({
     type: 'stage', stage: 'generate',
@@ -125,11 +145,13 @@ export const runAll = async ({
     ({ tables } = made);
     if (made.cancelled) {
       await dropAll();
+      Object.assign(control, { abort: null });
       return end('cancelled', 'generate');
     }
   } catch (error) {
     await dropAll();
-    return end('failed', 'generate', { error });
+    Object.assign(control, { abort: null });
+    return control.cancelled ? end('cancelled', 'generate') : end('failed', 'generate', { error });
   }
   // ---- the files
   onEvent({
@@ -143,17 +165,21 @@ export const runAll = async ({
         result,
       });
     });
+    // the files are whole: putting them in place is a rename, nothing to interrupt
+    Object.assign(control, { abort: null });
     await eachInTurn(open, async (o) => {
       outputs[o.sink.key] = await o.sink.commit(o.result);
       Object.assign(o, { committed: true });
     });
   } catch (error) {
-    await eachInTurn(open, o => (o.closed ? null : quiet(() => o.writer.close())));
+    await stopAll();
+    Object.assign(control, { abort: null });
     // what is already in place stays and is reported; the rest is taken away
-    open.filter(o => !o.committed || o.sink.key === (database && database.sink))
+    open.filter(o => !o.committed || o.sink.key === (database && database.sink)).reverse()
       .forEach(o => quiet(() => o.sink.discard()));
-    return end('failed', 'finish', { error });
+    return aborted ? end('cancelled', 'finish') : end('failed', 'finish', { error });
   }
+  Object.assign(control, { abort: null });
   if (!database) {
     return end('done', 'finish');
   }

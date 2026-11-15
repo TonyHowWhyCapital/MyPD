@@ -136,7 +136,8 @@ describe('one run feeds every output from the same rows', () => {
       expect(log).not.toContain('gen b 1');
       expect(log.filter(l => / commit$/.test(l))).toEqual([]);
       expect(log.filter(l => / close end$/.test(l))).toEqual(['sql close end', 'xlsx close end']);
-      expect(log.slice(-2)).toEqual(['sql discard', 'xlsx discard']);
+      // taken away last made first
+      expect(log.slice(-2)).toEqual(['xlsx discard', 'sql discard']);
     });
   test('a writer that fails stops the run and leaves nothing behind', async () => {
     const {
@@ -149,7 +150,7 @@ describe('one run feeds every output from the same rows', () => {
     expect(result.outputs).toEqual({});
     expect(log).not.toContain('gen a 2');
     expect(log.filter(l => / commit$/.test(l))).toEqual([]);
-    expect(log.filter(l => / discard$/.test(l))).toEqual(['sql discard', 'csv discard']);
+    expect(log.filter(l => / discard$/.test(l))).toEqual(['csv discard', 'sql discard']);
   });
   test('a generator error and a sink that cannot be made are cleaned up the same way',
     async () => {
@@ -167,7 +168,7 @@ describe('one run feeds every output from the same rows', () => {
         plan: second.plan, generator: second.generator, sinks: [second.sink('sql'), second.sink('csv')],
       });
       expect([b.status, b.stage, b.error.code]).toEqual(['failed', 'generate', 'EACCES']);
-      expect(second.log.filter(l => / discard$/.test(l))).toEqual(['sql discard', 'csv discard']);
+      expect(second.log.filter(l => / discard$/.test(l))).toEqual(['csv discard', 'sql discard']);
       expect(second.log).not.toContain('gen a 1');
     });
   test('a file that cannot be put in place: what is in place stays, the rest goes', async () => {
@@ -179,7 +180,7 @@ describe('one run feeds every output from the same rows', () => {
     });
     expect([result.status, result.stage]).toEqual(['failed', 'finish']);
     expect(Object.keys(result.outputs)).toEqual(['sql']);
-    expect(log.filter(l => / discard$/.test(l))).toEqual(['csv discard', 'xlsx discard']);
+    expect(log.filter(l => / discard$/.test(l))).toEqual(['xlsx discard', 'csv discard']);
   });
   test('the database is written after the files and its bundle never outlives the run',
     async () => {

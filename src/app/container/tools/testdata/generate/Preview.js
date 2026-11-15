@@ -6,6 +6,7 @@ import { previewTable } from '../../../../../lib/testdata/generate';
 import { tr } from './i18n';
 import { cellText } from './format';
 import { requestsOf } from './needs';
+import { getProjectFile } from '../rules/projectFile';
 
 export const PREVIEW_ROWS = 20;
 const DELAY = 400;
@@ -34,7 +35,7 @@ const usePreview = ({
         lists: {}, parentKeys: {}, errors: [],
       };
       try {
-        loaded = await loader.load(requestsOf(view, plan, connKey));
+        loaded = await loader.load(requestsOf(view, plan, connKey, getProjectFile()));
         const result = await previewTable(view, plan, entityId, PREVIEW_ROWS, {
           seed,
           now,
@@ -72,7 +73,7 @@ export default React.memo(({
   });
   const table = plan.tables.find(t => t.entityId === entityId);
   const hasForeign = !!table && (table.foreignKeys || []).length > 0;
-  const external = requestsOf(view, plan, connKey).length > 0;
+  const external = requestsOf(view, plan, connKey, getProjectFile()).length > 0;
   const reload = () => {
     loader.clear();
     setVersion(v => v + 1);

@@ -1,10 +1,15 @@
-// The file of a `file` rule: which file, which column of it, and its first values.
+// The file of a `file` rule: which file, how it is stored, its encoding, which column of
+// it, and its first values.
 import React from 'react';
 import { Input, Icon, Checkbox } from 'components';
 import { Row, Choice } from './common';
 import { openFileOrDirPath } from '../../../../../../lib/middle';
+import {
+  FILE_ENCODINGS, fileEncoding, storedPath,
+} from '../../../../../../lib/testdata/file_list';
 import { problemText } from '../ruleText';
 import { valueText } from '../sample';
+import { getProjectFile, pathNote } from '../projectFile';
 
 const FILTERS = [
   { name: 'CSV / TXT', extensions: ['csv', 'txt', 'tsv'] },
@@ -12,13 +17,16 @@ const FILTERS = [
 ];
 const PREVIEW = 8;
 
-// fileState = {loading, values, columns, error} read by the editor for the path in `params`
+// fileState = {loading, values, columns, encoding, auto, damaged, error} read by the
+// editor for the file in `params`
 export default ({
-  base, tr, params, set, setParams, fileState = {},
+  base, tr, params, set, setParams, fileState = {}, scope = 'project',
 }) => {
+  const projectFile = getProjectFile();
+  const store = chosen => (scope === 'machine' ? chosen : storedPath(chosen, projectFile).path);
   const browse = () => {
     openFileOrDirPath(FILTERS, ['openFile']).then((filePath) => {
-      setParams({ ...params, path: filePath, column: 0 });
+      setParams({ ...params, path: store(filePath), column: 0 });
     }).catch(() => {});
   };
   const column = Number.isInteger(Number(params.column)) && Number(params.column) >= 0
@@ -35,8 +43,29 @@ export default ({
   if (params.path) {
     preview = fileState.loading ? tr('sample.fileLoading') : '';
   }
+  const note = pathNote(tr, params.path, scope, projectFile);
+  const read = !fileState.loading && fileState.encoding;
+  let encodingNote = '';
+  if (read) {
+    encodingNote = tr(fileState.auto ? 'hint.fileEncoding' : 'hint.fileEncodingChosen', {
+      name: tr(`encodingName.${fileState.encoding}`),
+    });
+  }
   return <React.Fragment>
-    <Row base={base} label={tr('param.path')} hint={tr('hint.file')} wide>
+    <Row
+      base={base}
+      label={tr('param.path')}
+      wide
+      hint={<React.Fragment>
+        <div>{tr('hint.file')}</div>
+        {note.text && <div className={`${base}-file-note`}>
+          {note.text}
+          {note.canRelative && <a onClick={() => set('path', store(params.path))}>
+            {tr('path.makeRelative')}
+          </a>}
+        </div>}
+      </React.Fragment>}
+    >
       <Input
         value={params.path || ''}
         onChange={e => set('path', e.target.value)}
@@ -44,6 +73,19 @@ export default ({
           <Icon type='fa-ellipsis-h'/>
         </span>}
       />
+    </Row>
+    <Row base={base} label={tr('param.encoding')}>
+      <div className={`${base}-form-pair`}>
+        <Choice
+          value={fileEncoding(params)}
+          options={FILE_ENCODINGS.map(e => ({ value: e, label: tr(`encoding.${e}`) }))}
+          onChange={v => set('encoding', v)}
+        />
+        {read && <span className={`${base}-file-encoding`}>{encodingNote}</span>}
+      </div>
+      {read && fileState.damaged && <div className={`${base}-file-damaged`}>
+        {tr('hint.fileDamaged')}
+      </div>}
     </Row>
     <Row base={base} label={tr('param.fileColumn')}>
       <div className={`${base}-form-pair`}>

@@ -418,7 +418,8 @@ export const packageChanges = (currentDataSource, preDataSource, db) => {
           }
         }
         // 2.字段调整
-        const fieldsChange = compareArray(cData.fields, pData.fields, 'field', null, ['refDictData', 'extProps', 'domainData', 'uiHintData', 'notes',
+        // testData: the rule of the test data of a column is no change of the table
+        const fieldsChange = compareArray(cData.fields, pData.fields, 'field', null, ['refDictData', 'extProps', 'domainData', 'uiHintData', 'notes', 'testData',
           'attr1', 'attr2', 'attr3', 'attr4', 'attr5', 'attr6', 'attr7', 'attr8', 'attr9', 'baseType', 'baseTypeData']);
         if (fieldsChange.length > 0) {
           fieldChanged = {

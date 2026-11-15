@@ -424,7 +424,7 @@ describe('the list of a file rule', () => {
     await expect(readListFile(path.join(dir, 'none.csv'), {}))
       .rejects.toMatchObject({ code: 'file.read' });
     await expect(readListText(file, { maxBytes: 5 })).rejects.toMatchObject({ code: 'file.tooLarge' });
-    await expect(readListText(file, { maxBytes: 12, partial: true })).resolves.toBe('code,name');
+    await expect(readListText(file, { maxBytes: 12, partial: true })).resolves.toMatchObject({ text: 'code,name\n', encoding: 'utf8' });
     fs.rmSync(dir, { recursive: true, force: true });
   });
 });

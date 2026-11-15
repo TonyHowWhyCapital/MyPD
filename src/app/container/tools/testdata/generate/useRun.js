@@ -8,6 +8,7 @@ import {
   sqlSink, csvSink, xlsxSink, dbSink,
 } from './outputs';
 import { requestsOf } from './needs';
+import { getProjectFile } from '../rules/projectFile';
 
 const REDRAW = 150;
 
@@ -145,7 +146,12 @@ export default () => {
     });
     let result;
     try {
-      const loaded = await job.loader.load(requestsOf(job.view, job.plan, job.connKey));
+      // A run reads its lists, query results and parent keys anew: what a preview read a
+      // while ago may be out of date (a file edited since, rows a run before this one
+      // wrote into the database).
+      job.loader.clear();
+      const loaded = await job.loader.load(requestsOf(job.view, job.plan, job.connKey,
+        getProjectFile()));
       if (control.cancelled) {
         result = stopped('generate');
       } else if (loaded.errors.length > 0) {
@@ -199,6 +205,10 @@ export default () => {
       result = stopped('generate', { error });
     }
     clearInterval(timer);
+    if (job.db) {
+      // the database is not what the previews read any more
+      job.loader.clear();
+    }
     settle(live, {
       ...result,
       elapsed: Date.now() - started,

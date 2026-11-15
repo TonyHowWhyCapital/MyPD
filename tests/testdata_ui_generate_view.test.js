@@ -110,9 +110,11 @@ describe('what is read before rows are made', () => {
     const files = buildPlan(ds, { entityIds: ['users'] });
     expect(requestsOf(ds, files, '')).toEqual([{
       kind: 'file',
-      id: 'file|/data/names.csv|2|1',
+      id: 'file|/data/names.csv|/data/names.csv\n2\n1\nauto',
+      key: '/data/names.csv\n2\n1\nauto',
       path: '/data/names.csv',
-      params: { column: 2, header: true },
+      file: '/data/names.csv',
+      params: { column: 2, header: true, encoding: 'auto' },
     }]);
   });
   const io = (log, connected = true) => ({
@@ -136,7 +138,7 @@ describe('what is read before rows are made', () => {
     },
   });
   const requests = [
-    { kind: 'file', id: 'f1', path: '/list', params: {} },
+    { kind: 'file', id: 'f1', key: '/list', path: '/list', file: '/list', params: {} },
     { kind: 'query', id: 'q1', sql: 'select 1', needsConnection: true },
     { kind: 'keys', id: 'k1', entityId: 'p', table: 'P', columns: ['ID'], fieldIds: ['pid'], needsConnection: true },
     { kind: 'keyRows', id: 'k2', entityId: 'c', table: 'C', columns: ['A', 'B'], fieldIds: ['fa', 'fb'], needsConnection: true },
@@ -160,7 +162,7 @@ describe('what is read before rows are made', () => {
   test('errors are reported per source and kept until asked to read again', async () => {
     const log = [];
     const loader = createLoader(io(log));
-    const bad = [{ kind: 'file', id: 'gone', path: '/gone', params: {} },
+    const bad = [{ kind: 'file', id: 'gone', key: '/gone', path: '/gone', file: '/gone', params: {} },
       { kind: 'keys', id: 'e', entityId: 'p', table: 'EMPTY', columns: ['ID'], fieldIds: ['pid'], needsConnection: true }];
     const result = await loader.load(bad.concat(requests[0]));
     expect(result.errors.map(e => [e.request.id, e.error.code]))

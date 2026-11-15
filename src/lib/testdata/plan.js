@@ -8,6 +8,7 @@ import { orderTables } from './plan_order';
 import { columnRoles, columnOrder } from './plan_columns';
 import { probeTable } from './plan_probe';
 import { makeKeyFit } from './fit';
+import { fileNeed } from './file_list';
 
 export const MAX_ROWS = 1000000;
 export const DEFAULT_ROWS = 100;
@@ -321,7 +322,8 @@ const collectNeeds = (drafts, built, missingParents, needs) => {
   built.forEach(({ roles }) => roles.filter(r => r.role === 'rule').forEach((r) => {
     const params = r.rule.params || {};
     if (r.rule.kind === 'file' && given(params.path)) {
-      pushOnce(needs.files, params.path);
+      const need = fileNeed(params);
+      if (!needs.files.some(f => f.key === need.key)) needs.files.push(need);
     } else if (r.rule.kind === 'query' && given(params.sql)) {
       pushOnce(needs.queries, params.sql);
     }

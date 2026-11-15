@@ -5,9 +5,12 @@
 // archive needs neither data descriptors nor ZIP64 unless an entry really passes 4 GB.
 import fs from 'fs';
 import zlib from 'zlib';
-import { createSink } from './files';
+import {
+  createSink, streamsClosed, tracked, writerError,
+} from './files';
 
 const READY = Promise.resolve();
+const partError = () => writerError('testdata.writer.aborted');
 
 const TABLE = (() => {
   const t = new Int32Array(256);
@@ -36,7 +39,7 @@ export const crc32 = bytes => (crcUpdate(-1, bytes) ^ -1) >>> 0;
 // write(text) -> promise (backpressure), end() -> {path, crc, size, compressedSize}
 export const createDeflatedPart = (tempPath, level = 1) => {
   const deflate = zlib.createDeflateRaw({ level });
-  const out = fs.createWriteStream(tempPath);
+  const out = tracked(fs.createWriteStream(tempPath));
   let crc = -1;
   let size = 0;
   let failure = null;
@@ -46,9 +49,13 @@ export const createDeflatedPart = (tempPath, level = 1) => {
     waiters = [];
     list.forEach(w => (failure ? w.reject(failure) : w.resolve()));
   };
+  let ending = null;
   const fail = (e) => {
     failure = failure || e;
     settle();
+    if (ending) {
+      ending.reject(failure);
+    }
   };
   deflate.on('error', fail);
   out.on('error', fail);
@@ -72,8 +79,7 @@ export const createDeflatedPart = (tempPath, level = 1) => {
         reject(failure);
         return;
       }
-      deflate.once('error', reject);
-      out.once('error', reject);
+      ending = { reject };
       out.once('finish', () => resolve({
         path: tempPath,
         crc: (crc ^ -1) >>> 0,
@@ -82,9 +88,13 @@ export const createDeflatedPart = (tempPath, level = 1) => {
       }));
       deflate.end();
     }),
+    // stops at once; resolves when the temporary file is closed
     destroy: () => {
+      fail(partError());
+      deflate.unpipe(out);
       deflate.destroy();
       out.destroy();
+      return streamsClosed([out]);
     },
   };
 };
@@ -183,7 +193,10 @@ export const createZipWriter = (filePath, options = {}) => {
     input.on('end', resolve);
     input.on('data', (chunk) => {
       input.pause();
-      write(chunk).then(() => input.resume(), reject);
+      write(chunk).then(() => input.resume(), (e) => {
+        input.destroy();
+        reject(e);
+      });
     });
   });
 
@@ -235,6 +248,7 @@ export const createZipWriter = (filePath, options = {}) => {
       compressedSize: part.compressedSize,
     }).then(() => copy(part.path)),
     close: () => end().then(() => sink.end()),
+    // stops at once; resolves when the archive file is closed
     destroy: () => sink.destroy(),
   };
 };

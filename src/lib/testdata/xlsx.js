@@ -6,7 +6,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { createTableState } from './files';
+import { createTableState, removeQuietly, writerError } from './files';
 import { plainNumber, numericText } from './sql_dialects';
 import { createDeflatedPart, createZipWriter } from './zip_stream';
 
@@ -244,7 +244,7 @@ const guarded = (fn) => {
 
 // ---------------------------------------------------------------- writer
 
-// createXlsxWriter(filePath, options) -> { beginTable, rows, endTable, close }
+// createXlsxWriter(filePath, options) -> { beginTable, rows, endTable, close, abort }
 // options = { maxRows (rows of a sheet with its heading, for the tests), level (deflate,
 //   default 1), tempDir (default the temporary directory of the system), date }
 // close() -> { file, bytes, sheets: [{name, table, rows}], rows }
@@ -256,6 +256,8 @@ export const createXlsxWriter = (filePath, options = {}) => {
   const sheets = []; // {name, table, rows, part: {path, crc, size, compressedSize}}
   let chain = READY; // the calls work one after the other, whether awaited or not
   let openPart = null;
+  let openZip = null;
+  let aborted = null;
 
   const openSheet = (cur) => {
     cur.sheetNo += 1;
@@ -310,7 +312,10 @@ export const createXlsxWriter = (filePath, options = {}) => {
   };
 
   const queue = (fn) => {
-    chain = chain.then(() => guarded(fn));
+    chain = chain.then(() => (aborted ? Promise.reject(writerError('testdata.writer.aborted'))
+      : guarded(fn)));
+    // a caller that does not wait for a call still gets its failure with the next one
+    chain.catch(() => {});
     return chain;
   };
 
@@ -323,6 +328,7 @@ export const createXlsxWriter = (filePath, options = {}) => {
   const pack = () => {
     const list = sheets.length ? sheets : [{ name: 'Sheet1', table: null, rows: 0 }];
     const zip = createZipWriter(filePath, { date: options.date });
+    openZip = zip;
     let work = zip.addData('[Content_Types].xml', contentTypes(list))
       .then(() => zip.addData('_rels/.rels', ROOT_RELS))
       .then(() => zip.addData('xl/workbook.xml', workbook(list)))
@@ -338,10 +344,9 @@ export const createXlsxWriter = (filePath, options = {}) => {
       bytes,
       sheets: list.map(s => ({ name: s.name, table: s.table, rows: s.rows })),
       rows: list.reduce((sum, s) => sum + s.rows, 0),
-    }), (e) => {
-      zip.destroy();
+    }), e => zip.destroy().then(() => {
       throw e;
-    });
+    }));
   };
 
   return {
@@ -361,14 +366,28 @@ export const createXlsxWriter = (filePath, options = {}) => {
         state.close();
         return pack();
       });
-      const clean = () => {
-        if (openPart) {
-          openPart.destroy();
-        }
-        removeDir(tempDir);
-      };
-      result.then(clean, clean);
-      return result;
+      const clean = () => (aborted || (openPart ? openPart.destroy() : READY)
+        .then(() => removeDir(tempDir)));
+      return result.then(value => clean().then(() => value), e => clean().then(() => {
+        throw e;
+      }));
+    },
+    // stops at once, whatever is queued or under way, and removes the temporary folder
+    // and what was written of the workbook
+    abort: () => {
+      if (!aborted) {
+        state.abort();
+        aborted = Promise.all([
+          openPart ? openPart.destroy() : READY,
+          openZip ? openZip.destroy() : READY,
+        ]).then(() => {
+          removeDir(tempDir);
+          if (openZip) {
+            removeQuietly(filePath);
+          }
+        });
+      }
+      return aborted;
     },
   };
 };

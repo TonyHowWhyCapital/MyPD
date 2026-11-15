@@ -11,6 +11,7 @@ import {
 } from './pattern';
 import { builtinList, builtinMask } from './builtin';
 import { autoSpace } from './values_auto';
+import { fileListKey } from './file_list';
 import {
   rangeSpace, listSpace, slotsSpace, textSpace, usable,
 } from './spaces';
@@ -231,10 +232,12 @@ export const dictValues = (p, ctx) => {
 export const loadedValues = (kind, key, ctx, column) => {
   const lists = (ctx.lists && ctx.lists[kind]) || {};
   const list = Object.prototype.hasOwnProperty.call(lists, key) ? lists[key] : undefined;
-  if (!Array.isArray(list)) throw fail(`${kind}.missing`, key);
+  // the key of a file list is its path and, on further lines, how it is read
+  const said = kind === 'file' ? `${key}`.split('\n')[0] : key;
+  if (!Array.isArray(list)) throw fail(`${kind}.missing`, said);
   const values = column && (column.notNull || column.primaryKey)
     ? list.filter(v => v !== null && v !== undefined) : list;
-  if (values.length === 0) throw fail(`${kind}.empty`, key);
+  if (values.length === 0) throw fail(`${kind}.empty`, said);
   return values;
 };
 
@@ -250,7 +253,7 @@ export const maskSlots = (mask, column) => {
 
 // ---- spaces ----------------------------------------------------------------
 const loadedSpace = kind => (p, column, ctx, fit) => {
-  const key = kind === 'file' ? p.path : p.sql;
+  const key = kind === 'file' ? fileListKey(p) : p.sql;
   const lists = (ctx.lists && ctx.lists[kind]) || {};
   if (!Object.prototype.hasOwnProperty.call(lists, key)) {
     return null; // not loaded yet: nothing is known about it

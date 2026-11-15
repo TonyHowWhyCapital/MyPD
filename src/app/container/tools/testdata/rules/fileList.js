@@ -1,5 +1,7 @@
 // The list a `file` rule draws from: one column of a text or CSV file.
 import fs from 'fs';
+import { fileEncoding } from '../../../../../lib/testdata/file_list';
+import { decodeBytes, wholeLines } from './fileEncoding';
 
 export const MAX_LIST_BYTES = 20 * 1024 * 1024;
 export const MAX_LIST_VALUES = 1000000;
@@ -91,10 +93,18 @@ export const listColumns = (text, header) => {
   return first.map((name, index) => (header && `${name}`.trim() ? `${name}`.trim() : `${index + 1}`));
 };
 
-// the text of the file (UTF-8); only the first `maxBytes` when the file is larger and
-// `partial` is allowed, otherwise a file over the limit is refused
-export const readListText = (filePath, { maxBytes = MAX_LIST_BYTES, partial = false } = {}) => (
+// The text of the file: {text, encoding, auto, damaged} (see fileEncoding.js). Only the
+// first `maxBytes` when the file is larger and `partial` is allowed, otherwise a file
+// over the limit is refused. `encoding`: 'auto' or the one the user chose.
+export const readListText = (filePath, {
+  maxBytes = MAX_LIST_BYTES, partial = false, encoding = 'auto',
+} = {}) => (
   new Promise((resolve, reject) => {
+    if (!filePath) {
+      // a relative path in a project that has no file yet
+      reject(listError('file.path.unsaved'));
+      return;
+    }
     fs.stat(filePath, (statError, stat) => {
       if (statError || !stat.isFile()) {
         reject(listError('file.read', filePath));
@@ -112,22 +122,26 @@ export const readListText = (filePath, { maxBytes = MAX_LIST_BYTES, partial = fa
       stream.on('data', chunk => chunks.push(chunk));
       stream.on('error', () => reject(listError('file.read', filePath)));
       stream.on('end', () => {
-        let text = Buffer.concat(chunks).toString('utf8');
-        if (stat.size > maxBytes) {
+        const bytes = Buffer.concat(chunks);
+        try {
           // the last line of a cut file may be half a line
-          text = text.slice(0, Math.max(text.lastIndexOf('\n'), 0));
+          resolve(decodeBytes(stat.size > maxBytes ? wholeLines(bytes) : bytes, encoding));
+        } catch (e) {
+          reject(listError('file.encoding.unsupported', encoding));
         }
-        resolve(text);
       });
     });
   }));
 
-// the whole list of a `file` rule, as `ctx.lists.file[path]` of the generator wants it
-export const readListFile = (filePath, params, options) => readListText(filePath, options)
-  .then((text) => {
-    const values = parseListText(text, params);
-    if (values.length === 0) {
-      throw listError('file.empty', filePath);
-    }
-    return values;
-  });
+// the whole list of a `file` rule, as `lists.file[fileListKey(params)]` of the generator
+// wants it; `filePath` is the file itself (see resolvePath for a path stored relative)
+export const readListFile = (filePath, params, options) => readListText(filePath, {
+  encoding: fileEncoding(params),
+  ...options,
+}).then(({ text }) => {
+  const values = parseListText(text, params);
+  if (values.length === 0) {
+    throw listError('file.empty', filePath);
+  }
+  return values;
+});

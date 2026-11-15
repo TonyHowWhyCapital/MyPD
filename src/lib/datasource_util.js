@@ -5,6 +5,7 @@ import {FormatMessage} from 'components';
 import {getAllTabData, getMemoryCache, replaceDataByTabId} from './cache';
 import emptyProjectTemplate from '../lib/template/empty.json';
 import {separator} from '../../profile';
+import {diagramCorrelations, mergeCorrelations, cellsOfDiagrams} from './correlations';
 import {firstUp} from './string';
 import {compareVersion} from './update';
 import demoProject from './template/教学管理系统.pdma.json';
@@ -264,7 +265,7 @@ export const updateAllData = (dataSource) => {
         dataSource: updateAllEntity({
           ...tempData,
           viewGroups,
-        }, tabsAllData?.diagram || []),
+        }, dataSource),
         result: {
           status: true,
         },
@@ -280,55 +281,13 @@ export const updateAllData = (dataSource) => {
   return { result: { status: false, message } };
 };
 
-const updateAllEntity = (dataSource, diagrams) => {
-  const calcCorrelations = () => {
-    return (diagrams || []).reduce((a, b) => {
-      const cells = b?.cells || [];
-      const allTable = cells.filter(c => c.shape === 'table');
-      return a.concat(cells.filter(c => c.shape === 'erdRelation').map(cell => {
-        const sourceId = _.get(cell, 'source.cell', '');
-        const targetId = _.get(cell, 'target.cell', '');
-        const relation = (cell.relation || '').split(':');
-        const erRelation = ['n', '0,1', '0,n', '1', '1,n', '0']
-        const status = erRelation.includes(relation[0]);
-        const myEntity = allTable
-          .filter(t => t.id === (status ? sourceId : targetId))[0]?.originKey;
-        const refEntity = allTable
-          .filter(t => t.id === (status ? targetId : sourceId))[0]?.originKey;
-        if (myEntity && refEntity) {
-          return {
-            myEntity,
-            myField: _.get(cell, status ? 'source.portOrigin' : 'target.portOrigin', '')
-                .split(separator)[0] || _.get(cell, status ? 'source.port' : 'target.port', '')
-              .split(separator)[0],
-            refEntity,
-            refField: _.get(cell, status ? 'target.portOrigin' : 'source.portOrigin', '')
-                .split(separator)[0] || _.get(cell, status ? 'target.port' : 'source.port', '')
-              .split(separator)[0],
-            myRows: (status ? relation[0] : relation[1]) || '',
-            refRows: (status ? relation[1] : relation[0]) || '',
-            innerType: '',
-          }
-        }
-        return null;
-      }).filter(c => !!c));
-    }, []);
-  };
-  const correlations = calcCorrelations();
+// 存档时重算数据表上的关联：以项目内全部关系图为准，图上没有画过的关联保留
+const updateAllEntity = (dataSource, before) => {
   return {
     ...dataSource,
-    entities: (dataSource.entities || []).map(e => {
-      const current = correlations
-        .filter(c => c.myEntity === e.id)
-        .map(c => _.omit(c, 'myEntity'));
-      if (current) {
-        return {
-          ...e,
-          correlations: current,
-        }
-      }
-      return e;
-    })
+    entities: mergeCorrelations(dataSource.entities || [],
+      diagramCorrelations(cellsOfDiagrams(before?.diagrams)),
+      diagramCorrelations(cellsOfDiagrams(dataSource.diagrams))),
   };
 };
 

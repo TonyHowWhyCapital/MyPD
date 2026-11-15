@@ -182,6 +182,15 @@ export default {
     "download": "下載地址"
   },
   "home": {
+    "update": {
+      "check": "檢查更新",
+      "checking": "正在檢查…",
+      "auto": "啟動時自動檢查",
+      "autoTip": "只向 GitHub 查詢最新版本號，不傳送任何專案或使用者資料。取消勾選後程式完全離線",
+      "found": "下載新版本 v{version}",
+      "latest": "已是最新版本",
+      "failed": "無法取得版本資訊，請確認網路後再試"
+    },
     "project": "專案",
     "allProject": "全部專案",
     "view": {

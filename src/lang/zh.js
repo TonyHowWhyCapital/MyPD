@@ -180,6 +180,15 @@ export default {
         download: '下载地址',
     },
     home: {
+        update: {
+            check: '检查更新',
+            checking: '正在检查…',
+            auto: '启动时自动检查',
+            autoTip: '只向 GitHub 查询最新版本号，不发送任何项目或使用者数据。取消勾选后程序完全离线',
+            found: '下载新版本 v{version}',
+            latest: '已是最新版本',
+            failed: '无法取得版本信息，请确认网络后再试',
+        },
         project: '项目',
         allProject: '全部项目',
         view: { card: '卡片显示', list: '清单显示' },

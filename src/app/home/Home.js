@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import _ from 'lodash/object';
 
-import {Icon, Modal, openModal, Button, FormatMessage, SearchInput, Tooltip } from 'components';
+import {Icon, Modal, openModal, Button, FormatMessage, SearchInput, Tooltip, Message}
+  from 'components';
 // eslint-disable-next-line import/extensions,import/named
 
 // eslint-disable-next-line import/named
@@ -14,6 +15,12 @@ import { version } from '../../../package';
 
 import template from '../../lib/template';
 import {READING} from '../../lib/variable';
+import { fetchLatestRelease, openReleasePage } from '../../lib/update_check';
+
+// the answer of the check for a new version, kept while the app runs so that coming back
+// to the home page does not ask again
+let latestRelease = null;
+let autoChecked = false;
 
 
 export default React.memo(({prefix, importProject, createProject, openTemplate,
@@ -24,6 +31,34 @@ export default React.memo(({prefix, importProject, createProject, openTemplate,
   const [section, setSection] = useState('recent');
   // 卡片或清单，记在本机
   const [view, setView] = useState(() => (getUiState('homeView') === 'list' ? 'list' : 'card'));
+  // 新版本检查：只通知，不下载。开关记在本机，默认打开
+  const [release, setRelease] = useState(latestRelease);
+  const [autoCheck, setAutoCheck] = useState(() => getUiState('updateCheck') !== false);
+  const [checking, setChecking] = useState(false);
+  const checkUpdate = (manual) => {
+    setChecking(true);
+    fetchLatestRelease(version).then((data) => {
+      latestRelease = data;
+      setRelease(data);
+      if (manual && !data.newer) {
+        Message.success({title: FormatMessage.string({id: 'home.update.latest'})});
+      }
+    }).catch(() => {
+      // 自动检查连不上时不打扰使用者
+      manual && Message.error({title: FormatMessage.string({id: 'home.update.failed'})});
+    }).finally(() => setChecking(false));
+  };
+  useEffect(() => {
+    if (platform === 'json' && autoCheck && !autoChecked) {
+      autoChecked = true;
+      checkUpdate(false);
+    }
+  }, []);
+  const changeAutoCheck = (e) => {
+    setUiState('updateCheck', e.target.checked);
+    setAutoCheck(e.target.checked);
+  };
+  const openRelease = () => openReleasePage(release.url);
   const changeView = (next) => {
     setUiState('homeView', next);
     setView(next);
@@ -279,6 +314,19 @@ export default React.memo(({prefix, importProject, createProject, openTemplate,
             <em>{s.count}</em>
           </div>)}
         </div>
+        {platform === 'json' && <div className={`${currentPrefix}-home-side-update`}>
+          {release?.newer && <a className='found' onClick={openRelease}>
+            <Icon type='fa-arrow-circle-o-up'/>
+            <FormatMessage id='home.update.found' data={{version: release.version}}/>
+          </a>}
+          <a onClick={() => !checking && checkUpdate(true)}>
+            <FormatMessage id={checking ? 'home.update.checking' : 'home.update.check'}/>
+          </a>
+          <label htmlFor='home-update-auto' title={FormatMessage.string({id: 'home.update.autoTip'})}>
+            <input id='home-update-auto' type='checkbox' checked={autoCheck} onChange={changeAutoCheck}/>
+            <FormatMessage id='home.update.auto'/>
+          </label>
+        </div>}
       </div>
       <div className={`${currentPrefix}-home-main`}>
         <div className={`${currentPrefix}-home-main-head`}>

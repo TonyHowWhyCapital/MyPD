@@ -13,8 +13,17 @@ const sources = walk(path.join(root, 'src')).concat(path.join(root, 'public/inde
   .map(file => ({file: path.relative(root, file), text: fs.readFileSync(file, 'utf8')}));
 const offenders = pattern => sources.filter(s => pattern.test(s.text)).map(s => s.file);
 
-test('the app contains no code that opens a network connection by itself', () => {
-  expect(offenders(/require\(['"](http|https|net|tls|dgram)['"]\)|from ['"](http|https|net)['"]/)).toEqual([]);
+// the check for a new version is the one exception, and it may only ask the releases host
+const updateCheck = 'src/lib/update_check.js';
+
+test('only the update check opens a network connection by itself', () => {
+  expect(offenders(/require\(['"](http|https|net|tls|dgram)['"]\)|from ['"](http|https|net)['"]/))
+    .toEqual([updateCheck]);
+  const text = sources.find(s => s.file === updateCheck).text;
+  expect(text).toMatch(/RELEASE_HOST = 'api\.github\.com'/);
+  expect(text.match(/host:/g)).toEqual(['host:']);
+  expect(text).toMatch(/host: RELEASE_HOST,/);
+  expect(text).not.toMatch(/\.write\(|method:|POST/);
   expect(offenders(/XMLHttpRequest|sendBeacon|new WebSocket|[^\w.]fetch\(/)).toEqual([]);
   expect(offenders(/autoUpdater|electron-updater|checkForUpdates/)).toEqual([]);
 });

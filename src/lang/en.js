@@ -180,6 +180,15 @@ export default {
         download: 'DownloadUrl',
     },
     home: {
+        update: {
+            check: 'Check for updates',
+            checking: 'Checking…',
+            auto: 'Check at startup',
+            autoTip: 'Only asks GitHub for the latest version number. No project or user data is sent. When unchecked the app stays fully offline',
+            found: 'Download version {version}',
+            latest: 'You have the latest version',
+            failed: 'Cannot get the version information. Check the network and try again',
+        },
         project: 'project',
         allProject: 'all project',
         view: { card: 'Cards', list: 'List' },

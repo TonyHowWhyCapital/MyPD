@@ -21,6 +21,7 @@ import java.util.Map;
  *    "password":..., "out":<result file>, "dialect":<optional override>,
  *    count: "tables":[names]
  *    keys:  "table":..., "column":..., "limit":n
+ *    keyrows: "table":..., "columns":[names], "limit":n
  *    query: "sql":..., "limit":n, "timeout":seconds
  *    write: "dir":<bundle>, "existing":"append|clear", "onError":"rollback|skip",
  *           "progress":<file>, "batchSize":n}
@@ -73,6 +74,10 @@ public class TestData {
       if ("keys".equals(mode)) {
         return keys(db, TestDataJson.str(p, "table"), TestDataJson.str(p, "column"), limit(p));
       }
+      if ("keyrows".equals(mode)) {
+        return keyRows(db, TestDataJson.str(p, "table"),
+            TestDataJson.list(p.get("columns"), "columns"), limit(p));
+      }
       if ("write".equals(mode)) {
         return new TestDataWrite(db, p).run();
       }
@@ -85,15 +90,22 @@ public class TestData {
     return (int) Math.max(1, Math.min(MAX_LIMIT, n <= 0 ? 10000 : n));
   }
 
-  /** {"counts":{table: n|null}, "errors":{table: message}} — null for a table that is not there. */
+  /**
+   * {"counts":{table: n|null}, "exists":{table: true|false|null}, "errors":{table: {code,
+   * message}}}. A count is null for a table that is not there and for one that cannot be
+   * read; "exists" tells the two apart (null: the lookup itself failed) and "errors" says why.
+   */
   private static String count(TestDataDb db, List<Object> tables) throws Exception {
     StringBuilder counts = new StringBuilder("{");
+    StringBuilder exists = new StringBuilder("{");
     StringBuilder errors = new StringBuilder("{");
     for (Object o : tables) {
       String name = String.valueOf(o);
       String value = "null";
+      String there = "null";
       try {
         TestDataDb.Table t = db.table(name);
+        there = String.valueOf(t != null);
         if (t != null) {
           try (Statement st = db.conn.createStatement();
                ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM " + t.sql)) {
@@ -103,34 +115,77 @@ public class TestData {
         }
       } catch (SQLException e) {
         // one unreadable table must not hide the others
-        errors.append(errors.length() > 1 ? "," : "").append(Tool.json(name)).append(':')
-            .append(Tool.json(TestDataDb.clean(String.valueOf(e.getMessage()))));
+        TestDataFailure f = TestDataDb.failure(e);
+        errors.append(errors.length() > 1 ? "," : "").append(Tool.json(name)).append(":{\"code\":")
+            .append(Tool.json(f.code)).append(",\"message\":")
+            .append(Tool.json(TestDataDb.clean(f.getMessage()))).append('}');
+        try {
+          // PostgreSQL refuses everything after an error until the transaction is ended
+          if (!db.conn.getAutoCommit()) {
+            db.conn.rollback();
+          }
+        } catch (SQLException ignored) {
+          // the next table will tell
+        }
       }
       counts.append(counts.length() > 1 ? "," : "").append(Tool.json(name)).append(':').append(value);
+      exists.append(exists.length() > 1 ? "," : "").append(Tool.json(name)).append(':').append(there);
     }
-    return "{\"counts\":" + counts + "},\"errors\":" + errors + "}}";
+    return "{\"counts\":" + counts + "},\"exists\":" + exists + "},\"errors\":" + errors + "}}";
   }
 
-  private static String keys(TestDataDb db, String table, String column, int limit) throws Exception {
+  private static TestDataDb.Table existing(TestDataDb db, String table) throws Exception {
     TestDataDb.Table t = db.table(table);
     if (t == null) {
       throw new TestDataFailure("TABLE_MISSING", "The table " + table + " does not exist").at(table, -1);
     }
+    return t;
+  }
+
+  private static String column(TestDataDb db, TestDataDb.Table t, String table, String column)
+      throws Exception {
     TestDataDb.Column c = t.columns.get(column.toLowerCase(Locale.ROOT));
     if (c == null && !t.columns.isEmpty()) {
       throw new TestDataFailure("COLUMN_MISSING",
           "The table " + table + " has no column " + column).at(table, -1);
     }
-    String col = db.quote(c == null ? column : c.name);
-    return select(db, "SELECT " + col + " FROM " + t.sql + " WHERE " + col + " IS NOT NULL", limit, 120);
+    return db.quote(c == null ? column : c.name);
+  }
+
+  private static String keys(TestDataDb db, String table, String column, int limit) throws Exception {
+    TestDataDb.Table t = existing(db, table);
+    String col = column(db, t, table, column);
+    return select(db, "SELECT " + col + " FROM " + t.sql + " WHERE " + col + " IS NOT NULL", limit, 120, 0);
+  }
+
+  /** Rows of several columns, each a JSON array in the order asked for; rows with a NULL left out. */
+  private static String keyRows(TestDataDb db, String table, List<Object> columns, int limit)
+      throws Exception {
+    TestDataDb.Table t = existing(db, table);
+    if (columns.isEmpty()) {
+      throw new TestDataFailure("BAD_PARAMS", "No columns to read");
+    }
+    StringBuilder list = new StringBuilder();
+    StringBuilder where = new StringBuilder();
+    for (Object o : columns) {
+      String col = column(db, t, table, String.valueOf(o));
+      list.append(list.length() > 0 ? ", " : "").append(col);
+      where.append(where.length() > 0 ? " AND " : "").append(col).append(" IS NOT NULL");
+    }
+    return select(db, "SELECT " + list + " FROM " + t.sql + " WHERE " + where, limit, 120,
+        columns.size());
   }
 
   private static String query(TestDataDb db, String sql, int limit, int timeout) throws Exception {
-    return select(db, sql, limit, timeout <= 0 ? 30 : timeout);
+    return select(db, sql, limit, timeout <= 0 ? 30 : timeout, 0);
   }
 
-  /** First column of a query as a JSON array; read-only, limited, and always rolled back. */
-  private static String select(TestDataDb db, String sql, int limit, int timeout) throws Exception {
+  /**
+   * The result of a query as a JSON array, read-only, limited, and always rolled back:
+   * the values of the first column (width 0) or one array of `width` values per row.
+   */
+  private static String select(TestDataDb db, String sql, int limit, int timeout, int width)
+      throws Exception {
     try {
       db.conn.setReadOnly(true);
     } catch (SQLException e) {
@@ -147,10 +202,22 @@ public class TestData {
         // not every driver has a timeout
       }
       try (ResultSet rs = st.executeQuery(sql)) {
-        int type = rs.getMetaData().getColumnType(1);
+        int[] types = new int[Math.max(1, width)];
+        for (int i = 0; i < types.length; i++) {
+          types[i] = rs.getMetaData().getColumnType(i + 1);
+        }
         int n = 0;
         while (n < limit && rs.next()) {
-          sb.append(n++ > 0 ? "," : "").append(db.jsonValue(rs, 1, type));
+          sb.append(n++ > 0 ? "," : "");
+          if (width == 0) {
+            sb.append(db.jsonValue(rs, 1, types[0]));
+            continue;
+          }
+          sb.append('[');
+          for (int i = 0; i < width; i++) {
+            sb.append(i > 0 ? "," : "").append(db.jsonValue(rs, i + 1, types[i]));
+          }
+          sb.append(']');
         }
       }
     } finally {

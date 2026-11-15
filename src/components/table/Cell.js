@@ -7,13 +7,15 @@ import {attNames, emptyDict, getColumnWidth, validateDictBase} from '../../lib/d
 import DictBase from '../../app/container/dict/DictBase';
 import EntityBasePropertiesList from '../../app/container/entity/EntityBasePropertiesList';
 import { NEW_DOMAIN, openNewDomain } from './newDomain';
+import { TEST_DATA_KEY, ruleCellText } from '../../app/container/tools/testdata/rules/gridColumn';
+import RulePicker from '../../app/container/tools/testdata/rules/RulePicker';
 
 
 export default React.memo(({f, name, remarkChange, onKeyDown, currentPrefix,
                              onChange, onBlur, checkboxComponents, reading, cellRef, dicts,
                              setDict, getDataSource, updateDataSource, entities,mapping,
                              openDict, defaultGroups, domains, uiHint, allFieldOptions,
-                             extAttrProps}) => {
+                             extAttrProps, testRules}) => {
   const eventId = useMemo(() => Math.uuid(), []);
   const currentExt = extAttrProps?.[name] || {};
   const tooltipRef = useRef(null);
@@ -211,6 +213,8 @@ export default React.memo(({f, name, remarkChange, onKeyDown, currentPrefix,
           : Component.FormatMessage.string({id: 'dict.disabled'});
     } else if (name === 'refEntity') {
       label = entities.filter(e => e.id === f[name])[0]?.defKey || '';
+    } else if (name === TEST_DATA_KEY) {
+      label = ruleCellText(getDataSource ? getDataSource() : {profile: {testData: testRules}}, f);
     }
     return <Component.Tooltip title={label}>
       <span
@@ -244,6 +248,17 @@ export default React.memo(({f, name, remarkChange, onKeyDown, currentPrefix,
             {Component.FormatMessage.string({id: 'modelEdit.newDomainOption'})}
           </Component.Select.Option> : [])}
     </Component.Select>;
+  } else if (name === TEST_DATA_KEY) {
+    // the stored value is {rule, nullRate}; nothing at all means the automatic rule
+    return <RulePicker
+      compact
+      field={f}
+      value={f[name]}
+      dataSource={getDataSource ? getDataSource() : {profile: {testData: testRules}}}
+      getDataSource={getDataSource}
+      updateDataSource={updateDataSource}
+      onChange={value => onChange && onChange({ target: { value } })}
+    />;
   } else if(name === 'uiHint') {
     return <Component.Select value={f[name]} onChange={onChange}>
       {uiHint.map(d =>
@@ -433,6 +448,11 @@ export default React.memo(({f, name, remarkChange, onKeyDown, currentPrefix,
   } else if (pre.name === 'uiHint') {
     return !((pre?.uiHint !== next?.uiHint)
       || (pre.f[pre.name] !== next.f[next.name]));
+  } else if (pre.name === TEST_DATA_KEY) {
+    // the rule in force also depends on the domain and on whether the column takes NULL
+    return pre.testRules === next.testRules
+      && ['testData', 'domain', 'notNull', 'primaryKey', 'autoIncrement', 'type', 'len', 'scale',
+        'refDict', 'defKey'].every(k => pre.f[k] === next.f[k]);
   } else if (pre.name === 'refEntity') {
     return pre?.entities === next?.entities;
   } else if (attNames.includes(pre.name)) {

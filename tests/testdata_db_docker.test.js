@@ -1,0 +1,241 @@
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { spawnSync } from 'child_process';
+import {
+  configure, countRows, inspectTables, readKeyRows, readKeys, runQuery, writeBundle,
+} from '../src/lib/testdata/db';
+import { createDbBundleWriter, createSqlWriter } from '../src/lib/testdata/files';
+
+// Regressions found against real servers. Runs only when throwaway containers are up and
+// MYPD_TD_PW holds their password; otherwise every block is skipped:
+//   docker run -d --name mypd-td-mssql --platform linux/amd64 -e ACCEPT_EULA=Y \
+//     -e MSSQL_SA_PASSWORD=$MYPD_TD_PW -p 127.0.0.1:21433:1433 \
+//     mcr.microsoft.com/mssql/server:2022-latest
+//   docker run -d --name mypd-td-mysql -e MYSQL_ROOT_PASSWORD=$MYPD_TD_PW \
+//     -e MYSQL_DATABASE=tdtest -p 127.0.0.1:23306:3306 mysql:8
+//   docker run -d --name mypd-td-pg -e POSTGRES_PASSWORD=$MYPD_TD_PW -e POSTGRES_DB=tdtest \
+//     -p 127.0.0.1:25432:5432 postgres:16
+//   docker run -d --name mypd-td-oracle -e ORACLE_PASSWORD=$MYPD_TD_PW -e APP_USER=tdtest \
+//     -e APP_USER_PASSWORD=$MYPD_TD_PW -p 127.0.0.1:21521:1521 gvenzl/oracle-free:23-slim
+// Only 127.0.0.1 is ever contacted.
+const PW = process.env.MYPD_TD_PW || '';
+const root = path.resolve(__dirname, '..');
+const jar = path.join(root, 'public/jar/pdmaner-java.jar');
+const docker = (args, input) => {
+  try {
+    const r = spawnSync('docker', args, { input, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
+    return { status: r.status, out: `${r.stdout || ''}`, err: `${r.stderr || ''}` };
+  } catch (e) {
+    return { status: -1, out: '', err: `${e}` };
+  }
+};
+const running = PW && fs.existsSync(jar)
+  ? docker(['ps', '--format', '{{.Names}}']).out.split('\n') : [];
+const work = fs.mkdtempSync(path.join(os.tmpdir(), 'mypd-td-docker-'));
+afterAll(() => fs.rmdirSync(work, { recursive: true }));
+jest.setTimeout(300000);
+
+const DBS = {
+  mssql: {
+    container: 'mypd-td-mssql',
+    conn: {
+      driver_class_name: 'com.microsoft.sqlserver.jdbc.SQLServerDriver',
+      url: 'jdbc:sqlserver://127.0.0.1:21433;DatabaseName=tdtest',
+      username: 'sa',
+    },
+    cli: (sql, quoted = true, database = 'tdtest') => {
+      const file = path.join(work, 'q.sql');
+      fs.writeFileSync(file, sql);
+      docker(['cp', file, 'mypd-td-mssql:/tmp/q.sql']);
+      return docker(['exec', 'mypd-td-mssql', '/opt/mssql-tools18/bin/sqlcmd', '-S', 'localhost', '-U',
+        'sa', '-P', PW, '-C', '-b', '-y', '0', '-d', database, ...(quoted ? ['-I'] : []),
+        '-i', '/tmp/q.sql']);
+    },
+    first: 'SET NOCOUNT ON;\n',
+    drop: t => `DROP TABLE IF EXISTS ${t};`,
+    types: { id: 'INT IDENTITY PRIMARY KEY', at: 'DATETIME', text: 'NVARCHAR(10)', num: 'DECIMAL(5,2)' },
+    text: c => `CONVERT(char(19), ${c}, 120)`,
+  },
+  mysql: {
+    container: 'mypd-td-mysql',
+    conn: {
+      driver_class_name: 'com.mysql.cj.jdbc.Driver',
+      // the template of the app (serverTimezone=UTC) plus what MySQL 8 asks for without TLS
+      url: 'jdbc:mysql://127.0.0.1:23306/tdtest?characterEncoding=UTF-8&useSSL=false'
+        + '&useUnicode=true&serverTimezone=UTC&allowPublicKeyRetrieval=true',
+      username: 'root',
+    },
+    cli: sql => docker(['exec', '-i', '-e', `MYSQL_PWD=${PW}`, 'mypd-td-mysql', 'mysql', '-uroot',
+      '--default-character-set=utf8mb4', '-N', '-B', 'tdtest'], sql),
+    first: '',
+    drop: t => `DROP TABLE IF EXISTS ${t};`,
+    types: { id: 'INT AUTO_INCREMENT PRIMARY KEY', at: 'DATETIME', text: 'VARCHAR(10)', num: 'DECIMAL(5,2)' },
+    text: c => `DATE_FORMAT(${c}, '%Y-%m-%d %H:%i:%s')`,
+  },
+  postgresql: {
+    container: 'mypd-td-pg',
+    conn: {
+      driver_class_name: 'org.postgresql.Driver',
+      url: 'jdbc:postgresql://127.0.0.1:25432/tdtest',
+      username: 'postgres',
+    },
+    cli: sql => docker(['exec', '-i', 'mypd-td-pg', 'psql', '-U', 'postgres', '-d', 'tdtest', '-At',
+      '-q', '-v', 'ON_ERROR_STOP=1'], sql),
+    first: '',
+    drop: t => `DROP TABLE IF EXISTS ${t};`,
+    types: { id: 'SERIAL PRIMARY KEY', at: 'TIMESTAMP', text: 'VARCHAR(10)', num: 'NUMERIC(5,2)' },
+    text: c => `to_char(${c}, 'YYYY-MM-DD HH24:MI:SS')`,
+  },
+  oracle: {
+    container: 'mypd-td-oracle',
+    conn: {
+      driver_class_name: 'oracle.jdbc.OracleDriver',
+      url: 'jdbc:oracle:thin:@127.0.0.1:21521/FREEPDB1',
+      username: 'tdtest',
+    },
+    cli: (sql) => {
+      const file = path.join(work, 'q.sql');
+      fs.writeFileSync(file, `SET PAGESIZE 0 FEEDBACK OFF HEADING OFF LINESIZE 2000 TRIMOUT ON\n${sql}\nEXIT\n`);
+      docker(['cp', file, 'mypd-td-oracle:/tmp/q.sql']);
+      return docker(['exec', '-e', 'NLS_LANG=.AL32UTF8', 'mypd-td-oracle', 'sqlplus', '-S', '-L',
+        `tdtest/${PW}@//localhost/FREEPDB1`, '@/tmp/q.sql']);
+    },
+    first: '',
+    drop: t => `BEGIN EXECUTE IMMEDIATE 'DROP TABLE ${t} CASCADE CONSTRAINTS PURGE'; `
+      + 'EXCEPTION WHEN OTHERS THEN NULL; END;\n/',
+    types: {
+      id: 'NUMBER(10) GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY', at: 'DATE', text: 'NVARCHAR2(10)', num: 'NUMBER(5,2)',
+    },
+    text: c => `TO_CHAR(${c}, 'YYYY-MM-DD HH24:MI:SS')`,
+  },
+};
+
+const fail = promise => promise.then(v => v, e => e);
+const col = (defKey, kind, more = {}) => ({ defKey, kind, ...more });
+let bundles = 0;
+const bundle = async (dialect, tables) => {
+  bundles += 1;
+  const writer = createDbBundleWriter(path.join(work, `b${bundles}`), dialect);
+  for (let i = 0; i < tables.length; i += 1) {
+    /* eslint-disable no-await-in-loop */
+    await writer.beginTable(tables[i][0]);
+    await writer.rows(tables[i][1]);
+    await writer.endTable();
+    /* eslint-enable no-await-in-loop */
+  }
+  return (await writer.close()).dir;
+};
+
+const T = {
+  defKey: 'TD_NODE',
+  columns: [col('ID', 'int', { autoIncrement: true }), col('PARENT_ID', 'int'), col('AT_TIME', 'datetime'),
+    col('NAME', 'string'), col('AMOUNT', 'decimal')],
+};
+// 02:30 on these days does not exist in New York; 1900 and 2038 are beyond 32 bit seconds
+const TIMES = ['2024-03-10 02:30:00', '2024-11-03 01:30:00', '1900-01-01 00:00:00',
+  '2038-01-19 03:14:08', '2024-12-31 23:59:59'];
+const rows = TIMES.map((t, i) => [i + 1, i === 0 ? null : i, t, `名${i}`, 1.5]);
+
+Object.keys(DBS).forEach((dialect) => {
+  const db = DBS[dialect];
+  const there = running.includes(db.container);
+  (there ? describe : describe.skip)(`real database: ${dialect}`, () => {
+    const conn = { properties: { ...db.conn, password: PW } };
+    const sql = (text) => {
+      const r = db.cli(`${db.first}${text}`);
+      if (r.status !== 0) {
+        throw new Error(`${r.err}${r.out}`);
+      }
+      return r.out.trim();
+    };
+    const end = dialect === 'oracle' ? ';' : '';
+    const lines = text => sql(`${dialect === 'mssql' ? 'SET NOCOUNT ON;\n' : ''}${text}${end}`)
+      .split('\n').map(l => l.trim()).filter(l => l);
+    const write = (dir, options, config = {}) => writeBundle({}, config, conn, dir, options)
+      .promise;
+
+    beforeAll(() => {
+      configure({ jarPath: jar, tmpDir: work });
+      if (dialect === 'mssql') {
+        db.cli("IF DB_ID('tdtest') IS NULL CREATE DATABASE tdtest;", true, 'master');
+      }
+      const t = db.types;
+      // a table level constraint: MySQL ignores REFERENCES written behind a column
+      sql(`${db.drop('TD_NODE')}\nCREATE TABLE TD_NODE (ID ${t.id}, PARENT_ID INT NULL, `
+        + `AT_TIME ${t.at} NULL, NAME ${t.text} NULL, AMOUNT ${t.num} NULL, `
+        + 'CONSTRAINT FK_TD_NODE_PARENT FOREIGN KEY (PARENT_ID) REFERENCES TD_NODE(ID));');
+    });
+    afterAll(() => sql(db.drop('TD_NODE')));
+
+    test('date and time arrive as written whatever the zone of the JVM', async () => {
+      const dir = await bundle(dialect, [[T, rows]]);
+      const zones = ['America/New_York', 'Asia/Taipei'];
+      for (let i = 0; i < zones.length; i += 1) {
+        const config = { jvm: `-Xmx128m -Duser.timezone=${zones[i]}` };
+        /* eslint-disable no-await-in-loop */
+        const result = await write(dir, { existing: 'clear' }, config);
+        expect(result.tables[0]).toMatchObject({ written: 5, failed: 0 });
+        expect(lines(`SELECT ${db.text('AT_TIME')} FROM TD_NODE ORDER BY ID`)).toEqual(TIMES);
+        expect(await runQuery({}, config, conn, 'SELECT AT_TIME FROM TD_NODE ORDER BY ID')).toEqual(TIMES);
+        expect((await readKeyRows({}, config, conn, 'td_node', ['id', 'at_time'])).map(r => r[1]).sort())
+          .toEqual(TIMES.slice().sort());
+        /* eslint-enable no-await-in-loop */
+      }
+    });
+
+    test('clear empties a table whose rows point at each other; the next id is free', async () => {
+      const dir = await bundle(dialect, [[T, rows]]);
+      const result = await write(dir, { existing: 'clear' });
+      expect(result.tables[0]).toMatchObject({ deleted: 5, written: 5, warnings: [] });
+      sql(`INSERT INTO TD_NODE (NAME) VALUES ('next');${dialect === 'oracle' ? '\nCOMMIT;' : ''}`);
+      // MySQL goes on counting where the deleted rows ended
+      const next = Number(lines('SELECT MAX(ID) FROM TD_NODE')[0]);
+      expect(next).toBeGreaterThan(5);
+      sql(`DELETE FROM TD_NODE WHERE ID = ${next};${dialect === 'oracle' ? '\nCOMMIT;' : ''}`);
+    });
+
+    test('rows that do not fit are classified; composite reads and table states', async () => {
+      const bad = [[10, null, TIMES[0], 'x'.repeat(11), 1], [11, null, TIMES[0], 'ok', 12345.5],
+        [12, 999, TIMES[0], 'ok', 1], [13, null, TIMES[0], 'ok', 1]];
+      const result = await write(await bundle(dialect, [[T, bad]]), { onError: 'skip' });
+      expect(result.tables[0].errors.map(e => [e.row, e.code])).toEqual(
+        [[1, 'VALUE_TOO_LONG'], [2, 'VALUE_OUT_OF_RANGE'], [3, 'CONSTRAINT']]);
+      expect(result.tables[0]).toMatchObject({ written: 1, failed: 3 });
+      expect(await fail(write(await bundle(dialect, [[T, bad.slice(1)]]), {})))
+        .toMatchObject({ code: 'VALUE_OUT_OF_RANGE', table: 'TD_NODE', row: 1 });
+      expect(await countRows({}, {}, conn, ['TD_NODE', 'td_node', 'TD_NOPE']))
+        .toEqual({ TD_NODE: 6, td_node: 6, TD_NOPE: null });
+      expect(await inspectTables({}, {}, conn, ['Td_Node', 'TD_NOPE'])).toEqual({
+        Td_Node: { exists: true, rows: 6 },
+        TD_NOPE: { exists: false, rows: null },
+      });
+      const pairs = await readKeyRows({}, {}, conn, 'TD_NODE', ['ID', 'PARENT_ID'], 100);
+      expect(pairs.sort((a, b) => a[0] - b[0])).toEqual([[2, 1], [3, 2], [4, 3], [5, 4]]);
+      expect((await readKeys({}, {}, conn, 'TD_NODE', 'PARENT_ID')).sort()).toEqual([1, 2, 3, 4]);
+    });
+
+    test('the SQL script of the dialect runs in the client of the database', async () => {
+      // MySQL cannot delete rows that point at each other in one statement
+      sql(`UPDATE TD_NODE SET PARENT_ID = NULL;\nDELETE FROM TD_NODE;${
+        dialect === 'oracle' ? '\nCOMMIT;' : ''}`);
+      const file = path.join(work, `${dialect}.sql`);
+      const writer = createSqlWriter(file, dialect);
+      await writer.beginTable(T);
+      await writer.rows(rows);
+      await writer.endTable();
+      await writer.close();
+      // sqlcmd as it comes: QUOTED_IDENTIFIER off
+      const run = dialect === 'mssql' ? db.cli(fs.readFileSync(file, 'utf8'), false)
+        : db.cli(dialect === 'oracle' ? `@/dev/null\n${fs.readFileSync(file, 'utf8')}` : fs.readFileSync(file, 'utf8'));
+      expect(`${run.err}${run.out}`).not.toMatch(/ERROR|Msg \d+|ORA-\d+/);
+      expect(lines(`SELECT ${db.text('AT_TIME')} FROM TD_NODE ORDER BY ID`)).toEqual(TIMES);
+      sql(`INSERT INTO TD_NODE (NAME) VALUES ('next');${dialect === 'oracle' ? '\nCOMMIT;' : ''}`);
+      expect(Number(lines('SELECT MAX(ID) FROM TD_NODE')[0])).toBeGreaterThan(5);
+    });
+  });
+});
+
+test('the databases are optional', () => {
+  expect(Array.isArray(running)).toBe(true);
+});

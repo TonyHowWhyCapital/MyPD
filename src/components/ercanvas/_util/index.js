@@ -92,7 +92,7 @@ class Canvas {
         // 节点源数据
         const origin = n?.origin || {};
         // 获取该数据表需要显示的字段
-        const headers = origin?.headers.filter(h => !h.hideInGraph).map((h) => {
+        const headers = origin?.headers.filter(h => !h.hideInGraph && h.refKey !== 'testData').map((h) => {
           if (h.refKey === 'domain'){
             return {
               ...h,

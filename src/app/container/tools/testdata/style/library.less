@@ -1,0 +1,217 @@
+@import "~style";
+
+.@{prefix}-testdata {
+  // ---- the rule library window ----
+  &-library {
+    display: flex;
+    flex-direction: column;
+    height: 70vh;
+    min-height: 320px;
+    padding: 10px 12px 0;
+  }
+  &-bar {
+    display: flex;
+    align-items: center;
+    flex: none;
+    margin-bottom: 10px;
+    &-hint {
+      margin-left: 14px;
+      color: @third-font-color;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+  &-seg {
+    display: inline-flex;
+    flex: none;
+    border: 1px solid @primary-border-color;
+    border-radius: 4px;
+    overflow: hidden;
+    &-item {
+      padding: 4px 16px;
+      cursor: pointer;
+      white-space: nowrap;
+      border-right: 1px solid @primary-border-color;
+      &:last-child {
+        border-right: none;
+      }
+      &.active {
+        background: @primary-color;
+        color: #FFFFFF;
+      }
+    }
+    &-count {
+      margin-left: 6px;
+      opacity: 0.7;
+      font-size: 12px;
+    }
+  }
+  &-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+  &-side {
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    width: 300px;
+    margin-right: 12px;
+    padding-right: 12px;
+    border-right: 1px solid @primary-border-color;
+  }
+  &-main {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+  &-tools {
+    display: flex;
+    align-items: center;
+    flex: none;
+    margin-bottom: 8px;
+    .@{prefix}-button {
+      margin: 0;
+      min-width: 0;
+      padding: 0 12px;
+    }
+    .@{prefix}-button + .@{prefix}-button {
+      margin-left: 6px;
+    }
+    &-links {
+      font-size: 12px;
+      > a {
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      > a + a {
+        margin-left: 12px;
+      }
+    }
+  }
+  &-off {
+    color: @third-font-color !important;
+    cursor: not-allowed !important;
+  }
+  &-danger {
+    color: @danger-color !important;
+  }
+  &-dim {
+    color: @third-font-color;
+  }
+  &-tag {
+    flex: none;
+    padding: 0 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    line-height: 18px;
+    white-space: nowrap;
+    color: @primary-color;
+    background: @third-primary-color;
+  }
+  &-empty {
+    .tool-empty();
+    line-height: 1.7;
+    &-main {
+      margin: auto;
+    }
+  }
+  &-note {
+    margin-bottom: 8px;
+    color: @warring-color;
+  }
+  // ---- the list of rules ----
+  &-list {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    &-head {
+      display: flex;
+      align-items: center;
+      flex: none;
+      margin-bottom: 6px;
+      padding-left: 8px;
+      > .@{prefix}-checkbox {
+        flex: none;
+        margin-right: 8px;
+      }
+      > .@{prefix}-search-input {
+        flex: 1;
+        min-width: 0;
+      }
+    }
+    &-body {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+    &-foot {
+      flex: none;
+      padding: 6px 0 8px;
+      font-size: 12px;
+      color: @third-font-color;
+    }
+    &-item {
+      display: flex;
+      align-items: flex-start;
+      .tool-list-item();
+      padding: 6px 8px;
+      &-active {
+        .tool-list-item-chosen();
+        &:hover {
+          background: @third-primary-color;
+        }
+      }
+    }
+    &-check {
+      flex: none;
+      width: 22px;
+      padding-top: 1px;
+    }
+    &-text {
+      flex: 1;
+      min-width: 0;
+    }
+    &-name {
+      display: flex;
+      align-items: center;
+      > i {
+        flex: none;
+        width: 18px;
+        color: @third-font-color;
+      }
+      > span:nth-child(2) {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: bold;
+      }
+    }
+    &-kind {
+      flex: none;
+      margin-left: 6px;
+      font-size: 12px;
+      color: @third-font-color;
+    }
+    &-summary, &-usage {
+      margin-top: 2px;
+      padding-left: 18px;
+      font-size: 12px;
+      color: @second-font-color;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    &-usage {
+      color: @third-font-color;
+      &-on {
+        color: @success-color;
+      }
+    }
+  }
+}

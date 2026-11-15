@@ -6,7 +6,6 @@ import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.SQLTimeoutException;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -24,6 +23,8 @@ final class TestDataDb implements AutoCloseable {
     int sqlType;
     String typeName;
     boolean autoIncrement;
+    /** Filled by the database itself (computed column, row version): no value can be written. */
+    boolean generated;
   }
 
   static final class Table {
@@ -39,6 +40,11 @@ final class TestDataDb implements AutoCloseable {
   private static final BigDecimal SAFE_INTEGER = new BigDecimal("9007199254740991");
   private static String secretUrl = "";
   private static String secretPassword = "";
+  private static String openDialect = "";
+  private static final java.util.regex.Pattern DAY =
+      java.util.regex.Pattern.compile("^(\\d{4}-\\d\\d-\\d\\d)(?:[ T](\\d\\d:\\d\\d:\\d\\d))?");
+  private static final java.util.regex.Pattern CLOCK =
+      java.util.regex.Pattern.compile("(?:^|[ T])(\\d\\d:\\d\\d:\\d\\d)");
 
   final Connection conn;
   final String dialect;
@@ -62,14 +68,25 @@ final class TestDataDb implements AutoCloseable {
     } catch (Throwable e) {
       s = null;
     }
+    if (s == null && "mssql".equals(dialect)) {
+      // old drivers have no getSchema()
+      try (java.sql.Statement st = conn.createStatement();
+           ResultSet rs = st.executeQuery("SELECT SCHEMA_NAME()")) {
+        s = rs.next() ? rs.getString(1) : null;
+      } catch (Throwable e) {
+        s = null;
+      }
+    }
     this.catalog = c;
     this.currentSchema = s;
+    openDialect = dialect;
   }
 
   static TestDataDb open(Map<String, Object> p) throws TestDataFailure {
     String driver = TestDataJson.str(p, "driver_class_name");
     secretUrl = TestDataJson.str(p, "url");
     secretPassword = TestDataJson.str(p, "password");
+    openDialect = TestDataErrors.dialectOfUrl(secretUrl);
     try {
       Class.forName(driver);
     } catch (Throwable e) {
@@ -78,7 +95,15 @@ final class TestDataDb implements AutoCloseable {
     Connection conn;
     try {
       DriverManager.setLoginTimeout(15);
-      conn = DriverManager.getConnection(secretUrl, TestDataJson.str(p, "username"), secretPassword);
+      java.util.Properties props = new java.util.Properties();
+      props.setProperty("user", TestDataJson.str(p, "username"));
+      props.setProperty("password", secretPassword);
+      if ("mysql".equals(openDialect) && "write".equals(TestDataJson.str(p, "mode"))
+          && !secretUrl.contains("rewriteBatchedStatements")) {
+        // one multi-row INSERT per batch instead of one round trip per row (about 10 times faster)
+        props.setProperty("rewriteBatchedStatements", "true");
+      }
+      conn = DriverManager.getConnection(secretUrl, props);
     } catch (SQLException e) {
       String code = classify(e);
       TestDataFailure f = failure(e);
@@ -135,36 +160,7 @@ final class TestDataDb implements AutoCloseable {
   }
 
   static String classify(Throwable e) {
-    if (e instanceof ClassNotFoundException || e instanceof NoClassDefFoundError) {
-      return "DRIVER_MISSING";
-    }
-    if (!(e instanceof SQLException)) {
-      return "TOOL_ERROR";
-    }
-    SQLException s = (SQLException) e;
-    String state = s.getSQLState() == null ? "" : s.getSQLState();
-    int c = s.getErrorCode();
-    String m = String.valueOf(s.getMessage()).toLowerCase(Locale.ROOT);
-    if (e instanceof SQLTimeoutException || state.equals("HYT00") || state.equals("HY008")
-        || state.equals("57014")) {
-      return "TIMEOUT";
-    }
-    if (state.startsWith("28") || c == 18456 || m.contains("ora-01017")) {
-      return "LOGIN_FAILED";
-    }
-    if (state.startsWith("08")) {
-      return "CONNECT_FAILED";
-    }
-    if (state.equals("22001") || c == 8152 || c == 2628 || m.contains("ora-12899")) {
-      return "VALUE_TOO_LONG";
-    }
-    if (state.startsWith("23") || m.contains("sqlite_constraint")) {
-      return "CONSTRAINT";
-    }
-    if (state.startsWith("42") || state.startsWith("S0") || state.startsWith("3F")) {
-      return "SQL_ERROR";
-    }
-    return "DB_ERROR";
+    return TestDataErrors.classify(e, openDialect);
   }
 
   static TestDataFailure failure(Throwable e) {
@@ -213,20 +209,47 @@ final class TestDataDb implements AutoCloseable {
     return t;
   }
 
+  private static Set<String> variants(String name) {
+    Set<String> set = new LinkedHashSet<String>();
+    set.add(name);
+    if (name != null) {
+      set.add(name.toUpperCase(Locale.ROOT));
+      set.add(name.toLowerCase(Locale.ROOT));
+    }
+    return set;
+  }
+
   private Table lookup(String cat, String schema, String name) throws SQLException, TestDataFailure {
     DatabaseMetaData meta = conn.getMetaData();
-    String useCat = cat == null ? catalog : cat;
-    Set<String> patterns = new LinkedHashSet<String>();
-    patterns.add(name);
-    patterns.add(name.toUpperCase(Locale.ROOT));
-    patterns.add(name.toLowerCase(Locale.ROOT));
-    List<String[]> found = new ArrayList<String[]>();
-    for (String pattern : patterns) {
-      collect(meta, useCat, schema, pattern, name, schema, found);
+    boolean mysql = "mysql".equals(dialect);
+    if (mysql && schema != null && cat == null) {
+      // MySQL: `database.table`, and the driver calls the database a catalog
+      cat = schema;
+      schema = null;
     }
-    if (found.isEmpty() && (schema != null || currentSchema != null || useCat != null)) {
-      // created with mixed case: look through the tables of the schema in use
-      collect(meta, useCat, schema == null ? currentSchema : schema, "%", name, schema, found);
+    String useCat = cat == null ? catalog : cat;
+    // A name without schema is looked for in the schema in use only: a table of the same name
+    // somewhere else must never be written to, let alone cleared, by accident.
+    String inSchema = schema != null ? schema : currentSchema;
+    List<String[]> found = new ArrayList<String[]>();
+    // a database named in another letter case (MySQL on Linux tells them apart)
+    Set<String> cats = cat == null ? variants(null) : variants(cat);
+    for (String c : cats) {
+      String oneCat = c == null ? useCat : c;
+      for (String s : variants(inSchema)) {
+        for (String pattern : variants(name)) {
+          collect(meta, oneCat, s, pattern, name, inSchema, found);
+        }
+      }
+      if (found.isEmpty() && (inSchema != null || oneCat != null)) {
+        // created with mixed case: look through the tables of the schema
+        for (String s : variants(inSchema)) {
+          collect(meta, oneCat, s, "%", name, inSchema, found);
+        }
+      }
+      if (!found.isEmpty()) {
+        break;
+      }
     }
     if (found.isEmpty()) {
       return null;
@@ -235,7 +258,7 @@ final class TestDataDb implements AutoCloseable {
     int bestScore = -1;
     for (String[] f : found) {
       int score = (f[2].equals(name) ? 2 : 0)
-          + (currentSchema != null && currentSchema.equalsIgnoreCase(f[1]) ? 1 : 0);
+          + (inSchema != null && inSchema.equals(f[1]) ? 1 : 0);
       if (score > bestScore) {
         best = f;
         bestScore = score;
@@ -249,10 +272,8 @@ final class TestDataDb implements AutoCloseable {
     if (cat != null) {
       sql.append(quote(best[0] == null ? cat : best[0])).append('.');
     }
-    boolean elsewhere = best[1] != null && currentSchema != null
-        && !currentSchema.equalsIgnoreCase(best[1]);
-    if (cat != null || schema != null || elsewhere) {
-      sql.append(quote(best[1] == null ? String.valueOf(schema) : best[1])).append('.');
+    if (!mysql && (cat != null || schema != null) && (best[1] != null || schema != null)) {
+      sql.append(quote(best[1] == null ? schema : best[1])).append('.');
     }
     t.sql = sql.append(quote(best[2])).toString();
     columns(meta, t);
@@ -300,6 +321,16 @@ final class TestDataDb implements AutoCloseable {
         } catch (SQLException e) {
           c.autoIncrement = false;
         }
+        try {
+          c.generated = "YES".equalsIgnoreCase(rs.getString("IS_GENERATEDCOLUMN"));
+        } catch (SQLException e) {
+          c.generated = false;
+        }
+        // MySQL's driver also says so for a column that merely has a default expression
+        c.generated = c.generated && !"mysql".equals(dialect);
+        // SQL Server: a row version, called timestamp, is written by the server alone
+        c.generated = c.generated || ("mssql".equals(dialect) && c.typeName != null
+            && (c.typeName.equalsIgnoreCase("timestamp") || c.typeName.equalsIgnoreCase("rowversion")));
         if (c.name != null && t.name.equals(table)) {
           t.columns.put(c.name.toLowerCase(Locale.ROOT), c);
         }
@@ -307,6 +338,9 @@ final class TestDataDb implements AutoCloseable {
     } catch (SQLException e) {
       // unknown columns: the insert itself will tell
       t.columns.clear();
+    }
+    if (!t.columns.isEmpty()) {
+      TestDataExtras.markGenerated(this, t);
     }
   }
 
@@ -366,12 +400,9 @@ final class TestDataDb implements AutoCloseable {
         return rs.getBigDecimal(index);
       case Types.BIT: case Types.BOOLEAN:
         return rs.getBoolean(index);
-      case Types.DATE:
-        return rs.getDate(index);
-      case Types.TIME:
-        return rs.getTime(index);
-      case Types.TIMESTAMP: case Types.TIMESTAMP_WITH_TIMEZONE: case -101: case -102:
-        return rs.getTimestamp(index);
+      case Types.DATE: case Types.TIME: case Types.TIME_WITH_TIMEZONE:
+      case Types.TIMESTAMP: case Types.TIMESTAMP_WITH_TIMEZONE: case -101: case -102: case -155:
+        return temporal(rs, index, sqlType);
       case Types.BINARY: case Types.VARBINARY: case Types.LONGVARBINARY: case Types.BLOB:
         return rs.getBytes(index);
       case Types.CHAR: case Types.VARCHAR: case Types.LONGVARCHAR: case Types.NCHAR:
@@ -382,6 +413,50 @@ final class TestDataDb implements AutoCloseable {
         return o == null || o instanceof Number || o instanceof Boolean || o instanceof java.util.Date
             || o instanceof byte[] ? o : rs.getString(index);
     }
+  }
+
+  /**
+   * Dates and times are read as the text the database gives, never through java.util.Date:
+   * that would move them by the difference between the zone of this machine and the one the
+   * driver assumes for the server (serverTimezone=UTC in a MySQL url moved every DATETIME).
+   */
+  private Object temporal(ResultSet rs, int index, int sqlType) throws SQLException {
+    boolean time = sqlType == Types.TIME || sqlType == Types.TIME_WITH_TIMEZONE;
+    boolean zoned = sqlType == -155 || sqlType == -101 || sqlType == -102
+        || sqlType == Types.TIMESTAMP_WITH_TIMEZONE || sqlType == Types.TIME_WITH_TIMEZONE;
+    if (("mssql".equals(dialect) || "oracle".equals(dialect)) && !zoned) {
+      // these drivers build their text through java.util.Date in the local zone; read with
+      // a UTC calendar and printed in UTC the wall clock value comes out untouched
+      java.util.TimeZone zone = java.util.TimeZone.getTimeZone("UTC");
+      java.util.Calendar utc = java.util.Calendar.getInstance(zone);
+      java.util.Date d = time ? rs.getTime(index, utc)
+          : (sqlType == Types.DATE ? (java.util.Date) rs.getDate(index, utc) : rs.getTimestamp(index, utc));
+      if (d == null) {
+        return null;
+      }
+      SimpleDateFormat f = new SimpleDateFormat(
+          time ? "HH:mm:ss" : (sqlType == Types.DATE ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm:ss"));
+      f.setTimeZone(zone);
+      return f.format(d);
+    }
+    String text = rs.getString(index);
+    if (text == null) {
+      return null;
+    }
+    java.util.regex.Matcher m = (time ? CLOCK : DAY).matcher(text.trim());
+    if (m.find()) {
+      if (time) {
+        return m.group(1);
+      }
+      if (sqlType == Types.DATE) {
+        return m.group(1);
+      }
+      return m.group(1) + " " + (m.group(2) == null ? "00:00:00" : m.group(2));
+    }
+    if (time) {
+      return rs.getTime(index);
+    }
+    return sqlType == Types.DATE ? (Object) rs.getDate(index) : rs.getTimestamp(index);
   }
 
   /** Integers beyond what JavaScript holds exactly, and long decimals, travel as text. */

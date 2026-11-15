@@ -11,8 +11,10 @@ import path from 'path';
 const { spawn } = require('child_process');
 
 // Stable codes of the errors this module rejects with (err.code); the Java tool adds its own:
-// DRIVER_MISSING, CONNECT_FAILED, LOGIN_FAILED, TABLE_MISSING, COLUMN_MISSING, VALUE_TOO_LONG,
-// CONSTRAINT, BAD_VALUE, BUNDLE_INVALID, SQL_ERROR, TIMEOUT, DB_ERROR, TOOL_ERROR and the SQL_*
+// DRIVER_MISSING, CONNECT_FAILED, LOGIN_FAILED, TABLE_MISSING, COLUMN_MISSING,
+// COLUMN_NOT_WRITABLE (computed column, row version), VALUE_TOO_LONG, VALUE_OUT_OF_RANGE,
+// CONSTRAINT, BAD_VALUE, PERMISSION_DENIED, BUNDLE_INVALID, SQL_ERROR, TIMEOUT, DB_ERROR,
+// TOOL_ERROR and the SQL_*
 // codes of the query check (SQL_EMPTY, SQL_MULTIPLE, SQL_NOT_SELECT, SQL_FORBIDDEN, SQL_QUOTING,
 // SQL_UNTERMINATED, SQL_AMBIGUOUS, SQL_TOO_LONG).
 export const CANCELLED = 'CANCELLED';
@@ -20,6 +22,8 @@ export const JAVA_NOT_FOUND = 'JAVA_NOT_FOUND';
 export const TOOL_FAILED = 'TOOL_FAILED';
 
 const MAIN = 'mypd.TestData';
+// the value of defaultJVM in ../datasource_util.js, which cannot be loaded without the UI
+export const DEFAULT_JVM = '-Xms128m -Xmx1024m -XX:-UseGCOverheadLimit';
 const PROGRESS_INTERVAL = 300;
 const KILL_AFTER = 3000;
 const STDERR_KEPT = 8192;
@@ -59,6 +63,13 @@ const javaOf = (dataSource, config) => {
   const javaHome = (config && config.javaHome)
     || (dataSource && dataSource.profile && dataSource.profile.javaHome) || '';
   return javaHome ? path.join(javaHome, 'bin', 'java') : 'java';
+};
+
+// JVM options of the settings (config.jvm), as runJavaTool in ../json.js takes them: the
+// heap limit the user chose also holds for writing a million rows.
+export const jvmArgs = (config) => {
+  const jvm = config && typeof config.jvm === 'string' ? config.jvm : DEFAULT_JVM;
+  return jvm.split(/\s+/).filter(a => a);
 };
 
 const toolError = (code, message, more = {}) => {
@@ -145,6 +156,7 @@ const runTool = (dataSource, config, conn, mode, options = {}, onProgress) => {
       }), { mode: 0o600, flag: 'wx' });
       const args = [
         '-Dfile.encoding=utf-8',
+        ...jvmArgs(config),
         '-cp', jar,
         `-Dloader.path=${path.join(path.dirname(jar), 'tools')}${path.sep}`,
         `-Dloader.main=${MAIN}`,
@@ -198,12 +210,37 @@ const runTool = (dataSource, config, conn, mode, options = {}, onProgress) => {
   return { promise, cancel };
 };
 
-// Rows in each table; null for a table that does not exist (or cannot be read)
+const countTool = (dataSource, config, conn, tableNames) => runTool(dataSource, config, conn,
+  'count', { tables: tableNames || [] }).promise;
+
+// Rows in each table; null for a table that does not exist (or cannot be read: inspectTables
+// tells the two apart)
 export const countRows = (dataSource, config, conn, tableNames) => {
-  return runTool(dataSource, config, conn, 'count', { tables: tableNames || [] }).promise
+  return countTool(dataSource, config, conn, tableNames)
     .then(body => (tableNames || []).reduce((counts, name) => {
       const n = body.counts[name];
       return { ...counts, [name]: typeof n === 'number' ? n : null };
+    }, {}));
+};
+
+// What is known about each table: {[table]: {exists, rows, error?}}
+//   exists  true | false | null (the lookup itself failed, see error)
+//   rows    the number of rows; null when the table is missing or cannot be read
+//   error   {code, message} when the database refused, e.g. code PERMISSION_DENIED
+export const inspectTables = (dataSource, config, conn, tableNames) => {
+  return countTool(dataSource, config, conn, tableNames)
+    .then(body => (tableNames || []).reduce((tables, name) => {
+      const n = body.counts[name];
+      const exists = (body.exists || {})[name];
+      const error = (body.errors || {})[name];
+      return {
+        ...tables,
+        [name]: {
+          exists: typeof exists === 'boolean' ? exists : null,
+          rows: typeof n === 'number' ? n : null,
+          ...(error ? { error: typeof error === 'object' ? error : { code: 'DB_ERROR', message: `${error}` } } : {}),
+        },
+      };
     }, {}));
 };
 
@@ -212,10 +249,26 @@ export const readKeys = (dataSource, config, conn, table, column, limit) => {
   return runTool(dataSource, config, conn, 'keys', { table, column, limit: limit || 0 }).promise;
 };
 
+// Existing rows of several columns, for composite foreign keys whose values must come from
+// ONE parent row: any[][] with the values in the order of `columns`; rows holding a NULL in
+// any of them are left out; at most `limit` rows (default 10000).
+export const readKeyRows = (dataSource, config, conn, table, columns, limit) => {
+  return runTool(dataSource, config, conn, 'keyrows', {
+    table,
+    columns: columns || [],
+    limit: limit || 0,
+  }).promise;
+};
+
 // First column of one read-only SELECT, at most `limit` rows (default 10000). Anything that is
 // not a single SELECT is refused before the database is reached (err.code starts with SQL_).
-export const runQuery = (dataSource, config, conn, sql, limit) => {
-  return runTool(dataSource, config, conn, 'query', { sql, limit: limit || 0 }).promise;
+// options.timeout: seconds the query may run (default 30); then it rejects with code TIMEOUT.
+export const runQuery = (dataSource, config, conn, sql, limit, options = {}) => {
+  return runTool(dataSource, config, conn, 'query', {
+    sql,
+    limit: limit || 0,
+    ...(options && options.timeout > 0 ? { timeout: Math.ceil(options.timeout) } : {}),
+  }).promise;
 };
 
 // Writes the bundle in `dir` (see createDbBundleWriter). Returns {promise, cancel}.

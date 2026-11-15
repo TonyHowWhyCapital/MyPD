@@ -17,8 +17,30 @@ final class TestDataBind {
     boolean nString;
     boolean boolAsInt;
     boolean pgOther;
-    boolean textDates;
+    /**
+     * How dates and times are sent. Never as java.sql.Timestamp where it can be avoided: that
+     * type is a moment in the zone of this machine, so a driver that assumes another zone for
+     * the server moves the value (serverTimezone=UTC in a MySQL url: every DATETIME off by the
+     * local offset), and a wall clock time that the local zone skipped for daylight saving
+     * cannot even be built. TEXT: canonical text (MySQL, SQLite). UNTYPED: text the server
+     * reads as a literal of the column's type (PostgreSQL). MSSQL: text in the formats SQL
+     * Server reads the same under any language and DATEFORMAT. Oracle: canonical text inside
+     * TO_TIMESTAMP / TO_DATE with a fixed format (see `mark`), so NLS_DATE_FORMAT plays no
+     * part. LEGACY: java.sql types, for databases this tool does not know.
+     */
+    int temporal;
+    /** The placeholder of the column in the INSERT. */
+    String mark = "?";
+    /** Put before a time of day where the column holds a full date (Oracle). */
+    String timePrefix = "";
+    /** SQL Server datetime and smalldatetime take three fraction digits at most. */
+    int fraction = 9;
   }
+
+  static final int LEGACY = 0;
+  static final int TEXT = 1;
+  static final int UNTYPED = 2;
+  static final int MSSQL = 3;
 
   private TestDataBind() {
   }
@@ -34,7 +56,23 @@ final class TestDataBind {
     }
     s.nullType = col != null && usableForNull(col.sqlType) ? col.sqlType : defaultType(s.kind, dialect);
     s.nString = "mssql".equals(dialect);
-    s.textDates = "sqlite".equals(dialect);
+    if ("sqlite".equals(dialect) || "mysql".equals(dialect)) {
+      s.temporal = TEXT;
+    } else if ("postgresql".equals(dialect)) {
+      s.temporal = UNTYPED;
+    } else if ("mssql".equals(dialect)) {
+      s.temporal = MSSQL;
+      String type = col == null || col.typeName == null ? "" : col.typeName.toLowerCase(Locale.ROOT);
+      s.fraction = type.equals("datetime") ? 3 : (type.equals("smalldatetime") ? 0 : 7);
+    } else if ("oracle".equals(dialect) && isTemporal(s.kind)) {
+      s.temporal = TEXT;
+      s.nullType = Types.VARCHAR;
+      // Oracle has no time of day: such a column is a DATE on 1970-01-01, as in the script
+      s.mark = "date".equals(s.kind) ? "TO_DATE(?, 'YYYY-MM-DD')"
+          : ("time".equals(s.kind) ? "TO_DATE(?, 'YYYY-MM-DD HH24:MI:SS')"
+              : "TO_TIMESTAMP(?, 'YYYY-MM-DD HH24:MI:SS.FF')");
+      s.timePrefix = "1970-01-01 ";
+    }
     s.pgOther = "postgresql".equals(dialect) && col != null && col.sqlType == Types.OTHER;
     if (col != null) {
       s.boolAsInt = col.sqlType != Types.BIT && col.sqlType != Types.BOOLEAN;
@@ -107,15 +145,24 @@ final class TestDataBind {
     String text = v instanceof BigDecimal ? ((BigDecimal) v).toPlainString() : String.valueOf(v);
     if ("date".equals(kind)) {
       String d = date(text.trim(), v, s);
-      return s.textDates ? (Object) d : java.sql.Date.valueOf(d);
+      if (s.temporal == LEGACY) {
+        return java.sql.Date.valueOf(d);
+      }
+      return s.temporal == MSSQL ? d.replace("-", "") : d;
     }
     if ("datetime".equals(kind)) {
       String d = dateTime(text.trim(), v, s);
-      return s.textDates ? (Object) d : java.sql.Timestamp.valueOf(d);
+      if (s.temporal == LEGACY) {
+        return java.sql.Timestamp.valueOf(d);
+      }
+      return s.temporal == MSSQL ? cut(d.replace(' ', 'T'), s.fraction) : d;
     }
     if ("time".equals(kind)) {
       String t = time(text.trim(), v, s);
-      return s.textDates ? (Object) t : java.sql.Time.valueOf(t);
+      if (s.temporal == LEGACY) {
+        return java.sql.Time.valueOf(t);
+      }
+      return s.timePrefix + t;
     }
     if ("binary".equals(kind)) {
       return bytes(text.trim(), v, s);
@@ -139,6 +186,8 @@ final class TestDataBind {
       } else {
         ps.setBoolean(index, ((Boolean) c).booleanValue());
       }
+    } else if (s.temporal == UNTYPED && isTemporal(s.kind)) {
+      ps.setObject(index, c, Types.OTHER);
     } else if (c instanceof java.sql.Date) {
       ps.setDate(index, (java.sql.Date) c);
     } else if (c instanceof java.sql.Timestamp) {
@@ -155,6 +204,19 @@ final class TestDataBind {
     } else {
       ps.setString(index, (String) c);
     }
+  }
+
+  private static boolean isTemporal(String kind) {
+    return "date".equals(kind) || "datetime".equals(kind) || "time".equals(kind);
+  }
+
+  /** Keeps at most n digits of the fraction of a second. */
+  private static String cut(String text, int n) {
+    int dot = text.indexOf('.');
+    if (dot < 0 || text.length() - dot - 1 <= n) {
+      return text;
+    }
+    return n == 0 ? text.substring(0, dot) : text.substring(0, dot + 1 + n);
   }
 
   private static IllegalArgumentException bad(Object v, Spec s, String why) {

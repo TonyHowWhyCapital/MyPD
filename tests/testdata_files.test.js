@@ -172,6 +172,7 @@ describe('SQL script', () => {
 --   Order Items: 3 rows
 
 SET NOCOUNT ON;
+SET QUOTED_IDENTIFIER ON;
 SET XACT_ABORT ON;
 BEGIN TRANSACTION;
 GO
@@ -249,20 +250,24 @@ GO
       .then(() => {
         const my = fs.readFileSync(mysql, 'utf8');
         expect(my).toContain('-- Generated at: 2024-01-31 08:00\n');
-        expect(my).toContain('\nSET NAMES utf8mb4;\nSTART TRANSACTION;\n\n-- Orders (5 columns)\n'
+        expect(my).toContain('\nSET @mypd_rows = 0;\nSTART TRANSACTION;\n\n-- Orders (5 columns)\n'
           + 'INSERT INTO `Orders` (`Id`, `Name`, `Amount`, `Created`, `Paid`) VALUES\n');
         expect(my).toContain("(1, NULL, CONCAT(' lead', CHAR(92 USING utf8mb4), 'n')),");
-        expect(my.endsWith('\nCOMMIT;\n')).toBe(true);
+        // every INSERT is counted, and the 6 rows of both tables are what the end waits for
+        expect(my.match(/^SET @mypd_rows = @mypd_rows \+ ROW_COUNT\(\);$/gm)).toHaveLength(2);
+        expect(my).toContain("\nSET @mypd_end = IF(@mypd_rows = 6, 'COMMIT', 'ROLLBACK');\n");
+        expect(my).not.toMatch(/^COMMIT;$/m);
         const ora = fs.readFileSync(oracle, 'utf8');
-        expect(ora).toContain('\nSET DEFINE OFF\nSET SQLBLANKLINES ON\n'
+        expect(ora).toContain('\nSET DEFINE OFF\nSET SQLBLANKLINES ON\nSET FEEDBACK OFF\n'
           + 'WHENEVER SQLERROR EXIT SQL.SQLCODE ROLLBACK\n\n-- Orders (5 columns)\n'
           + 'INSERT INTO "ORDERS" ("ID", "NAME", "AMOUNT", "CREATED", "PAID") VALUES '
           + "(1, 'O''Brien', 12.5, TIMESTAMP '2024-01-31 10:00:00', 1);\n");
         expect(ora).toContain('INSERT INTO "Order Items" ("Order Id", "DAY", "NOTE") VALUES '
           + "(1, DATE '2024-02-29', NULL);\n");
-        expect(ora).toContain('-- "ORDERS"."ID" was written with explicit values.');
+        expect(ora).toContain('-- "ORDERS"."ID" was written with explicit values');
         expect(ora.match(/^INSERT INTO/gm)).toHaveLength(6);
-        expect(ora.endsWith('\nCOMMIT;\n')).toBe(true);
+        // the identity is moved after the data is committed (DDL commits by itself)
+        expect(ora).toMatch(/\nCOMMIT;\n\n-- Identity columns[^]*EXECUTE IMMEDIATE 'ALTER TABLE "ORDERS" MODIFY "ID" GENERATED AS IDENTITY \(START WITH LIMIT VALUE\)';[^]*\nEND;\n\/\n$/);
       });
   });
 

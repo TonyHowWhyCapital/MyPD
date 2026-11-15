@@ -216,6 +216,18 @@ export default React.memo(forwardRef(({currentPrefix, close, iconClick, openModa
                      ],
                    },
                    {
+                     key: 'tool-testdata',
+                     name: FormatMessage.string({id: 'testDataRule.group'}),
+                     children: [
+                       // the "generate test data" tool (key `testData`) goes first here
+                       {
+                           icon: <Icon type='fa-flask' style={{marginRight: 4}}/>,
+                           key: 'testDataRules',
+                           name: FormatMessage.string({id: 'testDataRule.menu'}),
+                       },
+                     ],
+                   },
+                   {
                      key: 'tool-output',
                      name: FormatMessage.string({id: 'toolGroup.output'}),
                      children: [

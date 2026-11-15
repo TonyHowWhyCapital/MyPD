@@ -7,7 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -35,6 +34,8 @@ final class TestDataWrite {
     boolean identityInsert;
     final List<TestDataBind.Spec> specs = new ArrayList<TestDataBind.Spec>();
     final List<String> sequenceColumns = new ArrayList<String>();
+    /** Auto increment columns that get explicit values, by the database or by the model. */
+    final List<String> autoColumns = new ArrayList<String>();
     boolean explicitAuto;
     String insertSql;
     long written;
@@ -70,6 +71,12 @@ final class TestDataWrite {
     load();
     conn.setAutoCommit(false);
     try {
+      for (Target t : targets) {
+        if (t.explicitAuto) {
+          TestDataExtras.keepZero(db);
+          break;
+        }
+      }
       if (clear) {
         clearAll();
       }
@@ -77,6 +84,7 @@ final class TestDataWrite {
         insert(i);
       }
       conn.commit();
+      advanceIdentities();
     } catch (Throwable e) {
       try {
         conn.rollback();
@@ -143,6 +151,7 @@ final class TestDataWrite {
     List<String> names = new ArrayList<String>();
     List<String> marks = new ArrayList<String>();
     List<String> unknown = new ArrayList<String>();
+    List<String> fixed = new ArrayList<String>();
     for (Object o : columns) {
       Map<String, Object> m = TestDataJson.object(o, "A column of " + t.name);
       String name = TestDataJson.str(m, "name");
@@ -151,22 +160,38 @@ final class TestDataWrite {
         unknown.add(name);
         continue;
       }
+      if (col != null && col.generated) {
+        fixed.add(name);
+        continue;
+      }
       boolean auto = col == null ? Boolean.TRUE.equals(m.get("autoIncrement")) : col.autoIncrement;
       String actual = col == null ? name : col.name;
       if (auto) {
         t.sequenceColumns.add(actual);
       }
-      t.explicitAuto = t.explicitAuto || auto || Boolean.TRUE.equals(m.get("autoIncrement"));
-      t.specs.add(TestDataBind.spec(name, TestDataJson.str(m, "kind"), col, db.dialect));
+      if (auto || Boolean.TRUE.equals(m.get("autoIncrement"))) {
+        t.explicitAuto = true;
+        t.autoColumns.add(actual);
+      }
+      TestDataBind.Spec spec = TestDataBind.spec(name, TestDataJson.str(m, "kind"), col, db.dialect);
+      t.specs.add(spec);
       names.add(db.quote(actual));
-      marks.add("?");
+      marks.add(spec.mark);
     }
     if (!unknown.isEmpty()) {
       throw new TestDataFailure("COLUMN_MISSING",
           "The table " + t.name + " has no column " + join(unknown)).at(t.name, -1);
     }
+    if (!fixed.isEmpty()) {
+      throw new TestDataFailure("COLUMN_NOT_WRITABLE", "The database fills these columns of "
+          + t.name + " itself (computed column or row version), no value can be written: "
+          + join(fixed)).at(t.name, -1);
+    }
     if (!names.isEmpty()) {
-      t.insertSql = "INSERT INTO " + t.table.sql + " (" + join(names) + ") VALUES (" + join(marks) + ")";
+      String overriding = t.explicitAuto && TestDataExtras.pgAlwaysIdentity(db, t.table)
+          ? " OVERRIDING SYSTEM VALUE" : "";
+      t.insertSql = "INSERT INTO " + t.table.sql + " (" + join(names) + ")" + overriding
+          + " VALUES (" + join(marks) + ")";
     } else if ("mysql".equals(db.dialect)) {
       t.insertSql = "INSERT INTO " + t.table.sql + " () VALUES ()";
     } else {
@@ -179,8 +204,8 @@ final class TestDataWrite {
     for (int i = targets.size() - 1; i >= 0; i--) {
       Target t = targets.get(i);
       progress(i, "clear", true);
-      try (Statement st = conn.createStatement()) {
-        t.deleted = st.executeUpdate("DELETE FROM " + t.table.sql);
+      try {
+        t.deleted = TestDataExtras.clear(db, t.table);
       } catch (SQLException e) {
         throw TestDataDb.failure(e).at(t.name, -1);
       }
@@ -217,12 +242,29 @@ final class TestDataWrite {
     if (t.written > 0 && "postgresql".equals(db.dialect)) {
       resetSequences(t);
     }
-    if (t.written > 0 && t.explicitAuto && "oracle".equals(db.dialect)) {
-      t.warnings.add("{\"code\":\"IDENTITY_NOT_ADVANCED\",\"message\":" + Tool.json(
-          "Explicit values were written to an auto increment column; its sequence or identity"
-              + " was not moved past them") + "}");
-    }
     progress(index, "insert", true);
+  }
+
+  /**
+   * Oracle: an identity column does not follow explicit values. Moving it is DDL, which
+   * commits, so it happens after the data is safe. A column fed by a sequence and a trigger
+   * cannot be moved from here and is reported.
+   */
+  private void advanceIdentities() {
+    if (!"oracle".equals(db.dialect)) {
+      return;
+    }
+    for (Target t : targets) {
+      for (String column : t.written > 0 ? t.autoColumns : new ArrayList<String>()) {
+        String problem = TestDataExtras.advanceOracleIdentity(db, t.table, column);
+        if (problem != null) {
+          t.warnings.add("{\"code\":\"IDENTITY_NOT_ADVANCED\",\"message\":" + Tool.json(
+              "Explicit values were written to the auto increment column " + column
+                  + "; its sequence or identity was not moved past them ("
+                  + TestDataDb.clean(problem) + ")") + "}");
+        }
+      }
+    }
   }
 
   private void execute(String sql) throws SQLException {
@@ -331,7 +373,7 @@ final class TestDataWrite {
         conn.rollback();
       } else if (!undo(sp)) {
         // the batch cannot be replayed: name the row the driver points at
-        int at = firstFailed(e, hi - lo);
+        int at = TestDataExtras.firstFailed(e, hi - lo);
         TestDataFailure f = TestDataDb.failure(e);
         String note = at < 0 ? " (somewhere in rows " + numbers[lo] + "-" + numbers[hi - 1] + ")" : "";
         throw new TestDataFailure(f.code, f.getMessage() + note).at(t.name, numbers[lo + Math.max(at, 0)]);
@@ -356,26 +398,6 @@ final class TestDataWrite {
     } catch (SQLException e) {
       return false;
     }
-  }
-
-  private static int firstFailed(SQLException e, int size) {
-    if (size == 1) {
-      return 0;
-    }
-    if (e instanceof BatchUpdateException) {
-      int[] counts = ((BatchUpdateException) e).getUpdateCounts();
-      if (counts != null) {
-        for (int i = 0; i < counts.length; i++) {
-          if (counts[i] == Statement.EXECUTE_FAILED) {
-            return i;
-          }
-        }
-        if (counts.length < size) {
-          return counts.length;
-        }
-      }
-    }
-    return -1;
   }
 
   private void rowFailed(Target t, long row, TestDataFailure f) throws TestDataFailure {

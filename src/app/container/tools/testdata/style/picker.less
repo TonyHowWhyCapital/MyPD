@@ -1,0 +1,104 @@
+@import "~style";
+
+.@{prefix}-testdata {
+  // ---- the picker ----
+  &-picker {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    > .@{prefix}-multiple-select {
+      flex: 1;
+      min-width: 0;
+      height: 25px;
+      > .@{prefix}-multiple-select-data {
+        width: 100%;
+      }
+    }
+    &-source {
+      flex: none;
+      margin-left: 8px;
+      font-size: 12px;
+      white-space: nowrap;
+      color: @third-font-color;
+    }
+    &-more {
+      position: relative;
+      flex: none;
+      width: 24px;
+      line-height: 25px;
+      text-align: center;
+      cursor: pointer;
+      color: @third-font-color;
+      &:hover {
+        color: @primary-color;
+      }
+    }
+    &-dot {
+      position: absolute;
+      top: 4px;
+      right: 3px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: @warring-color;
+    }
+    // a column without a rule of its own shows what it inherits, in a lighter tone
+    &-auto, &-domain {
+      .@{prefix}-multiple-select-data-item-simple {
+        color: @third-font-color;
+      }
+    }
+    &-links {
+      display: flex;
+      border-top: 1px solid @primary-border-color;
+      > span {
+        flex: 1;
+        padding: 5px;
+        text-align: center;
+        white-space: nowrap;
+        cursor: pointer;
+        color: @primary-color;
+      }
+      > span + span {
+        border-left: 1px solid @primary-border-color;
+      }
+    }
+  }
+  &-detail {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px 12px 4px;
+    &-column {
+      line-height: 25px;
+      font-weight: bold;
+      word-break: break-all;
+      > span {
+        margin-left: 8px;
+        font-weight: normal;
+        color: @third-font-color;
+      }
+    }
+    &-effective {
+      display: flex;
+      align-items: center;
+      min-height: 25px;
+      > span:nth-child(2) {
+        flex: 1;
+        min-width: 0;
+        margin: 0 8px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      > a {
+        flex: none;
+        cursor: pointer;
+      }
+    }
+  }
+}
+
+// inside a grid cell the list and its button take the width of the column
+.@{prefix}-table td > .@{prefix}-testdata-picker {
+  width: 100%;
+}

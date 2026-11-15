@@ -1,0 +1,80 @@
+@import "~style";
+// the tones of the night theme (only the variables are taken, no rule is repeated)
+@import (reference) "../../../../../style/night.less";
+
+// Night mode. The theme turns every element dark with rules of no weight but with
+// !important; what must keep a meaning of its own (a warning, a dimmed note, a hover)
+// is given back here with real selectors.
+body[theme='themeNigh'] {
+  .@{prefix}-testdata-dim, .@{prefix}-testdata-off, .@{prefix}-testdata-bar-hint,
+  .@{prefix}-testdata-form-hint, .@{prefix}-testdata-form-label, .@{prefix}-testdata-list-kind,
+  .@{prefix}-testdata-list-summary, .@{prefix}-testdata-list-usage, .@{prefix}-testdata-list-foot,
+  .@{prefix}-testdata-builtin-example, .@{prefix}-testdata-function-example,
+  .@{prefix}-testdata-sample-type, .@{prefix}-testdata-sample-hint, .@{prefix}-testdata-sample-null,
+  .@{prefix}-testdata-sample-note, .@{prefix}-testdata-picker-source, .@{prefix}-testdata-used,
+  .@{prefix}-testdata-used > span, .@{prefix}-testdata-empty, .@{prefix}-testdata-list-name > i,
+  .@{prefix}-testdata-picker-more, .@{prefix}-testdata-picker-more > i,
+  .@{prefix}-testdata-detail-column > span, .@{prefix}-testdata-file-values {
+    color: @n-dim !important;
+  }
+  .@{prefix}-testdata-danger, .@{prefix}-testdata-expr-error, .@{prefix}-testdata-sample-error,
+  .@{prefix}-testdata-problems, .@{prefix}-testdata-problems *, .@{prefix}-testdata-confirm-warn {
+    color: #ff7b86 !important;
+  }
+  .@{prefix}-testdata-problems {
+    border-color: fade(#ff7b86, 45%) !important;
+  }
+  .@{prefix}-testdata-unsaved, .@{prefix}-testdata-note {
+    color: #ffa45c !important;
+  }
+  .@{prefix}-testdata-list-usage-on {
+    color: #5fd08f !important;
+  }
+  .@{prefix}-testdata-tag, .@{prefix}-testdata-function > code,
+  .@{prefix}-testdata-picker-links > span {
+    color: @n-accent !important;
+  }
+  .@{prefix}-testdata-picker-more:hover, .@{prefix}-testdata-picker-more:hover > i {
+    color: @n-accent !important;
+  }
+  .@{prefix}-testdata-tag {
+    background-color: @n-selected !important;
+  }
+  // the sample panel is a well inside the window
+  .@{prefix}-testdata-sample, .@{prefix}-testdata-sample *:not(input) {
+    background-color: @n-surface !important;
+  }
+  .@{prefix}-testdata-sample .@{prefix}-multiple-select-data {
+    background-color: @n-field !important;
+  }
+  .@{prefix}-testdata-sample .@{prefix}-multiple-select-data * {
+    background-color: transparent !important;
+  }
+  // rows that answer to the pointer
+  .@{prefix}-testdata-list-item:not(.@{prefix}-testdata-list-item-active):hover,
+  .@{prefix}-testdata-list-item:not(.@{prefix}-testdata-list-item-active):hover *,
+  .@{prefix}-testdata-builtin-item:not(.@{prefix}-testdata-builtin-list-item-active):hover,
+  .@{prefix}-testdata-builtin-item:not(.@{prefix}-testdata-builtin-list-item-active):hover *,
+  .@{prefix}-testdata-function:hover, .@{prefix}-testdata-function:hover *,
+  .@{prefix}-testdata-picker-links > span:hover {
+    background-color: @n-hover !important;
+  }
+  .@{prefix}-testdata-chip:hover {
+    color: @n-accent !important;
+    border-color: @n-accent !important;
+  }
+  .@{prefix}-testdata-chip-list-item-active {
+    border-color: @n-accent !important;
+  }
+  .@{prefix}-testdata-seg-item.active, .@{prefix}-testdata-seg-item.active * {
+    color: #fff !important;
+    background-color: @primary-color !important;
+  }
+  // the mark of a column with a null rate of its own keeps its colour on any row
+  .@{prefix}-testdata-picker .@{prefix}-testdata-picker-dot {
+    background-color: @warring-color !important;
+  }
+  .@{prefix}-testdata-items input {
+    background-color: transparent !important;
+  }
+}

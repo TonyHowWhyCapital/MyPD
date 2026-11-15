@@ -33,6 +33,7 @@ import MessageHelp from './MessageHelp';
 import ToggleCase from '../container/tools/togglecase';
 import CompareTable from '../container/tools/comparetable';
 import ImpactAnalysis from '../container/tools/impactanalysis';
+import { RuleLibrary as TestDataRules } from '../container/tools/testdata';
 import ModelCompare from '../container/tools/modelcompare';
 import DbObject from '../container/tools/dbobject';
 import Report from '../container/tools/report';
@@ -1304,6 +1305,9 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
     report: [Report, 'report.title'],
     entityTemplate: [EntityTemplate, 'entityTemplate.title', '70%'],
     modelEdit: [ModelEdit, 'modelEdit.title'],
+    // test data: the rule library; the generate window registers here as `testData`
+    testDataRules: [TestDataRules, 'testDataRule.title'],
+    // testData: [TestData, 'testData.title'],
   };
   const openExtTool = (key) => {
     let modal;
@@ -1915,6 +1919,8 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
       case 'report':
       case 'entityTemplate': openExtTool(key);break;
       case 'modelEdit': openExtTool(key);break;
+      // case 'testData': (generate test data, added with its window)
+      case 'testDataRules': openExtTool(key);break;
       case 'polygon': createPolygonNode(e);break;
       case 'group': createGroupNode(e);break;
       case 'alignLeft':

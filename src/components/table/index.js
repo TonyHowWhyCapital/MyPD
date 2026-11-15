@@ -33,6 +33,7 @@ import { ConfigContent, TableContent } from '../../lib/context';
 import StandardGroupSelect from '../../app/container/standardfield/StandardGroupSelect';
 import Note from '../../app/container/tools/note';
 import {getCopyRealData, putCopyRealData} from '../../lib/contextMenuUtil';
+import {TEST_DATA_KEY, ruleCellText} from '../../app/container/tools/testdata/rules/gridColumn';
 
 const empty = [];
 
@@ -59,6 +60,8 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
   const domains = _.get(dataSource, 'domains', []);
   const mapping = _.get(dataSource, 'dataTypeMapping.mappings', []);
   const uiHint =  _.get(dataSource, 'profile.uiHint', []);
+  // the rule libraries of the project: a cell of the rule column redraws when they change
+  const testRules = dataSource?.profile?.testData;
   const db = _.get(dataSource, 'profile.default.db', _.get(dataSource, 'profile.dataTypeSupports[0].id'));
   const dbData = _.get(dataSource, 'profile.dataTypeSupports', []).filter(d => d.id === db)[0] || {};
   const tableRef = useRef(null);
@@ -133,8 +136,9 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
   }, [restData.headers, allColumns, dataSource?.profile?.headers]);
   // Per-grid view preferences (shown columns, their order, sort). They are kept
   // on this machine only and never written into the model.
+  // (the rule column came later and is left out of the id: views saved before it stay)
   const gridId = `table.${tableType || (isEntity ? 'entity' : 'list')}.${
-    allColumns.map(c => c.newCode).join(',')}`;
+    allColumns.map(c => c.newCode).filter(c => c !== TEST_DATA_KEY).join(',')}`;
   const gridView = useGridView(gridId);
   const sizes = useColumnWidths(gridId, tableRef);
   const [choosingColumns, setChoosingColumns] = useState(false);
@@ -232,10 +236,15 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
               id: field.id,
               ...newField,
             });
-            return {
+            const changed = {
               ...field,
               ...newField,
             };
+            if (name === TEST_DATA_KEY && !value) {
+              // a column back on the automatic rule keeps nothing
+              delete changed[TEST_DATA_KEY];
+            }
+            return changed;
           }
           return field;
         }),
@@ -250,7 +259,8 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
   };
   const hiddenFields = ['hideInGraph'];
   if (!isEntity){
-    hiddenFields.push('isStandard');
+    // test data is generated for tables only
+    hiddenFields.push('isStandard', TEST_DATA_KEY);
   }
   const updateTableDataByHeader = (key, type, value, i) => {
     let newHeaders = [...tempHeaders];
@@ -618,7 +628,10 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
             } catch (error) {
               // 判断是否来自excel粘贴
               // eslint-disable-next-line no-use-before-define
-              pasteFields = parseExcel(value, finalTempHeaders);
+              // a rule is a reference, not text that can be pasted
+              // eslint-disable-next-line no-use-before-define
+              pasteFields = parseExcel(value, finalTempHeaders)
+                .map(f => _.omit(f, TEST_DATA_KEY));
               // Component.Message.error({
               //   title: Component.FormatMessage.string({id: 'tableValidate.invalidJsonData'}),
               // });
@@ -911,6 +924,8 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
       return dict ? (dict.defName || dict.defKey) : '';
     } else if (key === 'refEntity') {
       return (dataSource?.entities || []).find(e => e.id === f.refEntity)?.defKey || '';
+    } else if (key === TEST_DATA_KEY) {
+      return ruleCellText(dataSource, f);
     }
     return f[key];
   };
@@ -1156,7 +1171,7 @@ const Table = React.memo(forwardRef(({ prefix, data = {}, disableHeaderSort, sea
       modal && modal.close();
     };
     // 需要移除的列
-    const removeColumns = ['hideInGraph', 'isStandard', 'extProps'];
+    const removeColumns = ['hideInGraph', 'isStandard', 'extProps', TEST_DATA_KEY];
     modal = Component.openModal(<Component.Sheet
       emptyRow={isEntity ? emptyField : emptyDictItem}
       data={{headers: tempHeaders
@@ -1309,6 +1324,7 @@ fields}}
                   domains={domains}
                   mapping={mapping}
                   uiHint={uiHint}
+                  testRules={testRules}
               />
           ))
         }
@@ -1335,7 +1351,9 @@ fields}}
     // a column with a domain shows the type, length and scale of that domain
     const rows = filterFields.filter(f => selectedFields.length === 0
         || selectedFields.includes(f.id))
-        .map(f => (f.domain ? {...f, ...getFieldProps(f.domain)} : f));
+        .map(f => (f.domain ? {...f, ...getFieldProps(f.domain)} : f))
+        // the rule column shows the name of the rule in force, and so does the file
+        .map(f => (isEntity ? {...f, [TEST_DATA_KEY]: ruleCellText(dataSource, f)} : f));
     const headers = finalTempHeaders.map(h => ({
       key: h.refKey, title: typeof h.value === 'string' ? h.value : h.refKey,
     }));

@@ -159,16 +159,22 @@ export const createSqlWriter = (filePath, dialect, options = {}) => {
   const partPath = `${filePath}.part`;
   const body = createSink(partPath);
   const state = createTableState();
+  const identity = [];
   const perStatement = rowsPerStatement(dialect, options.multiRow);
   const batch = sql => sqlBatch(sql, dialect, options);
   const statements = (table, rows) => {
     if (perStatement === 1) {
-      return batch(insertStatements(table, rows, dialect, { multiRow: false }));
+      return batch(insertStatements(table, rows, dialect, {
+        multiRow: false,
+        count: true,
+      }));
     }
     let out = '';
     for (let i = 0; i < rows.length; i += perStatement) {
-      out += batch(insertStatements(table, rows.slice(i, i + perStatement), dialect,
-        { multiRow: perStatement }));
+      out += batch(insertStatements(table, rows.slice(i, i + perStatement), dialect, {
+        multiRow: perStatement,
+        count: true,
+      }));
     }
     return out;
   };
@@ -192,6 +198,13 @@ export const createSqlWriter = (filePath, dialect, options = {}) => {
   const endTable = () => guarded(() => {
     const cur = state.current();
     const sql = statements(cur.table, cur.pending) + batch(tableEpilogue(cur.table, dialect));
+    const auto = cur.table.columns.filter(c => c && c.autoIncrement).map(c => c.defKey);
+    if (auto.length && cur.rows > 0) {
+      identity.push({
+        table: cur.table.defKey,
+        columns: auto,
+      });
+    }
     state.end({ name: cur.table.defKey, rows: cur.rows });
     return body.write(sql);
   });
@@ -217,7 +230,11 @@ export const createSqlWriter = (filePath, dialect, options = {}) => {
     close: () => guarded(() => (state.isOpen() ? endTable() : READY))
       .then(() => {
         state.close();
-        return body.write(`\n${sqlFileEpilogue(dialect, options)}`);
+        return body.write(`\n${sqlFileEpilogue(dialect, {
+          ...options,
+          rows: state.done.reduce((sum, t) => sum + t.rows, 0),
+          identity,
+        })}`);
       })
       .then(() => body.end())
       .then(assemble)

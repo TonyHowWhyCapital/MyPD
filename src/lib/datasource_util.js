@@ -1,3 +1,4 @@
+import { ensureTestDataHeader } from './testdata_header';
 import * as _ from 'lodash/object';
 import moment from 'moment';
 import {FormatMessage} from 'components';
@@ -779,6 +780,7 @@ export const getColumnWidth = () => {
     isStandard: 100,
     intro: 200,
     uiHint: 100,
+    testData: 190,
     extProps: 100,
     ...attNames.reduce((p, n) => {
       return {
@@ -821,12 +823,13 @@ export const getFullColumns = () => {
     {code: 'defaultValue', value: FormatMessage.string({id: 'tableHeaders.defaultValue'}), newCode: 'defaultValue', com: 'Input', relationNoShow: true},
     {code: 'isStandard', value: FormatMessage.string({id: 'standardFields.isStandard'}), newCode: 'isStandard',com: 'label', relationNoShow: false},
     {code: 'uiHint', value: FormatMessage.string({id: 'tableHeaders.uiHint'}), newCode: 'uiHint',com: 'Select', relationNoShow: true},
+    {code: 'testData', value: FormatMessage.string({id: 'testDataRule.column'}), newCode: 'testData',com: 'Select', relationNoShow: true},
     {code: 'extProps', value: FormatMessage.string({id: 'tableHeaders.extProps'}), newCode: 'extProps',com: 'linkButton', relationNoShow: true},
   ]; // 完整的头部信息
 };
 
 export const getViewColumn = () => {
-  const headers = getFullColumns();
+  const headers = getFullColumns().filter(h => h.newCode !== 'testData');
   headers.splice(2, 0, {code: 'refEntity', value: FormatMessage.string({id: 'tableHeaders.refEntity'}), newCode: 'refEntity', com: 'label', relationNoShow: true});
   return headers;
 }
@@ -1365,7 +1368,8 @@ export  const calcNodeData = ({data: preData, needTransform = true, ...rest},
   let headers = (nodeData?.headers || []).filter(h => {
     const columnOthers = (dataSource?.profile?.headers || [])
         .filter(c => c.refKey === h.refKey)[0] || {};
-    return (!h.hideInGraph) && (columnOthers.enable !== false);
+    // 测试数据规则不是字段的显示内容，关系图上不画
+    return (!h.hideInGraph) && (columnOthers.enable !== false) && h.refKey !== 'testData';
   });
     if(nodeData.type === 'L') {
         // 如果是逻辑模型，需要特殊处理
@@ -2003,7 +2007,7 @@ export const transformationData = (oldDataSource) => {
       namingRules: tempDataSource.namingRules || emptyProjectTemplate.namingRules,
     }
   }
-    return tempDataSource;
+    return ensureTestDataHeader(tempDataSource);
 };
 
 export const validateNeedSave = (dataSource) => {

@@ -550,6 +550,13 @@
         "freeze": false
       },
       {
+        "refKey": "testData",
+        "hideInGraph": true,
+        "value": "测试数据规则",
+        "enable": true,
+        "freeze": false
+      },
+      {
         "refKey": "extProps",
         "hideInGraph": true,
         "value": "拓展属性",

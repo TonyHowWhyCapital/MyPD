@@ -3,7 +3,8 @@ import os from 'os';
 import path from 'path';
 import { execFileSync, spawnSync } from 'child_process';
 import {
-  configure, connParams, countRows, readKeys, runQuery, writeBundle, CANCELLED, JAVA_NOT_FOUND,
+  configure, connParams, countRows, inspectTables, jvmArgs, readKeyRows, readKeys, runQuery,
+  writeBundle, CANCELLED, DEFAULT_JVM, JAVA_NOT_FOUND,
 } from '../src/lib/testdata/db';
 
 // Runs the real Java tool against a throwaway SQLite file with the driver inside the engine jar.
@@ -152,6 +153,87 @@ afterAll(() => {
   });
 });
 
+(hasJava ? describe : describe.skip)('error codes (Java, no database)', () => {
+  // [dialect, SQL state, vendor code, message, expected]: what the real servers answered in
+  // the Docker runs (SQL Server 2022, MySQL 8.4, PostgreSQL 16, Oracle 23)
+  const cases = [
+    ['mssql', 'S0001', 18456, "Login failed for user 'sa'.", 'LOGIN_FAILED'],
+    ['mssql', 'S0001', 8152, 'String or binary data would be truncated.', 'VALUE_TOO_LONG'],
+    ['mssql', 'S0001', 2628, 'String or binary data would be truncated in table', 'VALUE_TOO_LONG'],
+    ['mssql', 'S0008', 8115, 'Arithmetic overflow error converting numeric', 'VALUE_OUT_OF_RANGE'],
+    ['mssql', 'S0002', 8169, 'Conversion failed when converting to uniqueidentifier.', 'BAD_VALUE'],
+    ['mssql', 'S0001', 241, 'Conversion failed when converting date and/or time', 'BAD_VALUE'],
+    ['mssql', '23000', 2627, 'Violation of PRIMARY KEY constraint', 'CONSTRAINT'],
+    ['mssql', '23000', 515, 'Cannot insert the value NULL into column', 'CONSTRAINT'],
+    ['mssql', '23000', 547, 'The INSERT statement conflicted with the FOREIGN KEY', 'CONSTRAINT'],
+    ['mssql', 'S0005', 229, 'The SELECT permission was denied on the object', 'PERMISSION_DENIED'],
+    ['mssql', 'S0002', 208, "Invalid object name 'X'.", 'SQL_ERROR'],
+    ['mssql', 'HY008', 0, 'The query has timed out.', 'TIMEOUT'],
+    ['mssql', '08S01', 0, 'The TCP/IP connection to the host has failed.', 'CONNECT_FAILED'],
+    ['mysql', '28000', 1045, "Access denied for user 'root'", 'LOGIN_FAILED'],
+    ['mysql', '22001', 1406, "Data truncation: Data too long for column 'NAME'", 'VALUE_TOO_LONG'],
+    // MySQL files these two under the state of "too long"
+    ['mysql', '22001', 1264, 'Data truncation: Out of range value for column', 'VALUE_OUT_OF_RANGE'],
+    ['mysql', '22001', 1292, 'Data truncation: Incorrect datetime value', 'BAD_VALUE'],
+    ['mysql', 'HY000', 1366, 'Incorrect integer value', 'BAD_VALUE'],
+    ['mysql', '23000', 1062, 'Duplicate entry', 'CONSTRAINT'],
+    ['mysql', '23000', 1451, 'Cannot delete or update a parent row', 'CONSTRAINT'],
+    ['mysql', '23000', 1452, 'Cannot add or update a child row', 'CONSTRAINT'],
+    ['mysql', 'HY000', 1364, "Field 'X' doesn't have a default value", 'CONSTRAINT'],
+    ['mysql', '42000', 1142, 'SELECT command denied to user', 'PERMISSION_DENIED'],
+    ['mysql', 'HY000', 3024, 'Query execution was interrupted, maximum statement execution time', 'TIMEOUT'],
+    ['postgresql', '28P01', 0, 'password authentication failed', 'LOGIN_FAILED'],
+    ['postgresql', '08001', 0, 'Connection refused', 'CONNECT_FAILED'],
+    ['postgresql', '22001', 0, 'value too long for type character varying(50)', 'VALUE_TOO_LONG'],
+    ['postgresql', '22003', 0, 'numeric field overflow', 'VALUE_OUT_OF_RANGE'],
+    ['postgresql', '22P02', 0, 'invalid input syntax for type uuid', 'BAD_VALUE'],
+    ['postgresql', '22007', 0, 'invalid input syntax for type timestamp', 'BAD_VALUE'],
+    ['postgresql', '23505', 0, 'duplicate key value violates unique constraint', 'CONSTRAINT'],
+    ['postgresql', '23503', 0, 'violates foreign key constraint', 'CONSTRAINT'],
+    ['postgresql', '42501', 0, 'permission denied for table customer', 'PERMISSION_DENIED'],
+    ['postgresql', '42P01', 0, 'relation "x" does not exist', 'SQL_ERROR'],
+    ['postgresql', '57014', 0, 'canceling statement due to statement timeout', 'TIMEOUT'],
+    ['oracle', '72000', 1017, 'ORA-01017: invalid credential or not authorized', 'LOGIN_FAILED'],
+    ['oracle', '72000', 12899, 'ORA-12899: value too large for column', 'VALUE_TOO_LONG'],
+    ['oracle', '22003', 1438, 'ORA-01438: value larger than specified precision', 'VALUE_OUT_OF_RANGE'],
+    ['oracle', '42000', 1722, 'ORA-01722: invalid number', 'BAD_VALUE'],
+    ['oracle', '23000', 1, 'ORA-00001: unique constraint violated', 'CONSTRAINT'],
+    ['oracle', '23000', 1400, 'ORA-01400: cannot insert NULL into', 'CONSTRAINT'],
+    ['oracle', '23000', 2291, 'ORA-02291: integrity constraint violated - parent key not found', 'CONSTRAINT'],
+    ['oracle', '42000', 1031, 'ORA-01031: insufficient privileges', 'PERMISSION_DENIED'],
+    ['oracle', '08006', 17002, 'IO Error: The Network Adapter could not establish the connection', 'CONNECT_FAILED'],
+    ['sqlite', null, 19, '[SQLITE_CONSTRAINT_UNIQUE] A UNIQUE constraint failed', 'CONSTRAINT'],
+    ['generic', '22003', 0, 'numeric value out of range', 'VALUE_OUT_OF_RANGE'],
+    ['generic', 'XX000', 0, 'something else', 'DB_ERROR'],
+  ];
+
+  test('vendor codes decide before SQL states', () => {
+    const input = path.join(work, 'errors.json');
+    const out = path.join(work, 'errors-out.json');
+    fs.writeFileSync(input, JSON.stringify(cases.map(c => ({
+      dialect: c[0],
+      state: c[1],
+      code: c[2],
+      message: c[3],
+    })).concat({ dialect: 'oracle', state: '72000', code: 1013, message: 'ORA-01013', timeout: true })));
+    execFileSync('java', ['-cp', tools, 'mypd.TestDataErrors', input, out]);
+    const result = JSON.parse(fs.readFileSync(out, 'utf8'));
+    cases.forEach((c, i) => expect([c[0], c[2] || c[1], result[i]])
+      .toEqual([c[0], c[2] || c[1], c[4]]));
+    expect(result[cases.length]).toBe('TIMEOUT');
+  });
+});
+
+test('the JVM options of the settings reach the tool, the default is the one of the app', () => {
+  expect(jvmArgs({})).toEqual(['-Xms128m', '-Xmx1024m', '-XX:-UseGCOverheadLimit']);
+  expect(jvmArgs(undefined)).toEqual(jvmArgs({}));
+  expect(jvmArgs({ jvm: '  -Xmx256m   -Dx=1 ' })).toEqual(['-Xmx256m', '-Dx=1']);
+  // an empty setting must not become an empty argument, which java takes for the class name
+  expect(jvmArgs({ jvm: '' })).toEqual([]);
+  const source = fs.readFileSync(path.join(root, 'src/lib/datasource_util.js'), 'utf8');
+  expect(/export const defaultJVM = '([^']*)'/.exec(source)[1]).toBe(DEFAULT_JVM);
+});
+
 test('connection parameters come from a dbConn entry or its properties', () => {
   expect(connParams(conn)).toEqual({ ...conn.properties, customer_driver: '' });
   expect(connParams(conn.properties)).toEqual(connParams(conn));
@@ -231,12 +313,51 @@ test('connection parameters come from a dbConn entry or its properties', () => {
       .toMatchObject({ code: 'TABLE_MISSING', table: 'NOPE' });
   });
 
+  test('reads rows of several columns for composite keys, rows with a NULL left out', async () => {
+    // ORDERS: [1, 1, 'first'], [2, 1, null], [3, 3, 'x'], [4, 2, 'y']
+    expect(await readKeyRows({}, {}, conn, 'orders', ['customer_id', 'ID'], 100))
+      .toEqual([[1, 1], [1, 2], [3, 3], [2, 4]]);
+    expect(await readKeyRows({}, {}, conn, 'ORDERS', ['ID', 'NOTE']))
+      .toEqual([[1, 'first'], [3, 'x'], [4, 'y']]);
+    expect(await readKeyRows({}, {}, conn, 'ORDERS', ['ID', 'CUSTOMER_ID'], 2)).toHaveLength(2);
+    expect(await readKeyRows({}, {}, conn, 'CUSTOMER', ['ID', 'BIRTH', 'CREATED', 'OPEN_AT']))
+      .toEqual([[1, '2001-02-03', '2024-05-06 07:08:09', '10:11:12'],
+        [3, '2024-02-29', '2024-12-31 23:59:59', '00:00:00']]);
+    expect(await fail(readKeyRows({}, {}, conn, 'ORDERS', ['ID', 'NOPE'])))
+      .toMatchObject({ code: 'COLUMN_MISSING', table: 'ORDERS' });
+    expect(await fail(readKeyRows({}, {}, conn, 'NOPE', ['ID'])))
+      .toMatchObject({ code: 'TABLE_MISSING', table: 'NOPE' });
+    expect(await fail(readKeyRows({}, {}, conn, 'ORDERS', []))).toMatchObject({ code: 'BAD_PARAMS' });
+  });
+
+  test('inspectTables tells a missing table from one with rows', async () => {
+    expect(await inspectTables({}, {}, conn, ['CUSTOMER', 'orders', 'NO_SUCH_TABLE'])).toEqual({
+      CUSTOMER: { exists: true, rows: 3 },
+      orders: { exists: true, rows: 4 },
+      NO_SUCH_TABLE: { exists: false, rows: null },
+    });
+    expect(await inspectTables({}, {}, conn, [])).toEqual({});
+  });
+
+  test('a view that cannot be read exists, has no count and says why', async () => {
+    sql('CREATE VIEW BROKEN AS SELECT ID FROM GONE_TABLE');
+    const info = await inspectTables({}, {}, conn, ['BROKEN', 'CUSTOMER']);
+    sql('DROP VIEW BROKEN');
+    expect(info.BROKEN).toMatchObject({ exists: true, rows: null });
+    expect(info.BROKEN.error.message).toMatch(/GONE_TABLE/);
+    expect(typeof info.BROKEN.error.code).toBe('string');
+    expect(info.CUSTOMER).toEqual({ exists: true, rows: 3 });
+    expect(await countRows({}, {}, conn, ['BROKEN', 'CUSTOMER'])).toEqual({ BROKEN: null, CUSTOMER: 3 });
+  });
+
   test('runs one SELECT and nothing else', async () => {
     expect(await runQuery({}, {}, conn, 'SELECT NAME, ID FROM CUSTOMER -- c\n ORDER BY ID DESC;', 2))
       .toEqual(['third', "O'Brien é 😀"]);
     expect(await runQuery({}, {}, conn, 'SELECT BALANCE FROM CUSTOMER ORDER BY ID'))
       .toEqual([1234.56, -0.01, 0]);
     expect(await runQuery({}, {}, conn, 'SELECT NULL')).toEqual([null]);
+    expect(await runQuery({}, {}, conn, 'SELECT ID FROM CUSTOMER ORDER BY ID', 2, { timeout: 5 }))
+      .toEqual([1, 2]);
     expect(await fail(runQuery({}, {}, conn, 'DELETE FROM ORDERS')))
       .toMatchObject({ code: 'SQL_NOT_SELECT' });
     expect(await fail(runQuery({}, {}, conn, 'SELECT 1; DROP TABLE ORDERS')))

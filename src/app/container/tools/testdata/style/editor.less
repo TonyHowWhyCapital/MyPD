@@ -1,0 +1,337 @@
+@import "~style";
+
+.@{prefix}-testdata {
+  // ---- the form of a rule ----
+  &-editor {
+    display: flex;
+    align-items: flex-start;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+  &-form {
+    flex: 1 1 380px;
+    min-width: 340px;
+    padding: 2px 2px 8px 0;
+    &-row {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    &-label {
+      flex: none;
+      width: 84px;
+      padding-right: 10px;
+      line-height: 25px;
+      text-align: right;
+      color: @second-font-color;
+    }
+    &-control {
+      flex: 1;
+      min-width: 0;
+      > .@{prefix}-input, > .@{prefix}-multiple-select {
+        display: block;
+        width: 100%;
+      }
+      .@{prefix}-input input {
+        width: 100%;
+      }
+      .@{prefix}-multiple-select-data {
+        width: 100%;
+      }
+    }
+    &-hint {
+      margin-top: 4px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: @third-font-color;
+    }
+    &-pair {
+      display: flex;
+      align-items: center;
+      > .@{prefix}-input, > .@{prefix}-multiple-select {
+        flex: 1;
+        min-width: 0;
+      }
+      > span:not(.@{prefix}-input):not(.@{prefix}-checkbox) {
+        flex: none;
+        padding: 0 8px 0 12px;
+        white-space: nowrap;
+        color: @second-font-color;
+      }
+      > .@{prefix}-checkbox {
+        flex: none;
+        margin-left: 14px;
+        white-space: nowrap;
+      }
+      &-start {
+        > .@{prefix}-input {
+          flex: none;
+        }
+        > span:not(.@{prefix}-input):not(.@{prefix}-checkbox) {
+          padding-left: 6px;
+        }
+      }
+    }
+    &-line {
+      margin: 4px 0 12px 84px;
+      border-top: 1px dashed @primary-border-color;
+    }
+  }
+  &-code {
+    display: block;
+    width: 100%;
+    padding: 4px 6px;
+    resize: vertical;
+    font-family: Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: @main-font-color;
+    border: 1px solid @primary-border-color;
+    border-radius: @radius-field;
+    outline: none;
+    &:focus {
+      border-color: @primary-color;
+    }
+  }
+  &-chips {
+    display: flex;
+    flex-wrap: wrap;
+    &-scroll {
+      max-height: 76px;
+      overflow: auto;
+    }
+  }
+  &-chip {
+    margin: 0 6px 6px 0;
+    padding: 1px 8px;
+    border: 1px solid @primary-border-color;
+    border-radius: 10px;
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+    &:hover {
+      border-color: @primary-color;
+      color: @primary-color;
+    }
+    &-list-item-active {
+      border-color: @primary-color;
+      color: @primary-color;
+      background: @third-primary-color;
+    }
+  }
+  &-expr-error, &-sample-error {
+    margin-top: 4px;
+    font-size: 12px;
+    color: @danger-color;
+  }
+  &-expr-error {
+    cursor: pointer;
+  }
+  &-functions {
+    max-height: 132px;
+    overflow: auto;
+    border: 1px solid @primary-border-color;
+    border-radius: @radius-field;
+  }
+  &-function {
+    display: flex;
+    align-items: baseline;
+    padding: 2px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    &:hover {
+      background: @tr-background;
+    }
+    > code {
+      flex: none;
+      width: 128px;
+      font-family: Menlo, Consolas, monospace;
+      color: @primary-color;
+    }
+    > span {
+      flex: 1;
+      min-width: 0;
+      color: @second-font-color;
+    }
+  }
+  &-items {
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    tbody {
+      display: block;
+      max-height: 190px;
+      overflow: auto;
+    }
+    thead, tbody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+    th, td {
+      padding: 0;
+      border: 1px solid @primary-border-color;
+    }
+    th {
+      padding: 3px 6px;
+      text-align: left;
+      font-weight: normal;
+      color: @second-font-color;
+      background: @tr-background;
+    }
+    th:nth-child(2), td:nth-child(2) {
+      width: 80px;
+    }
+    th:nth-child(3), td:nth-child(3) {
+      width: 30px;
+      text-align: center;
+    }
+    td > i {
+      cursor: pointer;
+      color: @third-font-color;
+      &:hover {
+        color: @danger-color;
+      }
+    }
+    input {
+      width: 100%;
+      height: 24px;
+      padding: 0 6px;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: @main-font-color;
+      &:focus {
+        box-shadow: inset 0 0 0 1px @primary-color;
+      }
+    }
+    &-opt {
+      margin-top: 6px;
+      font-size: 12px;
+      > a {
+        cursor: pointer;
+        i {
+          margin-right: 4px;
+        }
+      }
+      > a + a {
+        margin-left: 14px;
+      }
+    }
+  }
+  &-builtin {
+    max-height: 250px;
+    overflow: auto;
+    border: 1px solid @primary-border-color;
+    border-radius: @radius-field;
+    &-title {
+      padding: 3px 8px;
+      font-size: 12px;
+      color: @second-font-color;
+      background: @tr-background;
+    }
+    &-items {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    &-item {
+      display: flex;
+      align-items: baseline;
+      min-width: 0;
+      padding: 3px 8px;
+      cursor: pointer;
+      &:hover {
+        background: @tr-background;
+      }
+      > span:first-child {
+        flex: none;
+        margin-right: 8px;
+        white-space: nowrap;
+      }
+    }
+    &-example {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12px;
+      color: @third-font-color;
+    }
+    &-list-item-active {
+      .tool-list-item-chosen();
+      &:hover {
+        background: @third-primary-color;
+      }
+    }
+  }
+  &-browse {
+    display: inline-block;
+    height: 100%;
+    padding: 0 6px;
+    cursor: pointer;
+  }
+  &-file-values {
+    display: flex;
+    flex-wrap: wrap;
+    min-height: 25px;
+    line-height: 25px;
+    color: @third-font-color;
+    > span {
+      max-width: 160px;
+      margin: 3px 6px 3px 0;
+      padding: 0 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 18px;
+      font-size: 12px;
+      color: @font-color;
+      background: @tr-background;
+      border-radius: 3px;
+    }
+  }
+  &-problems {
+    margin: 0 0 10px 84px;
+    padding: 6px 10px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: @danger-color;
+    border: 1px solid fade(@danger-color, 35%);
+    border-radius: @radius-field;
+    background: fade(@danger-color, 5%);
+    &-title {
+      font-weight: bold;
+      i {
+        margin-right: 4px;
+      }
+    }
+  }
+  &-used {
+    margin-left: 84px;
+    font-size: 12px;
+    color: @third-font-color;
+    > span + span, > a {
+      margin-left: 8px;
+    }
+    > a {
+      cursor: pointer;
+    }
+  }
+  &-actions {
+    display: flex;
+    align-items: center;
+    flex: none;
+    padding: 10px 0;
+    border-top: 1px solid @primary-border-color;
+    .@{prefix}-button {
+      margin: 0 8px 0 0;
+    }
+  }
+  &-unsaved {
+    font-size: 12px;
+    color: @warring-color;
+  }
+}

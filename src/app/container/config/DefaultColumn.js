@@ -12,7 +12,7 @@ export default React.memo(({prefix, dataSource, columnsChange, extAttrPropsUpdat
         ...(dataSource?.profile?.extAttrProps || {}),
     });
     const editRef = useRef(null);
-    const useEnable = ['isStandard', 'uiHint', 'extProps'];
+    const useEnable = ['isStandard', 'uiHint', 'extProps', 'testData'];
     const [data, updateData] = useState(() => {
         const full = getFullColumns();
         const currentData = (dataSource?.profile?.headers || []).map(h => {
@@ -232,8 +232,8 @@ export default React.memo(({prefix, dataSource, columnsChange, extAttrPropsUpdat
                             <td style={{width: 180}} className={`${currentPrefix}-setting-entity-init-fields-column`}>{p.refKey}</td>
                             <td style={{width: 180}}>{attNames.includes(p.refKey) ?
                                 <Input onChange={e => onValueChange(e, p)} defaultValue={p.value}/> : p.value}</td>
-                            <td style={{width: 100}}><Icon onClick={() => onClick(p)} style={{cursor: 'pointer'}}
-                                      type={`fa-eye${p.hideInGraph ? '-slash' : ''}`}/>{p.hideInGraph}</td>
+                            <td style={{width: 100}}>{p.refKey !== 'testData' && <Icon onClick={() => onClick(p)} style={{cursor: 'pointer'}}
+                                      type={`fa-eye${p.hideInGraph ? '-slash' : ''}`}/>}{p.hideInGraph}</td>
                             <td style={{width: 180}}>{attNames.includes(p.refKey) ?
                                 <Select
                                     className={`${currentPrefix}-setting-entity-init-fields-column-select`}

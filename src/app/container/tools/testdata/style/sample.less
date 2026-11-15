@@ -1,0 +1,134 @@
+@import "~style";
+
+.@{prefix}-testdata {
+  // ---- sample values ----
+  &-sample {
+    // stays in sight while a long form scrolls beside it
+    position: sticky;
+    top: 0;
+    flex: 0 0 250px;
+    width: 250px;
+    margin-left: 14px;
+    padding: 8px 10px;
+    border: 1px solid @primary-border-color;
+    border-radius: @radius-field;
+    background: @tr-background;
+    &-title {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-weight: bold;
+      color: @main-font-color;
+      > a {
+        font-weight: normal;
+        font-size: 12px;
+        cursor: pointer;
+      }
+    }
+    &-target {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      row-gap: 5px;
+      column-gap: 8px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      > span {
+        white-space: nowrap;
+        color: @second-font-color;
+      }
+      .@{prefix}-multiple-select {
+        display: block;
+        min-width: 0;
+      }
+      .@{prefix}-multiple-select-data {
+        width: 100%;
+      }
+    }
+    &-type {
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: @third-font-color;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    &-note {
+      font-size: 12px;
+      line-height: 1.6;
+      color: @second-font-color;
+    }
+    &-error {
+      line-height: 1.6;
+    }
+    &-values {
+      margin: 0;
+      padding: 0 0 0 2px;
+      list-style: none;
+      font-family: Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.75;
+      color: @main-font-color;
+      > li {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+    &-null {
+      font-style: italic;
+      color: @third-font-color;
+    }
+    &-hint {
+      margin-top: 6px;
+      font-size: 12px;
+      color: @third-font-color;
+    }
+  }
+  // ---- domains ----
+  &-domains {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    table {
+      .tool-table();
+    }
+    td {
+      vertical-align: middle;
+    }
+    td > span + span {
+      margin-left: 8px;
+    }
+    &-rule {
+      width: 260px;
+      .@{prefix}-multiple-select {
+        display: block;
+      }
+      .@{prefix}-multiple-select-data {
+        width: 100%;
+      }
+    }
+  }
+  // ---- questions and notes ----
+  &-confirm {
+    line-height: 1.7;
+    &-warn {
+      margin-top: 6px;
+      color: @danger-color;
+    }
+    &-item {
+      padding-left: 12px;
+      word-break: break-all;
+    }
+  }
+  &-usage {
+    max-height: 50vh;
+    overflow: auto;
+    line-height: 1.7;
+    word-break: break-all;
+    &-title {
+      margin-top: 4px;
+      font-weight: bold;
+    }
+  }
+}

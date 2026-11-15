@@ -13,8 +13,8 @@ const { spawn } = require('child_process');
 // Stable codes of the errors this module rejects with (err.code); the Java tool adds its own:
 // DRIVER_MISSING, CONNECT_FAILED, LOGIN_FAILED, TABLE_MISSING, COLUMN_MISSING,
 // COLUMN_NOT_WRITABLE (computed column, row version), VALUE_TOO_LONG, VALUE_OUT_OF_RANGE,
-// CONSTRAINT, BAD_VALUE, PERMISSION_DENIED, BUNDLE_INVALID, SQL_ERROR, TIMEOUT, DB_ERROR,
-// TOOL_ERROR and the SQL_*
+// CONSTRAINT, BAD_VALUE, PERMISSION_DENIED, BUNDLE_INVALID, SQL_ERROR, SQL_SYNTAX (the
+// database could not read the statement), TIMEOUT, DB_ERROR, TOOL_ERROR and the SQL_*
 // codes of the query check (SQL_EMPTY, SQL_MULTIPLE, SQL_NOT_SELECT, SQL_FORBIDDEN, SQL_QUOTING,
 // SQL_UNTERMINATED, SQL_AMBIGUOUS, SQL_TOO_LONG).
 export const CANCELLED = 'CANCELLED';
@@ -260,15 +260,109 @@ export const readKeyRows = (dataSource, config, conn, table, columns, limit) => 
   }).promise;
 };
 
+// Where in `sql` the offset is: {offset, line, column} with line and column counted from 1
+export const placeOf = (sql, offset) => {
+  const text = `${sql || ''}`;
+  const at = Math.max(0, Math.min(text.length, offset));
+  const before = text.slice(0, at).split('\n');
+  return { offset: at, line: before.length, column: before[before.length - 1].length + 1 };
+};
+
+// The place a database stopped at arrives as an offset into the text as typed; the error
+// carries it as position: {offset, line, column, lineOnly?} (lineOnly: only the line is known)
+const withPlace = (error, sql) => {
+  if (error && typeof error.position === 'number') {
+    const { lineOnly, ...rest } = error;
+    delete error.lineOnly;
+    error.position = { ...placeOf(sql, rest.position), ...(lineOnly ? { lineOnly: true } : {}) };
+  }
+  return error;
+};
+
 // First column of one read-only SELECT, at most `limit` rows (default 10000). Anything that is
 // not a single SELECT is refused before the database is reached (err.code starts with SQL_).
 // options.timeout: seconds the query may run (default 30); then it rejects with code TIMEOUT.
+// A refusal of the database carries what checkQuery tells (object, position, near).
 export const runQuery = (dataSource, config, conn, sql, limit, options = {}) => {
   return runTool(dataSource, config, conn, 'query', {
     sql,
     limit: limit || 0,
     ...(options && options.timeout > 0 ? { timeout: Math.ceil(options.timeout) } : {}),
-  }).promise;
+  }).promise.catch((error) => {
+    throw withPlace(error, sql);
+  });
+};
+
+// What is worth knowing about an accepted query: [{code, count?}]
+//   multipleColumns  count columns are selected, a rule only uses the first
+//   noRows           nothing came back: the rule would have nothing to choose from
+//   nullValues       count of the values read are NULL
+//   duplicateValues  count of the values read repeat an earlier one
+export const checkWarnings = ({ columns = [], sample = [] }) => {
+  const nulls = sample.filter(v => v === null).length;
+  const seen = sample.filter(v => v !== null).map(v => `${typeof v}:${v}`);
+  const repeats = seen.filter((v, i) => seen.indexOf(v) !== i).length;
+  return [
+    ...(columns.length > 1 ? [{ code: 'multipleColumns', count: columns.length }] : []),
+    ...(sample.length === 0 ? [{ code: 'noRows' }] : []),
+    ...(nulls > 0 ? [{ code: 'nullValues', count: nulls }] : []),
+    ...(repeats > 0 ? [{ code: 'duplicateValues', count: repeats }] : []),
+  ];
+};
+
+const CHECK_TIMEOUT = 30;
+// what connecting and starting Java may take on top of the time the query itself is given
+const CHECK_GRACE = 25;
+
+// Lets the database judge one read-only SELECT: prepared, described and run for a few rows on a
+// read-only connection that is rolled back. Refused like runQuery when it is not a single SELECT.
+// options: timeout (seconds the query may run, default 30), sample (values to read, default 5)
+// Resolves with {ok: true, columns: [{name, typeName, jdbcType, nullable}], firstColumn,
+//   sample: [values of the first column], rowsSeen, truncated (there are more rows),
+//   warnings: [{code, count?}] (see checkWarnings), dialect}
+// Rejects with an Error: code (SQL_SYNTAX, TABLE_MISSING, COLUMN_MISSING, PERMISSION_DENIED,
+//   TIMEOUT, SQL_ERROR, the connection codes, the SQL_* refusals…), message (what the database
+//   said), and when the database tells: object (the table or column it names), near (the text
+//   it stopped at), position {offset, line, column, lineOnly?} in `sql`, sqlState, dbCode,
+//   phase ('prepare' | 'execute').
+// The promise has cancel(): it ends the Java process and rejects with code CANCELLED.
+export const checkQuery = (dataSource, config, conn, sql, options = {}) => {
+  const { timeout, sample } = options || {};
+  const seconds = timeout > 0 ? Math.ceil(timeout) : CHECK_TIMEOUT;
+  const run = runTool(dataSource, config, conn, 'check', {
+    sql,
+    sample: sample > 0 ? Math.floor(sample) : 5,
+    timeout: seconds,
+  });
+  let late = false;
+  const promise = new Promise((res, rej) => {
+    const timer = setTimeout(() => {
+      late = true;
+      run.cancel();
+    }, (seconds + CHECK_GRACE) * 1000);
+    run.promise.then((body) => {
+      clearTimeout(timer);
+      const columns = body.columns || [];
+      const values = body.sample || [];
+      res({
+        ok: true,
+        columns,
+        firstColumn: columns[0] || null,
+        sample: values,
+        rowsSeen: typeof body.rowsSeen === 'number' ? body.rowsSeen : values.length,
+        truncated: !!body.truncated,
+        warnings: checkWarnings({ columns, sample: values }),
+        dialect: body.dialect || '',
+      });
+    }, (error) => {
+      clearTimeout(timer);
+      rej(late && error.code === CANCELLED
+        ? toolError('TIMEOUT', 'The check took too long and was stopped')
+        : withPlace(error, sql));
+    });
+  });
+  promise.cancel = run.cancel;
+  return promise;
 };
 
 // Writes the bundle in `dir` (see createDbBundleWriter). Returns {promise, cancel}.

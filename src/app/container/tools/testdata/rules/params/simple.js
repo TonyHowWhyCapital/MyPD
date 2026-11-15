@@ -135,19 +135,6 @@ export const DictParams = ({
   </React.Fragment>;
 };
 
-export const QueryParams = ({ base, tr, params, set }) => (
-  <Row base={base} label={tr('param.sql')} hint={tr('hint.query')} wide>
-    <textarea
-      className={`${base}-code`}
-      rows={5}
-      spellCheck={false}
-      placeholder='SELECT CODE FROM T_CUSTOMER'
-      value={params.sql || ''}
-      onChange={e => set('sql', e.target.value)}
-    />
-  </Row>
-);
-
 export const ConstantParams = ({ base, tr, params, set }) => (
   <Row base={base} label={tr('param.value')} hint={tr('hint.constant')}>
     <TextField value={params.value} onChange={v => set('value', v)}/>

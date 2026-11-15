@@ -17,7 +17,7 @@ import java.util.Map;
  *
  * The only argument is params=<file>: a JSON file (owner-only, deleted here once read unless
  * "keepParams" is true) so that neither the password nor the url shows in the process list:
- *   {"mode":"count|keys|query|write", "driver_class_name":..., "url":..., "username":...,
+ *   {"mode":"count|keys|keyrows|query|check|write", "driver_class_name":..., "url":..., "username":...,
  *    "password":..., "out":<result file>, "dialect":<optional override>,
  *    count: "tables":[names]
  *    keys:  "table":..., "column":..., "limit":n
@@ -60,11 +60,21 @@ public class TestData {
 
   private static String run(Map<String, Object> p) throws Exception {
     String mode = TestDataJson.str(p, "mode");
-    if ("query".equals(mode)) {
+    if ("query".equals(mode) || "check".equals(mode)) {
       // refused before any connection is made
-      String sql = TestDataSqlCheck.check(TestDataJson.str(p, "sql"));
+      TestDataSqlCheck.Checked q = TestDataSqlCheck.checked(TestDataJson.str(p, "sql"));
+      int timeout = (int) TestDataJson.num(p, "timeout", 30);
       try (TestDataDb db = TestDataDb.open(p)) {
-        return query(db, sql, limit(p), (int) TestDataJson.num(p, "timeout", 30));
+        if ("check".equals(mode)) {
+          return TestDataCheck.run(db, q, (int) TestDataJson.num(p, "sample", 5),
+              timeout <= 0 ? 30 : timeout);
+        }
+        try {
+          return query(db, q.sql, limit(p), timeout);
+        } catch (SQLException e) {
+          // the object the database names and the place it stopped at, as in a check
+          throw TestDataDiagnose.failure(e, db.dialect, q, null);
+        }
       }
     }
     try (TestDataDb db = TestDataDb.open(p)) {

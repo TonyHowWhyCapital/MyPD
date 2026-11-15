@@ -1,7 +1,8 @@
 import {
   AutoParams, SequenceParams, NumberParams, DateParams, TextParams, PatternParams, DictParams,
-  QueryParams, ConstantParams,
+  ConstantParams,
 } from './simple';
+import QueryParams from './QueryParams';
 import ListParams from './ListParams';
 import BuiltinParams from './BuiltinParams';
 import ExprParams from './ExprParams';

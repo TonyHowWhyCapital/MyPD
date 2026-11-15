@@ -7,4 +7,7 @@ export const tr = (id, data) => FormatMessage.string({
   data,
 });
 
+// text of a full language key, for words shared between the windows of test data
+export const say = (id, data) => FormatMessage.string({ id, defaultMessage: '', data });
+
 export default tr;

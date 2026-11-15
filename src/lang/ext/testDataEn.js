@@ -359,6 +359,7 @@ export default {
         CONSTRAINT: 'A constraint of the database was violated (duplicate primary key or unique value, missing foreign key target, failed check)',
         BUNDLE_INVALID: 'The data to write could not be read',
         SQL_ERROR: 'The database could not run this statement',
+        SQL_SYNTAX: 'The SQL syntax is not correct',
         TIMEOUT: 'It took longer than the time limit',
         DB_ERROR: 'The database reported an error',
         SQL_EMPTY: 'The query is empty',

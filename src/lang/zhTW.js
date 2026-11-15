@@ -1400,7 +1400,7 @@ export default {
       "partition": "分割區",
       "tablespace": "資料表空間",
       "synonym": "同義詞",
-      "grant": "許可權"
+      "grant": "權限"
     },
     "all": "全部",
     "add": "新增",
@@ -1442,7 +1442,7 @@ export default {
       "autoExtend": "自動擴充套件",
       "targetName": "目標名稱",
       "isPublic": "公有",
-      "privileges": "許可權",
+      "privileges": "權限",
       "grantee": "被授權者",
       "withGrantOption": "允許轉授",
       "name": "名稱",
@@ -2079,7 +2079,7 @@ export default {
       "tableMissing": "資料庫裡沒有這個資料表",
       "tableUnreadable": "無法讀取 {reason}",
       "missing": "資料庫裡沒有這些資料表：{tables}。請先建立資料表（可用「匯出 DDL」產生建表的 SQL），或回到第一步取消勾選。",
-      "unreadable": "這些資料表無法讀取，請確認帳號的許可權：{tables}",
+      "unreadable": "這些資料表無法讀取，請確認帳號的權限：{tables}",
       "existing": "資料表裡現有的資料",
       "append": "保留，接在後面寫入",
       "clear": "先清空，再寫入",
@@ -2166,7 +2166,7 @@ export default {
       "DRIVER_MISSING": "找不到資料庫驅動程式，請檢查連線設定",
       "CONNECT_FAILED": "連不上資料庫，請檢查地址以及資料庫是否已啟動",
       "LOGIN_FAILED": "登入失敗，請檢查帳號與密碼",
-      "PERMISSION_DENIED": "帳號沒有足夠的許可權",
+      "PERMISSION_DENIED": "帳號沒有足夠的權限",
       "TABLE_MISSING": "資料庫裡沒有這個資料表",
       "COLUMN_MISSING": "資料庫的資料表裡沒有這個欄位，模型與資料庫不一致",
       "COLUMN_NOT_WRITABLE": "這個欄位由資料庫計算或維護（計算欄位、資料列版本），不能寫入",
@@ -2176,6 +2176,7 @@ export default {
       "CONSTRAINT": "違反資料庫的限制（主鍵或唯一值重複、外鍵找不到對應、檢查條件不符）",
       "BUNDLE_INVALID": "要寫入的資料無法讀取",
       "SQL_ERROR": "資料庫無法執行這條 SQL",
+      "SQL_SYNTAX": "SQL 的語法不正確",
       "TIMEOUT": "執行超過時間限制",
       "DB_ERROR": "資料庫回報錯誤",
       "SQL_EMPTY": "查詢是空的",
@@ -2192,7 +2193,7 @@ export default {
     "fsError": {
       "other": "檔案無法寫入（{code}）{path}",
       "ENOENT": "找不到檔案或資料夾 {path}",
-      "EACCES": "沒有許可權寫入 {path}",
+      "EACCES": "沒有權限寫入 {path}",
       "EPERM": "系統不允許寫入 {path}，檔案可能正被其他程式開啟",
       "ENOSPC": "磁碟空間不足",
       "EBUSY": "檔案正被其他程式使用 {path}",
@@ -2202,6 +2203,108 @@ export default {
       "EEXIST": "已經有同名的檔案或資料夾 {path}",
       "EMFILE": "同時開啟的檔案太多，請稍後再試",
       "ENAMETOOLONG": "檔名或路徑太長 {path}"
+    }
+  },
+  "testDataQuery": {
+    "model": {
+      "title": "對照專案模型檢查",
+      "titleNote": "不需要連線資料庫，只看得懂簡單的查詢；最終以資料庫的檢查為準",
+      "machineNote": "本機規則庫的規則，以目前開啟的專案的模型與連線來檢查",
+      "clean": "查詢用到的資料表與欄位，專案模型裡都有",
+      "nothing": "查詢沒有讀取資料表，沒有可以對照的內容",
+      "notAnalysed": "這條查詢沒有對照專案模型檢查：{reason}。請按「檢查語法」讓資料庫判斷。",
+      "notAllowed": "這條查詢沒有對照專案模型檢查：{reason}。規則只能使用一條 SELECT 查詢。",
+      "suggest": "是不是",
+      "locate": "在 SQL 裡選取這個名稱",
+      "severity": {
+        "warning": "提醒",
+        "info": "說明"
+      },
+      "finding": {
+        "tableUnknown": "專案模型裡沒有資料表 {name}（資料庫裡可能仍然有）",
+        "columnUnknown": "專案模型的資料表 {table} 沒有欄位 {name}",
+        "columnNowhere": "專案模型的資料表 {tables} 都沒有欄位 {name}",
+        "columnAmbiguous": "欄位 {name} 在 {tables} 裡都有，建議在前面加上資料表名稱或別名",
+        "noFrom": "查詢沒有 FROM，{name} 不會被當成資料表的欄位來讀取"
+      },
+      "reason": {
+        "notSelect": "不是以 SELECT 開頭",
+        "cte": "使用了 WITH",
+        "setOperation": "使用了 UNION 這類合併查詢",
+        "subquery": "含有子查詢",
+        "derivedTable": "FROM 裡有子查詢",
+        "tableFunction": "FROM 裡使用了函式",
+        "fromShape": "FROM 的寫法比較複雜",
+        "unterminated": "引號或註解沒有結束",
+        "quoting": "引號的寫法各種資料庫的解讀不同",
+        "unbalanced": "括號沒有成對",
+        "multiple": "有多個陳述式",
+        "tooLong": "查詢太長"
+      }
+    },
+    "check": {
+      "button": "檢查語法",
+      "running": "正在連線資料庫檢查…",
+      "cancel": "取消",
+      "retry": "再試一次",
+      "using": "使用連線",
+      "change": "更換連線",
+      "emptySql": "請先填寫 SQL",
+      "noConnection": "專案還沒有資料庫連線，無法讓資料庫檢查。請先在「資料庫連線」裡新增連線。",
+      "incomplete": "連線「{name}」的設定不完整（缺少位址或驅動程式），無法檢查",
+      "noJava": "找不到 Java，無法連線資料庫。請在「設定」裡指定 Java 的安裝位置（JAVA_HOME）。",
+      "hint": "由資料庫判斷語法是否正確、資料表與欄位是否存在，並取回前幾個值；只會讀取，不會更改資料",
+      "ok": "資料庫接受了這條查詢",
+      "failed": "資料庫沒有接受這條查詢",
+      "refused": "這條查詢不能執行",
+      "notRun": "無法檢查",
+      "firstColumn": "取值的欄位",
+      "sample": "前 {count} 個值",
+      "more": "後面還有更多",
+      "noValues": "沒有取到任何值",
+      "object": "物件",
+      "position": "位置",
+      "place": "第 {line} 行第 {column} 個字元",
+      "placeLine": "第 {line} 行",
+      "near": "在 {near} 附近",
+      "at": "{text}（{where}）",
+      "goto": "移到這個位置",
+      "raw": "資料庫的訊息",
+      "status": {
+        "unchecked": "還沒有讓資料庫檢查過這條查詢",
+        "changed": "查詢在檢查之後改過，還沒有重新檢查",
+        "ok": "{time} 在「{conn}」檢查通過",
+        "failed": "{time} 在「{conn}」檢查沒有通過"
+      },
+      "warning": {
+        "multipleColumns": "查詢選了 {count} 個欄位，規則只會使用第一個",
+        "noRows": "查詢沒有取回任何資料，規則會沒有值可以選",
+        "nullValues": "取到的值裡有 {count} 個是 NULL",
+        "duplicateValues": "取到的值裡有 {count} 個重複"
+      }
+    },
+    "error": {
+      "SQL_SYNTAX": "SQL 的語法不正確",
+      "TABLE_MISSING": "資料庫裡沒有查詢用到的資料表或視圖（也可能是這個帳號看不到它）",
+      "TABLE_MISSING_named": "資料庫裡沒有資料表或視圖 {object}（也可能是這個帳號看不到它）",
+      "COLUMN_MISSING": "資料庫裡沒有查詢用到的欄位",
+      "COLUMN_MISSING_named": "資料庫裡沒有欄位 {object}",
+      "PERMISSION_DENIED": "這個帳號沒有讀取的權限",
+      "PERMISSION_DENIED_named": "這個帳號沒有讀取 {object} 的權限",
+      "TIMEOUT": "查詢執行太久，已經停止。產生資料時同樣可能等不到結果，請簡化查詢",
+      "SQL_ERROR": "資料庫無法執行這條查詢"
+    },
+    "save": {
+      "title": "這條查詢還沒有通過資料庫的檢查",
+      "unchecked": "這條查詢在這次編輯中還沒有讓資料庫檢查過。",
+      "failed": "上一次讓資料庫檢查沒有通過：",
+      "noConnection": "專案還沒有可以使用的資料庫連線，所以無法檢查這條查詢。",
+      "noJava": "找不到 Java，所以無法連線資料庫檢查這條查詢。",
+      "note": "仍然可以儲存（例如現在連不上資料庫）。查詢要到產生資料的時候才會真正執行，屆時有問題會再提示。",
+      "checkNow": "現在檢查",
+      "saveAnyway": "仍然儲存",
+      "back": "回去修改",
+      "passed": "檢查通過，已儲存"
     }
   },
   "testDataRule": {

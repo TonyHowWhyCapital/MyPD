@@ -39,17 +39,46 @@ final class TestDataSqlCheck {
   private TestDataSqlCheck() {
   }
 
+  /** The statement to run, and where each of its characters stood in the text as typed. */
+  static final class Checked {
+    final String sql;
+    private final int[] map;
+    private final int lead;
+    private final int typed;
+
+    Checked(String sql, int[] map, int lead, int typed) {
+      this.sql = sql;
+      this.map = map;
+      this.lead = lead;
+      this.typed = typed;
+    }
+
+    /** Offset in the typed text of the character at `sent` (0-based) of the statement sent. */
+    int original(int sent) {
+      int at = sent + lead;
+      if (sent < 0) {
+        return -1;
+      }
+      return at < map.length ? map[at] : typed;
+    }
+  }
+
   /** Returns the statement to run (comments and trailing semicolons removed) or throws Rejected. */
   static String check(String sql) {
+    return checked(sql).sql;
+  }
+
+  static Checked checked(String sql) {
     if (sql == null || sql.trim().isEmpty()) {
       throw new Rejected("SQL_EMPTY", "The query is empty");
     }
     if (sql.length() > MAX_LENGTH) {
       throw new Rejected("SQL_TOO_LONG", "The query is too long");
     }
-    String[] first = scan(sql);
+    int[] map = new int[sql.length()];
+    String[] first = scan(sql, map);
     // second pass over the text that will be sent: it must read the same way with no comment left
-    String[] second = scan(first[0]);
+    String[] second = scan(first[0], null);
     if (!second[0].equals(first[0])) {
       throw new Rejected("SQL_AMBIGUOUS", "The query can be read in more than one way");
     }
@@ -79,11 +108,13 @@ final class TestDataSqlCheck {
         throw new Rejected("SQL_FORBIDDEN", "The query must not contain " + w);
       }
     }
-    return clean.trim();
+    String sent = clean.trim();
+    return new Checked(sent, java.util.Arrays.copyOf(map, first[0].length()), clean.indexOf(sent),
+        sql.length());
   }
 
   /** [0] the text without comments, [1] the same with every quoted text reduced to its quotes. */
-  private static String[] scan(String sql) {
+  private static String[] scan(String sql, int[] map) {
     StringBuilder clean = new StringBuilder();
     StringBuilder code = new StringBuilder();
     int n = sql.length();
@@ -92,6 +123,7 @@ final class TestDataSqlCheck {
       char c = sql.charAt(i);
       char d = i + 1 < n ? sql.charAt(i + 1) : 0;
       if (c == '-' && d == '-') {
+        note(map, clean.length(), i, 1);
         while (i < n && sql.charAt(i) != '\n' && sql.charAt(i) != '\r') {
           i++;
         }
@@ -102,6 +134,7 @@ final class TestDataSqlCheck {
         if (end < 0) {
           throw new Rejected("SQL_UNTERMINATED", "A comment is not closed");
         }
+        note(map, clean.length(), i, 1);
         i = end + 2;
         clean.append(' ');
         code.append(' ');
@@ -114,6 +147,7 @@ final class TestDataSqlCheck {
         if (text.indexOf('\\') >= 0) {
           throw new Rejected("SQL_QUOTING", "A backslash inside quotes is not allowed");
         }
+        note(map, clean.length(), i, text.length());
         clean.append(text);
         code.append(c).append(c);
         i = end + 1;
@@ -123,6 +157,7 @@ final class TestDataSqlCheck {
           throw new Rejected("SQL_QUOTING", "Quotes inside [ ] are not allowed");
         }
         // the content is checked as code: what one database takes as a name is code to another
+        note(map, clean.length(), i, 1);
         clean.append(c);
         code.append(c);
         i++;
@@ -134,6 +169,7 @@ final class TestDataSqlCheck {
           throw new Rejected("SQL_QUOTING", "Quotes or comments inside ` ` are not allowed");
         }
         // kept in the checked text for the same reason
+        note(map, clean.length(), i, text.length());
         clean.append(text);
         code.append(text);
         i = end + 1;
@@ -142,12 +178,20 @@ final class TestDataSqlCheck {
       } else if (c == '$' && isDollarQuote(sql, i)) {
         throw new Rejected("SQL_QUOTING", "Dollar quoting is not allowed");
       } else {
+        note(map, clean.length(), i, 1);
         clean.append(c);
         code.append(c);
         i++;
       }
     }
     return new String[] {clean.toString(), code.toString()};
+  }
+
+  /** `count` characters written at `at` of the clean text came from `from` of the typed one. */
+  private static void note(int[] map, int at, int from, int count) {
+    for (int k = 0; map != null && k < count && at + k < map.length; k++) {
+      map[at + k] = from + k;
+    }
   }
 
   /** Index of the closing character, a doubled one being part of the text. */

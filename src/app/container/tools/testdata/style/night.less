@@ -80,4 +80,51 @@ body[theme='themeNigh'] {
   .@{prefix}-testdata-items input {
     background-color: transparent !important;
   }
+  // the checks of a query rule
+  .@{prefix}-testdata-query-title > span, .@{prefix}-testdata-query-status,
+  .@{prefix}-testdata-query-conn > i, .@{prefix}-testdata-query-conn > span:last-child,
+  .@{prefix}-testdata-query-line > i, .@{prefix}-testdata-query-head > span,
+  .@{prefix}-testdata-query-type, .@{prefix}-testdata-query-more,
+  .@{prefix}-testdata-query-neutral, .@{prefix}-testdata-query-neutral > .fa,
+  .@{prefix}-testdata-query-suggest, .@{prefix}-testdata-query-raw > pre,
+  .@{prefix}-testdata-query-values > .@{prefix}-testdata-query-null,
+  .@{prefix}-testdata-query-remind-note {
+    color: @n-dim !important;
+  }
+  .@{prefix}-testdata-query-finding-warning .@{prefix}-testdata-query-severity,
+  .@{prefix}-testdata-query-finding-warning .@{prefix}-testdata-query-severity > .fa,
+  .@{prefix}-testdata-query-warning, .@{prefix}-testdata-query-warning > .fa,
+  .@{prefix}-testdata-query-blocked, .@{prefix}-testdata-query-blocked > .fa,
+  .@{prefix}-testdata-query-remind-why > .fa {
+    color: #ffa45c !important;
+  }
+  .@{prefix}-testdata-query-finding-info .@{prefix}-testdata-query-severity,
+  .@{prefix}-testdata-query-finding-info .@{prefix}-testdata-query-severity > .fa,
+  .@{prefix}-testdata-query-suggest > .@{prefix}-testdata-chip {
+    color: @n-accent !important;
+  }
+  .@{prefix}-testdata-query-suggest > .@{prefix}-testdata-chip {
+    border-color: fade(@n-accent, 55%) !important;
+  }
+  .@{prefix}-testdata-query-result-ok .@{prefix}-testdata-query-head > .fa,
+  .@{prefix}-testdata-query-result-ok .@{prefix}-testdata-query-head > b {
+    color: #5fd08f !important;
+  }
+  .@{prefix}-testdata-query-result-bad .@{prefix}-testdata-query-head > .fa,
+  .@{prefix}-testdata-query-result-bad .@{prefix}-testdata-query-head > b,
+  .@{prefix}-testdata-query-remind-reason {
+    color: #ff7b86 !important;
+  }
+  .@{prefix}-testdata-query-result-ok {
+    border-color: fade(#5fd08f, 45%) !important;
+  }
+  .@{prefix}-testdata-query-result-bad {
+    border-color: fade(#ff7b86, 45%) !important;
+  }
+  .@{prefix}-testdata-query-result, .@{prefix}-testdata-query-result *:not(code) {
+    background-color: @n-surface !important;
+  }
+  .@{prefix}-testdata-query-values > code {
+    background-color: @n-raised !important;
+  }
 }

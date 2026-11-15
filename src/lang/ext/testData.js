@@ -359,6 +359,7 @@ export default {
         CONSTRAINT: '违反数据库的限制（主键或唯一值重复、外键找不到对应、检查条件不符）',
         BUNDLE_INVALID: '要写入的数据无法读取',
         SQL_ERROR: '数据库无法执行这条 SQL',
+        SQL_SYNTAX: 'SQL 的语法不正确',
         TIMEOUT: '执行超过时间限制',
         DB_ERROR: '数据库回报错误',
         SQL_EMPTY: '查询是空的',

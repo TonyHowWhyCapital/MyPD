@@ -9,6 +9,16 @@ final class TestDataFailure extends Exception {
   long row = -1;
   String sqlState;
   int dbCode;
+  /** What the database names as missing or refused (a table, a column), when it does. */
+  String object;
+  /** The text the database stopped near, as it quotes it. */
+  String near;
+  /** Offset (from 0) in the query as typed where the database stopped; -1 = not told. */
+  int position = -1;
+  /** Only the line of `position` is known: it is the start of that line. */
+  boolean lineOnly;
+  /** "prepare" or "execute": the step of a query check that failed. */
+  String phase;
   /** JSON array of per-table results reached so far (write mode), or null. */
   String tables;
 
@@ -37,6 +47,21 @@ final class TestDataFailure extends Exception {
     }
     if (dbCode != 0) {
       sb.append(",\"dbCode\":").append(dbCode);
+    }
+    if (object != null && !object.isEmpty()) {
+      sb.append(",\"object\":").append(Tool.json(TestDataDb.clean(object)));
+    }
+    if (near != null && !near.isEmpty()) {
+      sb.append(",\"near\":").append(Tool.json(TestDataDb.clean(near)));
+    }
+    if (position >= 0) {
+      sb.append(",\"position\":").append(position);
+      if (lineOnly) {
+        sb.append(",\"lineOnly\":true");
+      }
+    }
+    if (phase != null) {
+      sb.append(",\"phase\":").append(Tool.json(phase));
     }
     if (tables != null) {
       sb.append(",\"tables\":").append(tables);

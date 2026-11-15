@@ -187,7 +187,8 @@ const NOT_CODES = ['DEFAULT_JVM', 'PROGRESS_INTERVAL', 'KILL_AFTER', 'STDERR_KEP
   'REPLACE_EXISTING', 'READ_COMMITTED', 'TYPE_FORWARD_ONLY', 'CONCUR_READ_ONLY', 'MAX_VALUE',
   'MIN_VALUE', 'TABLE_NAME', 'COLUMN_NAME', 'TABLE_SCHEM', 'TABLE_CAT', 'DATA_TYPE',
   'TYPE_NAME', 'COLUMN_SIZE', 'DECIMAL_DIGITS', 'IS_NULLABLE', 'ROUND_HALF_UP', 'HALF_UP',
-  'NO_GENERATED_KEYS', 'EXECUTE_FAILED', 'SUCCESS_NO_INFO', 'ISO_LOCAL_DATE', 'ROOT'];
+  'NO_GENERATED_KEYS', 'EXECUTE_FAILED', 'SUCCESS_NO_INFO', 'ISO_LOCAL_DATE', 'ROOT',
+  'CHECK_TIMEOUT', 'CHECK_GRACE', 'MAX_SAMPLE'];
 const javaDir = path.join(root, 'scripts/java/mypd');
 const javaSource = fs.readdirSync(javaDir).filter(f => /^TestData.*\.java$/.test(f))
   .map(f => fs.readFileSync(path.join(javaDir, f), 'utf8')).join('\n');

@@ -9,3 +9,4 @@ export { getMachineRules, setMachineRules } from './rules/machine';
 export { tr as testDataRuleText } from './rules/i18n';
 export { problemText, errorText, ruleSummary, effectiveLabel } from './rules/ruleText';
 export { setProjectFile } from './rules/projectFile';
+export { setAppConfig } from './rules/querySession';

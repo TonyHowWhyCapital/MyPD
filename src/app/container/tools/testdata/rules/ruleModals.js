@@ -9,6 +9,7 @@ import { tr } from './i18n';
 import { projectRules, libraryProblems, saveProjectRule } from './libraryOps';
 import { newRule } from '../../../../../lib/testdata/model';
 import RuleEditor from './RuleEditor';
+import { saveWithReminder } from './querySave';
 
 const Draft = forwardRef(({
   rule, dataSource, entity, field, rules,
@@ -50,10 +51,13 @@ export const openRuleEditor = ({
       Message.error({ title: tr('msg.invalid') });
       return;
     }
-    const next = saveProjectRule(getDataSource(), result);
-    updateDataSource(next);
-    modal && modal.close();
-    onOk && onOk(result, next);
+    // a query the database has not accepted in this session is asked about first
+    saveWithReminder({ rule: result, original: rule, dataSource: getDataSource() }, () => {
+      const next = saveProjectRule(getDataSource(), result);
+      updateDataSource(next);
+      modal && modal.close();
+      onOk && onOk(result, next);
+    });
   };
   modal = openModal(<Draft
     ref={ref}

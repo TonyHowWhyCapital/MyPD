@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import { spawnSync } from 'child_process';
 import {
-  configure, countRows, inspectTables, readKeyRows, readKeys, runQuery, writeBundle,
+  checkQuery, configure, countRows, inspectTables, readKeyRows, readKeys, runQuery, writeBundle,
 } from '../src/lib/testdata/db';
 import { createDbBundleWriter, createSqlWriter } from '../src/lib/testdata/files';
 
@@ -232,6 +232,172 @@ Object.keys(DBS).forEach((dialect) => {
       expect(lines(`SELECT ${db.text('AT_TIME')} FROM TD_NODE ORDER BY ID`)).toEqual(TIMES);
       sql(`INSERT INTO TD_NODE (NAME) VALUES ('next');${dialect === 'oracle' ? '\nCOMMIT;' : ''}`);
       expect(Number(lines('SELECT MAX(ID) FROM TD_NODE')[0])).toBeGreaterThan(5);
+    });
+  });
+});
+
+// ---- the query check: what each database answers and what the tool makes of it ----------
+// MYPD_TD_REPORT=<file> also writes what was seen, one line of JSON per case.
+const RO = 'td_ro';
+const SLOW = {
+  mssql: 'SELECT COUNT_BIG(*) FROM sys.all_columns a CROSS JOIN sys.all_columns b CROSS JOIN '
+    + 'sys.all_columns c WHERE a.name + b.name < c.name',
+  mysql: 'SELECT SLEEP(20)',
+  postgresql: 'SELECT pg_sleep(20)',
+  oracle: 'SELECT COUNT(*) FROM all_objects a, all_objects b, all_objects c',
+};
+const RESTRICT = {
+  mssql: `IF SUSER_ID('${RO}') IS NULL CREATE LOGIN ${RO} WITH PASSWORD = '${PW}', CHECK_POLICY = OFF;
+IF USER_ID('${RO}') IS NULL CREATE USER ${RO} FOR LOGIN ${RO};
+GRANT SELECT ON TD_Q_CUST TO ${RO};`,
+  mysql: `CREATE USER IF NOT EXISTS '${RO}'@'%' IDENTIFIED BY '${PW}';
+GRANT SELECT ON tdtest.TD_Q_CUST TO '${RO}'@'%';`,
+  postgresql: `DO $$ BEGIN CREATE ROLE ${RO} LOGIN PASSWORD '${PW}'; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+GRANT SELECT ON TD_Q_CUST TO ${RO};`,
+  oracle: `BEGIN EXECUTE IMMEDIATE 'CREATE USER ${RO} IDENTIFIED BY "${PW}"'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
+GRANT CREATE SESSION TO ${RO};
+GRANT SELECT ON tdtest.TD_Q_CUST TO ${RO};`,
+};
+// [name, sql, expected error (or null), expected place as [line, column] (or null)]
+const CHECKS = [
+  ['misspelled keyword', 'SELECT NAME FORM TD_Q_CUST', { code: 'SQL_SYNTAX' }],
+  // every database reads TD_Q_CUST as another name for the column, then misses a column
+  ['missing FROM', 'SELECT NAME TD_Q_CUST WHERE ID = 1', { code: 'COLUMN_MISSING' }],
+  ['unbalanced parenthesis', 'SELECT NAME FROM TD_Q_CUST WHERE (ID = 1', { code: 'SQL_SYNTAX' }],
+  ['trailing comma', 'SELECT NAME, FROM TD_Q_CUST', { code: 'SQL_SYNTAX' }],
+  ['error on the fourth line', '-- pick a name\nSELECT NAME\nFROM TD_Q_CUST\nWHERE ID = = 1',
+    { code: 'SQL_SYNTAX' }],
+  ['missing table', 'SELECT NAME FROM TD_Q_NOPE', { code: 'TABLE_MISSING', object: 'TD_Q_NOPE' }],
+  ['missing column', 'SELECT NOPE FROM TD_Q_CUST', { code: 'COLUMN_MISSING', object: 'NOPE' }],
+  ['missing column behind an alias', 'SELECT c.NAME,\n  c.NOPE FROM TD_Q_CUST c',
+    { code: 'COLUMN_MISSING', object: 'NOPE' }],
+  ['DELETE', 'DELETE FROM TD_Q_CUST', { code: 'SQL_NOT_SELECT' }],
+  ['two statements', 'SELECT ID FROM TD_Q_CUST; SELECT NAME FROM TD_Q_CUST', { code: 'SQL_MULTIPLE' }],
+];
+
+Object.keys(DBS).forEach((dialect) => {
+  const db = DBS[dialect];
+  (running.includes(db.container) ? describe : describe.skip)(`query check: ${dialect}`, () => {
+    const conn = { properties: { ...db.conn, password: PW } };
+    const restricted = { properties: { ...db.conn, username: RO, password: PW } };
+    const oracle = dialect === 'oracle';
+    const sql = (text) => {
+      const r = db.cli(`${db.first}${text}`);
+      if (r.status !== 0 || /ORA-\d+|^Msg \d+/m.test(`${r.out}${r.err}`)) {
+        throw new Error(`${r.err}${r.out}`);
+      }
+      return r.out.trim();
+    };
+    const seen = [];
+    const note = (name, text, result) => {
+      const {
+        code, object, near, position, sqlState, dbCode, phase, message, ok, warnings, sample,
+      } = result;
+      seen.push({
+        dialect, name, sql: text, ok: !!ok, code, object, near, position, sqlState, dbCode, phase,
+        message, warnings, sample,
+      });
+    };
+    const check = async (name, text, c = conn, options = {}) => {
+      const result = await fail(checkQuery({}, {}, c, text, options));
+      note(name, text, result);
+      return result;
+    };
+
+    beforeAll(() => {
+      configure({ jarPath: jar, tmpDir: work });
+      if (dialect === 'mssql') {
+        db.cli("IF DB_ID('tdtest') IS NULL CREATE DATABASE tdtest;", true, 'master');
+      }
+      ['TD_Q_CUST', 'TD_Q_EMPTY', 'TD_Q_SECRET'].forEach(t => sql(db.drop(t)));
+      sql(`CREATE TABLE TD_Q_CUST (ID INT PRIMARY KEY, NAME VARCHAR(20) NOT NULL, EMAIL VARCHAR(50) NULL);
+CREATE TABLE TD_Q_EMPTY (ID INT);
+CREATE TABLE TD_Q_SECRET (ID INT);
+${[1, 2, 3, 4, 5, 6, 7].map(i => `INSERT INTO TD_Q_CUST (ID, NAME, EMAIL) VALUES (${i}, 'name${i}', ${
+    i === 2 ? 'NULL' : `'${i < 4 ? 'same' : i}@example.tw'`});`).join('\n')}${oracle ? '\nCOMMIT;' : ''}`);
+      if (oracle) {
+        // only an administrator may create an account
+        const file = path.join(work, 'admin.sql');
+        fs.writeFileSync(file, `${RESTRICT.oracle}\nEXIT\n`);
+        docker(['cp', file, 'mypd-td-oracle:/tmp/admin.sql']);
+        docker(['exec', 'mypd-td-oracle', 'sqlplus', '-S', '-L',
+          `system/${PW}@//localhost/FREEPDB1`, '@/tmp/admin.sql']);
+      } else {
+        sql(RESTRICT[dialect]);
+      }
+    });
+    afterAll(() => {
+      ['TD_Q_CUST', 'TD_Q_EMPTY', 'TD_Q_SECRET'].forEach(t => sql(db.drop(t)));
+      if (process.env.MYPD_TD_REPORT) {
+        fs.appendFileSync(process.env.MYPD_TD_REPORT, seen.map(s => `${JSON.stringify(s)}\n`).join(''));
+      }
+    });
+
+    test('an accepted query: columns, sample values and what is worth knowing', async () => {
+      const one = await check('valid', 'SELECT NAME FROM TD_Q_CUST ORDER BY ID');
+      expect(one).toMatchObject({
+        ok: true, sample: ['name1', 'name2', 'name3', 'name4', 'name5'], rowsSeen: 5, truncated: true,
+        warnings: [],
+      });
+      expect(one.columns).toHaveLength(1);
+      expect(one.firstColumn.name.toUpperCase()).toBe('NAME');
+      expect(one.firstColumn.typeName).toMatch(/char/i);
+      expect(one.firstColumn.nullable).toBe(false);
+      const two = await check('two columns', 'SELECT EMAIL, NAME FROM TD_Q_CUST ORDER BY ID', conn,
+        { sample: 3 });
+      expect(two).toMatchObject({ ok: true, sample: ['same@example.tw', null, 'same@example.tw'] });
+      expect(two.warnings).toEqual([{ code: 'multipleColumns', count: 2 },
+        { code: 'nullValues', count: 1 }, { code: 'duplicateValues', count: 1 }]);
+      const none = await check('zero rows', 'SELECT ID FROM TD_Q_EMPTY');
+      expect(none).toMatchObject({ ok: true, sample: [], rowsSeen: 0, truncated: false,
+        warnings: [{ code: 'noRows' }] });
+      const all = await check('all rows', 'SELECT ID FROM TD_Q_CUST ORDER BY ID', conn, { sample: 7 });
+      expect(all).toMatchObject({ sample: [1, 2, 3, 4, 5, 6, 7], truncated: false });
+    });
+
+    test.each(CHECKS)('refused: %s', async (name, text, expected) => {
+      const result = await check(name, text);
+      expect(result.ok).toBeUndefined();
+      expect(result.code).toBe(expected.code);
+      if (expected.object) {
+        expect(`${result.object}`.toUpperCase().split('.').pop()).toBe(expected.object);
+      }
+      expect(typeof result.message).toBe('string');
+      expect(result.message).not.toContain(PW);
+      // the place in the text as typed (SQL Server 6.2 driver: only where a name stands once)
+      if (name === 'missing table') {
+        expect(result.position).toEqual({ offset: 17, line: 1, column: 18 });
+      } else if (name === 'missing column behind an alias') {
+        expect(result.position).toMatchObject({ line: 2 });
+      } else if (name === 'error on the fourth line') {
+        expect(result.position).toEqual(dialect === 'mssql' ? undefined
+          : { offset: 53, line: 4, column: 12 });
+      } else if (name === 'trailing comma') {
+        expect(result.position).toEqual({ offset: 13, line: 1, column: 14 });
+      }
+    });
+
+    test('a table the account may not read', async () => {
+      const prefix = { mssql: 'dbo.', oracle: 'tdtest.' }[dialect] || '';
+      expect(await check('readable table, restricted user', `SELECT NAME FROM ${prefix}TD_Q_CUST`,
+        restricted)).toMatchObject({ ok: true });
+      const result = await check('no SELECT permission', `SELECT ID FROM ${prefix}TD_Q_SECRET`,
+        restricted);
+      // Oracle does not tell a table that may not be read from one that is not there
+      expect(['PERMISSION_DENIED'].concat(oracle ? ['TABLE_MISSING'] : [])).toContain(result.code);
+      expect(`${result.object}`.toUpperCase()).toContain('TD_Q_SECRET');
+    });
+
+    test('a query that takes too long is stopped', async () => {
+      const started = Date.now();
+      const result = await check('slow query', SLOW[dialect], conn, { timeout: 2 });
+      expect(result.code).toBe('TIMEOUT');
+      expect(Date.now() - started).toBeLessThan(20000);
+    });
+
+    test('nothing was changed', async () => {
+      expect(await countRows({}, {}, conn, ['TD_Q_CUST'])).toEqual({ TD_Q_CUST: 7 });
     });
   });
 });

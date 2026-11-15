@@ -20,7 +20,7 @@ import { buildPlan } from '../../../../../lib/testdata/plan';
 import { dialectOf } from '../../../../../lib/testdata/sql';
 import { runQuery, readKeys, readKeyRows } from '../../../../../lib/testdata/db';
 import { readListFile } from '../rules/fileList';
-import { tr as ruleTr } from '../rules/i18n';
+import { tr as ruleTr, say } from '../rules/i18n';
 import { tr } from './i18n';
 import { count } from './format';
 import {
@@ -29,6 +29,7 @@ import {
 } from './settings';
 import { connections, pickConn, connTarget } from './connInfo';
 import { runErrorText, dbErrorParts } from './problems';
+import { checkErrorLine, isCheckCode } from '../rules/queryText';
 import { problemItems } from './problemItems';
 import { createLoader } from './needs';
 import { totalRows } from './planView';
@@ -141,8 +142,10 @@ export default React.memo(({
   const errorText = error => runErrorText(tr, ruleTr, error, view);
   const loadErrorText = ({ request, error }) => tr(`load.${request.kind}`, {
     name: request.file || request.path || request.table || '',
+    // a query the database refused reads as in the rule editor: the object, the place;
     // the name says which file it is: the reason does not repeat the path
-    reason: errorText(request.kind === 'file' && error && error.code
+    reason: (request.kind === 'query' && error && isCheckCode(say, error.code)
+      && checkErrorLine(say, error)) || errorText(request.kind === 'file' && error && error.code
       ? { code: error.code } : error),
   });
   const gotoTable = (id) => {

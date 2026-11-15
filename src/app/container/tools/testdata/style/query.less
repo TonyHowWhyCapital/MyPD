@@ -1,0 +1,301 @@
+@import "~style";
+
+// The checks of a `query` rule: what the project model says under the SQL box, the check by
+// the database with its answer, and the reminder before saving.
+.@{prefix}-testdata {
+  &-query {
+    &-model, &-result, &-bar, &-blocked, &-status, &-remind {
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    &-model {
+      margin-top: 6px;
+      padding: 6px 10px;
+      border: 1px solid @primary-border-color;
+      border-radius: @radius-field;
+    }
+    &-title {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      > b {
+        margin-right: 8px;
+        color: @main-font-color;
+      }
+      > span {
+        color: @third-font-color;
+      }
+    }
+    &-neutral {
+      color: @second-font-color;
+      > .fa {
+        width: 14px;
+        margin-right: 5px;
+        text-align: center;
+      }
+    }
+    &-finding {
+      display: flex;
+      align-items: flex-start;
+      &-text {
+        flex: 1;
+        min-width: 0;
+        > a {
+          color: @main-font-color;
+          cursor: pointer;
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+      &-warning .@{prefix}-testdata-query-severity {
+        color: @warring-color;
+      }
+      &-info .@{prefix}-testdata-query-severity {
+        color: @primary-color;
+      }
+    }
+    &-severity {
+      flex: none;
+      margin-right: 8px;
+      white-space: nowrap;
+      > .fa {
+        width: 14px;
+        margin-right: 5px;
+        text-align: center;
+      }
+    }
+    &-suggest {
+      margin-left: 10px;
+      color: @second-font-color;
+      > .@{prefix}-testdata-chip {
+        display: inline-block;
+        max-width: 100%;
+        margin: 0 0 2px 6px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: bottom;
+        font-family: Menlo, Consolas, monospace;
+        line-height: 1.5;
+        color: @primary-color;
+        border-color: fade(@primary-color, 45%);
+      }
+    }
+    &-bar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 8px;
+      > span:first-child {
+        flex: none;
+        margin: 0 12px 4px 0;
+      }
+    }
+    &-conn {
+      display: flex;
+      align-items: center;
+      flex: 1 1 220px;
+      flex-wrap: wrap;
+      min-width: 0;
+      margin-bottom: 4px;
+      font-size: 12px;
+      line-height: 26px;
+      > i {
+        flex: none;
+        margin-right: 6px;
+        font-style: normal;
+        color: @third-font-color;
+      }
+      > b {
+        flex: none;
+        color: @main-font-color;
+      }
+      > .@{prefix}-multiple-select {
+        flex: 0 1 170px;
+        min-width: 90px;
+      }
+      > span:last-child {
+        flex: 0 1 auto;
+        min-width: 110px;
+        margin-left: 8px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: @second-font-color;
+      }
+    }
+    &-blocked {
+      margin-top: 6px;
+      color: @warring-color;
+      > .fa {
+        margin-right: 5px;
+      }
+      > a {
+        margin-left: 10px;
+        cursor: pointer;
+      }
+    }
+    &-status {
+      margin-top: 6px;
+      color: @third-font-color;
+    }
+    &-bar + &-neutral {
+      margin-top: 6px;
+    }
+    &-result {
+      margin-top: 8px;
+      padding: 6px 10px;
+      border: 1px solid @primary-border-color;
+      border-radius: @radius-field;
+      &-ok {
+        border-color: fade(@success-color, 45%);
+        background: fade(@success-color, 5%);
+        .@{prefix}-testdata-query-head > .fa, .@{prefix}-testdata-query-head > b {
+          color: @success-color;
+        }
+      }
+      &-bad {
+        border-color: fade(@danger-color, 40%);
+        background: fade(@danger-color, 4%);
+        .@{prefix}-testdata-query-head > .fa, .@{prefix}-testdata-query-head > b {
+          color: @danger-color;
+        }
+      }
+    }
+    &-head {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      > .fa {
+        margin-right: 6px;
+      }
+      > b {
+        margin-right: 10px;
+        white-space: nowrap;
+      }
+      > span {
+        color: @third-font-color;
+      }
+    }
+    &-reason {
+      color: @main-font-color;
+    }
+    &-line {
+      display: flex;
+      align-items: baseline;
+      > i {
+        flex: none;
+        min-width: 72px;
+        margin-right: 8px;
+        font-style: normal;
+        color: @third-font-color;
+      }
+      > b {
+        font-family: Menlo, Consolas, monospace;
+        color: @main-font-color;
+        word-break: break-all;
+      }
+      > a {
+        margin-left: 10px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+    }
+    &-type {
+      margin-left: 8px;
+      color: @second-font-color;
+    }
+    &-values {
+      flex: 1;
+      min-width: 0;
+      > code {
+        display: inline-block;
+        max-width: 100%;
+        margin: 1px 6px 1px 0;
+        padding: 0 6px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: bottom;
+        font-family: Menlo, Consolas, monospace;
+        border: 1px solid @primary-border-color;
+        border-radius: 3px;
+        background: @background-color;
+      }
+    }
+    &-values > &-null {
+      font-style: italic;
+      color: @third-font-color;
+    }
+    &-more {
+      color: @third-font-color;
+      white-space: nowrap;
+    }
+    &-warning {
+      color: @warring-color;
+      > .fa {
+        width: 14px;
+        margin-right: 5px;
+        text-align: center;
+      }
+    }
+    &-raw > pre {
+      flex: 1;
+      min-width: 0;
+      max-height: 96px;
+      margin: 0;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: @second-font-color;
+      user-select: text;
+    }
+    &-remind {
+      width: 100%;
+      padding: 4px 4px 0;
+      font-size: 13px;
+      &-why {
+        color: @main-font-color;
+        > .fa {
+          margin-right: 6px;
+          color: @warring-color;
+        }
+      }
+      &-reason {
+        margin: 2px 0 0 20px;
+        color: @danger-color;
+        word-break: break-word;
+      }
+      &-sql {
+        max-height: 110px;
+        margin: 8px 0;
+        padding: 6px 8px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: Menlo, Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        color: @main-font-color;
+        border: 1px solid @primary-border-color;
+        border-radius: @radius-field;
+      }
+      &-note {
+        margin-top: 8px;
+        color: @second-font-color;
+      }
+      > .@{prefix}-testdata-query-neutral {
+        margin-top: 8px;
+      }
+      > .@{prefix}-modal-footer {
+        margin-top: 10px;
+        > .@{prefix}-button {
+          margin: 0 5px;
+        }
+      }
+    }
+  }
+}

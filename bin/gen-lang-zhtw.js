@@ -31,6 +31,8 @@ var terms = [
     // 测试数据规则的种类
     ['規則型別', '規則類型'],
     ['公元', '西元'],
+    // 帐号能做什么：台湾说“權限”
+    ['許可權', '權限'],
 ];
 var convert = function (text) {
     return terms.reduce(function (p, t) {

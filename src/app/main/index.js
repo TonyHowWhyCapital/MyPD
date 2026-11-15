@@ -33,7 +33,9 @@ import MessageHelp from './MessageHelp';
 import ToggleCase from '../container/tools/togglecase';
 import CompareTable from '../container/tools/comparetable';
 import ImpactAnalysis from '../container/tools/impactanalysis';
-import { RuleLibrary as TestDataRules, setProjectFile } from '../container/tools/testdata';
+import {
+  RuleLibrary as TestDataRules, setProjectFile, setAppConfig,
+} from '../container/tools/testdata';
 import TestData from '../container/tools/testdata/generate';
 import ModelCompare from '../container/tools/modelcompare';
 import DbObject from '../container/tools/dbobject';
@@ -151,6 +153,8 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
   projectInfoRef.current = projectInfo;
   // `file` rules of the test data store paths relative to the project file
   setProjectFile(projectInfo);
+  // the database check of a query rule starts Java with the settings of the app
+  setAppConfig(config);
   const refreshProject = () => {
     Modal.confirm({
       title: FormatMessage.string({id: 'refreshConfirmTitle'}),

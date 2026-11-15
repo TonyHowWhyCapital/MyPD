@@ -97,6 +97,18 @@ final class TestDataErrors {
     if (state.equals("42501")) {
       return "PERMISSION_DENIED";
     }
+    // SQLite has neither states nor numbers that tell these apart, only its wording
+    boolean lite = m.contains("[sqlite_error]");
+    if (state.equals("42601") || (lite && (m.contains("syntax error")
+        || m.contains("incomplete input")))) {
+      return "SQL_SYNTAX";
+    }
+    if (state.equals("42P01") || state.equals("42S02") || (lite && m.contains("no such table"))) {
+      return "TABLE_MISSING";
+    }
+    if (state.equals("42703") || state.equals("42S22") || (lite && m.contains("no such column"))) {
+      return "COLUMN_MISSING";
+    }
     if (state.startsWith("42") || state.startsWith("S0") || state.startsWith("3F")) {
       return "SQL_ERROR";
     }
@@ -115,6 +127,15 @@ final class TestDataErrors {
   private static String mssql(int c) {
     if (c == 18456) {
       return "LOGIN_FAILED";
+    }
+    if (in(c, 102, 105, 156, 170, 319, 1018)) {
+      return "SQL_SYNTAX";
+    }
+    if (c == 208) {
+      return "TABLE_MISSING";
+    }
+    if (in(c, 207, 4104)) {
+      return "COLUMN_MISSING";
     }
     if (in(c, 2628, 8152)) {
       return "VALUE_TOO_LONG";
@@ -137,6 +158,15 @@ final class TestDataErrors {
   private static String mysql(int c) {
     if (in(c, 1045, 1698)) {
       return "LOGIN_FAILED";
+    }
+    if (in(c, 1064, 1149)) {
+      return "SQL_SYNTAX";
+    }
+    if (in(c, 1146, 1051)) {
+      return "TABLE_MISSING";
+    }
+    if (c == 1054) {
+      return "COLUMN_MISSING";
     }
     if (c == 1406) {
       return "VALUE_TOO_LONG";
@@ -181,6 +211,17 @@ final class TestDataErrors {
     }
     if (in(c, 1031, 1950, 41900)) {
       return "PERMISSION_DENIED";
+    }
+    if (c == 942) {
+      return "TABLE_MISSING";
+    }
+    if (c == 904) {
+      return "COLUMN_MISSING";
+    }
+    // ORA-009xx is the family of statements the parser refuses; the few that are about
+    // something else (ambiguous column, grouping, a name in use, a broken synonym) stay general
+    if (c >= 900 && c <= 999 && !in(c, 918, 937, 955, 959, 979, 980, 988, 990, 997, 998)) {
+      return "SQL_SYNTAX";
     }
     return null;
   }

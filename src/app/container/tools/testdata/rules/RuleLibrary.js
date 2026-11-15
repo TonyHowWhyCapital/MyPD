@@ -30,6 +30,7 @@ import { exportToFile, importFromFile } from './ruleFiles';
 import { getProjectFile } from './projectFile';
 import RuleList from './RuleList';
 import RuleEditor from './RuleEditor';
+import { saveWithReminder } from './querySave';
 import DomainRules from './DomainRules';
 import '../style/index.less';
 
@@ -102,9 +103,12 @@ export default React.memo(({
       return;
     }
     const rule = { ...draft, name: `${draft.name}`.trim() };
-    saveRules(upsertRule({ rules }, rule).rules);
-    edit(rule);
-    Message.success({ title: tr('msg.saved') });
+    // a query the database has not accepted in this session is asked about first
+    saveWithReminder({ rule, original: stored, dataSource: ds }, () => {
+      saveRules(upsertRule({ rules }, rule).rules);
+      edit(rule);
+      Message.success({ title: tr('msg.saved') });
+    });
   };
   const revert = () => edit(stored ? clone(stored) : null);
   // the rules an action applies to: the ticked ones, or the one being looked at

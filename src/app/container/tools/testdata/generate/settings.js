@@ -1,7 +1,7 @@
 // The settings of a test data run as stored in the project (profile.testData.settings):
 // default number of rows, the seed and what each table asks for. Pure, nothing mutates.
 import {
-  getTestData, setTestData, seedNow, stampSeedBase, MAX_ROWS, DEFAULT_ROWS,
+  getTestData, setTestData, seedNow, stampSeedBase, cleanSelection, MAX_ROWS, DEFAULT_ROWS,
 } from '../../../../../lib/testdata/model';
 
 export { MAX_ROWS, DEFAULT_ROWS };
@@ -54,7 +54,7 @@ export const normalizeTable = (raw) => {
 };
 
 export const normalizeSettings = (raw) => {
-  const s = isObject(raw) ? raw : {};
+  const { selected, external, ...s } = isObject(raw) ? raw : {};
   const seed = isObject(s.seed) ? s.seed : {};
   const tables = isObject(s.tables) ? s.tables : {};
   const value = wholeNumber(seed.value, 0, MAX_SEED);
@@ -72,6 +72,11 @@ export const normalizeSettings = (raw) => {
       const table = normalizeTable(tables[id]);
       return Object.keys(table).length > 0 ? { ...all, [id]: table } : all;
     }, {}),
+    // the tables that are ticked and the answers for parents that are not (model.js)
+    ...cleanSelection({
+      selected,
+      external,
+    }),
   };
 };
 
@@ -95,6 +100,29 @@ export const patchTable = (settings, entityId, patch) => {
       [entityId]: merged,
     },
   });
+};
+
+const sameList = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+const sameMap = (a, b) => Object.keys(a).length === Object.keys(b).length
+  && Object.keys(a).every(k => a[k] === b[k]);
+
+export const selectionOf = settings => ({
+  selected: (settings && settings.selected) || [],
+  external: (settings && settings.external) || {},
+});
+
+// the settings with these tables ticked and these answers; the same object when that is
+// what they say already, so that nothing is written for nothing
+export const withSelection = (settings, selected, external) => {
+  const next = normalizeSettings({
+    ...settings,
+    selected,
+    external,
+  });
+  const before = selectionOf(settings);
+  const after = selectionOf(next);
+  return sameList(before.selected, after.selected) && sameMap(before.external, after.external)
+    ? settings : next;
 };
 
 // settings of tables that are gone are dropped when the settings are written

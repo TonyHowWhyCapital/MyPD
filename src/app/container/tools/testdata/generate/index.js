@@ -5,7 +5,8 @@
 //   dataSource, getDataSource, updateDataSource   the project and its normal update path
 //   config            settings of the app (Java home, JVM options)
 //   projectFile       path of the project file; the outputs are offered beside it
-//   entityIds         tables ticked when the window opens (from the context menu)
+//   entityIds         tables ticked when the window opens (from the context menu); without
+//                     them the tables ticked last time are, as the project remembers them
 //   openConnSettings  () => void, shows the connection settings of the project
 //   onClose           () => void, closes the window (asks first while a run is at work)
 //   onCloseGuard      (fn) => void, registers the question asked before closing
@@ -23,7 +24,8 @@ import { tr as ruleTr } from '../rules/i18n';
 import { tr } from './i18n';
 import { count } from './format';
 import {
-  patchTable, seedOfRun, clockOfRun, withSeedBase, readSettings,
+  patchTable, seedOfRun, clockOfRun, withSeedBase, readSettings, writeSettings, selectionOf,
+  withSelection,
 } from './settings';
 import { connections, pickConn, connTarget } from './connInfo';
 import { runErrorText, dbErrorParts } from './problems';
@@ -46,11 +48,6 @@ import './style/index.less';
 
 const STEPS = ['tables', 'columns', 'output'];
 const OUTPUT_KEY = 'testDataOutput';
-// what was ticked last time, for as long as the app runs
-const remembered = {
-  selected: [],
-  external: {},
-};
 
 const dialectName = dialect => tr(`dialect.${dialect}`) || dialect;
 
@@ -64,14 +61,28 @@ export default React.memo(({
     getDataSource,
     updateDataSource,
   });
-  const { view, settings } = project;
-  const exists = id => (view.entities || []).some(e => e.id === id);
+  const { view } = project;
   const hasTables = (view.entities || []).length > 0;
   const [step, setStep] = useState('tables');
-  const [selected, setSelected] = useState(() => ((entityIds || []).length > 0
-    ? entityIds : remembered.selected).filter(exists));
-  const [external, setExternal] = useState(() => ((entityIds || []).length > 0
-    ? {} : remembered.external));
+  // The tables ticked and the answers for missing parents live in the settings of the
+  // project. Tables given by the context menu are shown in their place for this visit and
+  // are stored with the first thing that is changed here, or with a run.
+  const [preset, setPreset] = useState(() => ((entityIds || []).length > 0 ? entityIds : null));
+  const settings = useMemo(() => (preset ? withSelection(project.settings,
+    preset.filter(id => (view.entities || []).some(e => e.id === id)), {})
+    : project.settings), [preset, project.settings, view]);
+  const { selected, external } = useMemo(() => selectionOf(settings), [settings]);
+  const save = (next) => {
+    if (next !== project.settings) {
+      project.setSettings(next);
+    }
+    setPreset(null);
+  };
+  const choose = (nextSelected, nextExternal) => {
+    const next = withSelection(settings, nextSelected, nextExternal);
+    // the same ticks again change nothing and write nothing
+    next !== settings && save(next);
+  };
   const [active, setActive] = useState('');
   const [focusField, setFocusField] = useState('');
   const [connKey, setConnKey] = useState('');
@@ -96,10 +107,6 @@ export default React.memo(({
       sql: next.sql, csv: next.csv, xlsx: next.xlsx, multiRow: next.multiRow, go: next.go,
     });
   };
-  useEffect(() => {
-    remembered.selected = selected;
-    remembered.external = external;
-  }, [selected, external]);
   const runner = useRun();
   const { run } = runner;
   const conns = connections(view);
@@ -151,13 +158,12 @@ export default React.memo(({
   const answerParent = (id, answer) => {
     const { [id]: dropped, ...rest } = external;
     if (answer === 'generate') {
-      setExternal(rest);
-      setSelected(selected.includes(id) ? selected : selected.concat(id));
+      choose(selected.includes(id) ? selected : selected.concat(id), rest);
     } else {
-      setExternal({ ...rest, [id]: 'database' });
+      choose(selected, { ...rest, [id]: 'database' });
     }
   };
-  const unselect = id => setSelected(selected.filter(s => s !== id));
+  const unselect = id => choose(selected.filter(s => s !== id), external);
   const items = useMemo(() => problemItems({
     plan,
     view,
@@ -171,7 +177,7 @@ export default React.memo(({
       gotoTable,
       gotoColumn,
       connSettings: openConnSettings,
-      patchTable: (id, patch) => project.setSettings(patchTable(settings, id, patch)),
+      patchTable: (id, patch) => save(patchTable(settings, id, patch)),
     },
   }), [plan, view, conn, external, settings, selected]);
   const problemsOf = (entityId, fieldId) => items.filter(i => i.entityId === entityId
@@ -206,8 +212,11 @@ export default React.memo(({
   const launch = (db) => {
     // a fixed seed counts its dates from a day that is written down with the first run,
     // so that the same settings give the same data tomorrow as well
-    const stamped = withSeedBase(project.get());
+    // (tables ticked from the context menu are written down with it)
+    const stamped = settings === project.settings ? withSeedBase(project.get())
+      : writeSettings(project.get(), settings);
     project.update(stamped, true);
+    setPreset(null);
     const stored = readSettings(stamped);
     runner.start({
       view,
@@ -317,13 +326,24 @@ export default React.memo(({
         dbErrorParts={e => dbErrorParts(tr, e)}
       />}
       {!run && step === 'tables' && <div className={`${base}-split`}>
-        <TablePicker base={base} dataSource={view} selected={selected} onChange={setSelected}/>
+        <TablePicker
+          base={base}
+          dataSource={view}
+          selected={selected}
+          onChange={ids => choose(ids, external)}
+        />
         <div className={`${base}-main`}>
           <SettingsBar
             base={base}
             settings={settings}
-            setSettings={project.setSettings}
-            setBaseDate={project.setBaseDate}
+            setSettings={save}
+            setBaseDate={baseDate => save({
+              ...settings,
+              seed: {
+                ...settings.seed,
+                baseDate,
+              },
+            })}
           />
           {plan.tables.length === 0 ? <div className={`${base}-empty ${base}-empty-big`}>
             <Icon type={hasTables ? 'fa-hand-o-left' : 'fa-table'}/>
@@ -340,7 +360,7 @@ export default React.memo(({
             databaseParents={databaseParents}
             unsaved={project.unsaved}
             active={active}
-            onPatch={(id, patch) => project.setSettings(patchTable(settings, id, patch))}
+            onPatch={(id, patch) => save(patchTable(settings, id, patch))}
             onOpen={id => gotoColumn(id)}
             onRemove={unselect}
             onParentAnswer={answerParent}

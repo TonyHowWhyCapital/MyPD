@@ -24,6 +24,7 @@ export const DEFAULT_ROWS = 100;
 export const MAX_ROWS = 1000000;
 export const EXPORT_TYPE = 'mypd.testdata.rules';
 export const EXPORT_VERSION = 1;
+export const PARENT_ANSWERS = ['generate', 'database'];
 const MAX_IMPORT_CHARS = 5000000;
 const MAX_IMPORT_RULES = 2000;
 const MAX_LIST_ITEMS = 10000;
@@ -81,9 +82,32 @@ const dayOf = (v) => {
 };
 
 // ---- reading and writing --------------------------------------------------
+// The tables ticked in the generate window (`selected: [entityId]`) and what was answered
+// for a parent table that is not ticked (`external: {entityId: 'generate'|'database'}`).
+// Anything else is dropped, an answer for a table that is ticked itself as well; `known`
+// (ids of the tables of the project) drops what is gone. Nothing ticked = no key at all.
+export const cleanSelection = (settings, known) => {
+  const s = isObject(settings) ? settings : {};
+  const ok = id => typeof id === 'string' && id !== '' && (!known || known.has(id));
+  const ticked = new Set((Array.isArray(s.selected) ? s.selected : []).filter(ok));
+  const answers = isObject(s.external) ? s.external : {};
+  const external = Object.keys(answers)
+    .filter(id => ok(id) && !ticked.has(id) && PARENT_ANSWERS.includes(answers[id]))
+    .reduce((all, id) => ({ ...all, [id]: answers[id] }), {});
+  return {
+    ...(ticked.size > 0 ? { selected: Array.from(ticked) } : {}),
+    ...(Object.keys(external).length > 0 ? { external } : {}),
+  };
+};
+
 export const getTestData = (dataSource) => {
   const raw = isObject(dataSource?.profile?.testData) ? dataSource.profile.testData : {};
-  const settings = isObject(raw.settings) ? raw.settings : {};
+  const { selected, external, ...settings } = isObject(raw.settings) ? raw.settings : {};
+  const chosen = selected === undefined && external === undefined ? {} : cleanSelection({
+    selected,
+    external,
+  }, new Set((Array.isArray(dataSource?.entities) ? dataSource.entities : [])
+    .map(e => e && e.id)));
   const seed = isObject(settings.seed) ? settings.seed : {};
   const rows = numberOf(settings.defaultRows);
   const seedValue = numberOf(seed.value);
@@ -105,6 +129,7 @@ export const getTestData = (dataSource) => {
         ...(dayOf(seed.baseDate) ? { baseDate: dayOf(seed.baseDate) } : {}),
       },
       tables: isObject(settings.tables) ? { ...settings.tables } : {},
+      ...chosen,
     },
   };
 };

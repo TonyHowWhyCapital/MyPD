@@ -81,11 +81,6 @@ export default ({ dataSource, getDataSource, updateDataSource }) => {
     update,
     // for windows opened from here that write the project themselves (rule editor, library)
     updateNow: next => update(next, true),
-    // the day a fixed seed counts relative dates from
-    setBaseDate: baseDate => update(writeSettings(ref.current.ds, {
-      ...readSettings(ref.current.ds),
-      seed: { ...readSettings(ref.current.ds).seed, baseDate },
-    })),
     setSettings: next => update(writeSettings(ref.current.ds, next)),
     // The rule and the null rate of a column: {rule, nullRate} | undefined. Written into
     // the project and into every editor tab that shows the table, the way the app does

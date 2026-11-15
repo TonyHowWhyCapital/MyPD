@@ -1,5 +1,5 @@
 import {
-  RULE_KINDS, BUILTIN_NAMES, getTestData, setTestData, newRule, validateRule, upsertRule,
+  RULE_KINDS, BUILTIN_NAMES, PARENT_ANSWERS, cleanSelection, getTestData, setTestData, newRule, validateRule, upsertRule,
   removeRule, setFieldRule, setDomainRule, ruleUsage, exportRules, importRules, copyRules,
 } from '../src/lib/testdata/model';
 import { BUILTINS } from '../src/lib/testdata/builtin';
@@ -40,6 +40,35 @@ const project = () => freeze({
 });
 
 describe('getTestData / setTestData', () => {
+  test('ticked tables and parent answers: only what is valid and still exists', () => {
+    const read = (settings, entities = [{ id: 'a' }, { id: 'b' }, { id: 'c' }]) => getTestData({
+      entities,
+      profile: { testData: { settings } },
+    }).settings;
+    const old = read({ defaultRows: 5 });
+    expect('selected' in old).toBe(false);
+    expect('external' in old).toBe(false);
+    const raw = freeze({
+      selected: ['a', 'gone', 'a', 7, '', null, 'b'],
+      external: { c: 'database', gone: 'database', a: 'database', b: 'nonsense' },
+    });
+    expect(read(raw)).toMatchObject({ selected: ['a', 'b'], external: { c: 'database' } });
+    expect(read({ selected: ['a'], external: { c: 'generate', b: 'x', x: 1 } }).external)
+      .toEqual({ c: 'generate' });
+    ['a', { a: 1 }, 5, null, true].forEach((junk) => {
+      const s = read({ selected: junk, external: junk });
+      expect(s.selected).toBeUndefined();
+      expect(s.external).toBeUndefined();
+    });
+    expect(read({ selected: ['a'], external: ['database'] })).toMatchObject({ selected: ['a'] });
+    // a project without tables keeps nothing
+    expect(read({ selected: ['a'], external: { b: 'database' } }, null).selected)
+      .toBeUndefined();
+    expect(cleanSelection({ selected: ['x', 'x'], external: { y: 'database', x: 'generate' } }))
+      .toEqual({ selected: ['x'], external: { y: 'database' } });
+    expect(cleanSelection(undefined)).toEqual({});
+    expect(PARENT_ANSWERS).toEqual(['generate', 'database']);
+  });
   test('defaults for a project without test data', () => {
     const expected = {
       rules: [],

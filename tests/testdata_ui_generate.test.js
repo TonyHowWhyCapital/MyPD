@@ -4,7 +4,8 @@ import _ from 'lodash';
 import langs from '../src/lang';
 import {
   normalizeSettings, normalizeTable, patchTable, readSettings, writeSettings, seedOfRun,
-  clockOfRun, withSeedBase, dayText, wholeNumber, MAX_ROWS, MAX_SEED,
+  clockOfRun, withSeedBase, dayText, wholeNumber, selectionOf, withSelection, MAX_ROWS,
+  MAX_SEED,
 } from '../src/app/container/tools/testdata/generate/settings';
 import {
   PLAN_FIXES, RUN_CODES, FS_CODES, planProblemText, runErrorText, dbErrorParts, detailText,
@@ -65,6 +66,43 @@ describe('settings stored in the project', () => {
     expect(s.tables.t).toEqual({ rows: 7 });
     s = patchTable(s, 't', { rows: undefined });
     expect(s.tables).toEqual({});
+  });
+  test('ticked tables and parent answers are part of the settings', () => {
+    expect(selectionOf(normalizeSettings({}))).toEqual({ selected: [], external: {} });
+    expect(normalizeSettings({ selected: 'a', external: [] }).selected).toBeUndefined();
+    const ds = Object.freeze({
+      entities: [{ id: 'a' }, { id: 'b' }, { id: 'p' }],
+      profile: { testData: { settings: { tables: { a: { rows: 3 } } } } },
+    });
+    const before = readSettings(ds);
+    const ticked = withSelection(before, ['a', 'b'], { p: 'database', zz: 'no' });
+    expect(ticked).not.toBe(before);
+    expect(before.selected).toBeUndefined();
+    expect(ticked).toMatchObject({
+      selected: ['a', 'b'], external: { p: 'database' }, tables: { a: { rows: 3 } },
+    });
+    // the same again is the same object: nothing to write
+    expect(withSelection(ticked, ['a', 'b'], { p: 'database' })).toBe(ticked);
+    expect(withSelection(before, [], {})).toBe(before);
+    expect(withSelection(ticked, ['b', 'a'], { p: 'database' })).not.toBe(ticked);
+    const stored = writeSettings(ds, ticked);
+    expect(stored.profile.testData.settings).toMatchObject({
+      selected: ['a', 'b'], external: { p: 'database' },
+    });
+    expect(selectionOf(readSettings(stored))).toEqual({
+      selected: ['a', 'b'], external: { p: 'database' },
+    });
+    // the parent is ticked itself: its answer goes
+    expect(selectionOf(withSelection(ticked, ['a', 'b', 'p'], ticked.external)))
+      .toEqual({ selected: ['a', 'b', 'p'], external: {} });
+    // tables deleted from the project are not read any more, nor written the next time
+    const fewer = { ...stored, entities: [{ id: 'a' }] };
+    expect(selectionOf(readSettings(fewer))).toEqual({ selected: ['a'], external: {} });
+    const again = writeSettings(fewer, patchTable(readSettings(fewer), 'a', { rows: 4 }));
+    expect(again.profile.testData.settings.selected).toEqual(['a']);
+    expect('external' in again.profile.testData.settings).toBe(false);
+    const none = writeSettings(fewer, withSelection(readSettings(fewer), [], {}));
+    expect('selected' in none.profile.testData.settings).toBe(false);
   });
   test('settings go through the project and keep the rules beside them', () => {
     const ds = {

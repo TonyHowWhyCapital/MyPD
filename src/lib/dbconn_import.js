@@ -147,7 +147,9 @@ export const parseDBeaver = (text, credentials = {}) => {
   } catch (e) {
     data = null;
   }
-  if (!data || typeof data.connections !== 'object' || !data.connections) {
+  // a list under `connections` is a DBX export, DBeaver keeps them by id
+  if (!data || typeof data.connections !== 'object' || !data.connections
+    || Array.isArray(data.connections)) {
     throw new Error('Invalid DBeaver connection file');
   }
   return Object.keys(data.connections).map((id) => {
@@ -162,6 +164,26 @@ export const parseDBeaver = (text, credentials = {}) => {
       password: typeof login.password === 'string' ? login.password : '',
     });
   });
+};
+
+// DBX and DBeaver both keep their connections in a .json file, so the file may have been
+// picked with the button of the other tool: it is read as what its content says it is.
+// -> {source: 'dbx' | 'dbeaver', conns}
+export const parseJsonConnections = (text, credentials = {}) => {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    data = null;
+  }
+  const list = Array.isArray(data) ? data : data?.connections;
+  if (Array.isArray(list)) {
+    return { source: 'dbx', conns: parseDbxJson(text) };
+  }
+  if (list && typeof list === 'object') {
+    return { source: 'dbeaver', conns: parseDBeaver(text, credentials) };
+  }
+  throw new Error('Invalid connection file');
 };
 
 // A connection can be imported when the project has a matching database type.

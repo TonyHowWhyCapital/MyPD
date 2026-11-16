@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import {
   parseNavicat, parseDbxRows, parseDbxJson, toDbConn, importDbConns, resolveType, decodeNavicatPassword,
-  parseDBeaver, decodeDBeaverCredentials,
+  parseDBeaver, decodeDBeaverCredentials, parseJsonConnections,
 } from '../src/lib/dbconn_import';
 import base from '../src/lib/template/empty.json';
 
@@ -165,5 +165,28 @@ describe('dbeaver connections', () => {
 
   test('a file that is not a DBeaver connection file is refused', () => {
     expect(() => parseDBeaver('{"a":1}')).toThrow('Invalid DBeaver connection file');
+  });
+});
+
+describe('a .json file picked with the button of the other tool', () => {
+  const dbx = JSON.stringify({ connections: [{ name: 'Plain', db_type: 'postgres', host: 'h', port: 5432 }], layout: {} });
+  const dbeaver = JSON.stringify({ connections: { 'pg-1': { name: 'Pg', provider: 'postgresql', configuration: { host: 'pg' } } } });
+
+  test('a DBX export is not read as a DBeaver file', () => {
+    expect(() => parseDBeaver(dbx)).toThrow('Invalid DBeaver connection file');
+  });
+
+  test('the file is read as what it is', () => {
+    const fromDbx = parseJsonConnections(dbx);
+    expect(fromDbx.source).toBe('dbx');
+    expect(fromDbx.conns[0]).toMatchObject({ name: 'Plain', kind: 'postgresql', host: 'h', port: 5432 });
+    const fromDBeaver = parseJsonConnections(dbeaver, { 'pg-1': { '#connection': { user: 'u', password: 'p' } } });
+    expect(fromDBeaver.source).toBe('dbeaver');
+    expect(fromDBeaver.conns[0]).toMatchObject({ name: 'Pg', kind: 'postgresql', host: 'pg', username: 'u', password: 'p' });
+  });
+
+  test('a file of neither tool is refused', () => {
+    expect(() => parseJsonConnections('{"tables": []}')).toThrow('Invalid connection file');
+    expect(() => parseJsonConnections('not json')).toThrow('Invalid connection file');
   });
 });

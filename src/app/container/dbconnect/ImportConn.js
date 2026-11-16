@@ -5,33 +5,38 @@ import {
   getDBeaverDefaultFile, dirname,
 } from '../../../lib/middle';
 import {
-  parseNavicat, parseDbxRows, parseDbxJson, parseDBeaver, decodeDBeaverCredentials, resolveType,
+  parseNavicat, parseDbxRows, parseJsonConnections, decodeDBeaverCredentials, resolveType,
 } from '../../../lib/dbconn_import';
 import {getPrefix} from '../../../lib/prefixUtil';
 import {SimpleGrid} from '../../../components/gridview';
 
 const text = key => FormatMessage.string({id: `dbConnImport.${key}`});
 
+// DBX's export and DBeaver's data-sources.json are both .json files, so either may be picked
+// with the button of the other tool; DBeaver's users and passwords are in a second file
+// beside it, which may be missing. -> {source, conns}
+const readJson = file => readNormalFile(file).then(data => readNormalFile(`${dirname(file)}/credentials-config.json`)
+  .then(decodeDBeaverCredentials, () => ({}))
+  .then(credentials => parseJsonConnections(data.toString(), credentials)));
+
+// read: (file) => Promise of {source, conns}
 const sources = {
   navicat: {
     filters: [{name: 'Navicat', extensions: ['ncx']}],
-    read: file => readNormalFile(file).then(data => parseNavicat(data.toString())),
+    read: file => readNormalFile(file)
+      .then(data => ({source: 'navicat', conns: parseNavicat(data.toString())})),
   },
   dbx: {
     filters: [{name: 'DBX', extensions: ['json', 'db']}],
     defaultPath: () => getDbxDefaultFile(),
-    // a .json file is DBX's own unencrypted export, anything else is its data file
-    read: file => (/\.json$/i.test(file)
-      ? readNormalFile(file).then(data => parseDbxJson(data.toString()))
-      : readDbxConnections(file).then(parseDbxRows)),
+    // anything but a .json file is DBX's data file
+    read: file => (/\.json$/i.test(file) ? readJson(file)
+      : readDbxConnections(file).then(rows => ({source: 'dbx', conns: parseDbxRows(rows)}))),
   },
   dbeaver: {
     filters: [{name: 'DBeaver', extensions: ['json']}],
     defaultPath: () => getDBeaverDefaultFile(),
-    // the users and passwords are in a second file beside it, which may be missing
-    read: file => readNormalFile(file).then(data => readNormalFile(`${dirname(file)}/credentials-config.json`)
-      .then(decodeDBeaverCredentials, () => ({}))
-      .then(credentials => parseDBeaver(data.toString(), credentials))),
+    read: readJson,
   },
 };
 
@@ -45,8 +50,8 @@ export default React.memo(({prefix, dataSource, onChange}) => {
   const pick = (source) => {
     const {filters, defaultPath, read} = sources[source];
     openFileOrDirPath(filters, ['openFile'], defaultPath ? {defaultPath: defaultPath()} : {})
-      .then(file => read(file).then((conns) => {
-        update({source, file, conns, checked: [], error: ''});
+      .then(file => read(file).then((found) => {
+        update({source: found.source, file, conns: found.conns, checked: [], error: ''});
       }).catch((err) => {
         update({source, file, conns: [], checked: [], error: err.message || `${err}`});
       }));

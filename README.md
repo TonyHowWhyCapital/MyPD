@@ -77,7 +77,7 @@ npm test                            # 執行自動化測試
 ### 製作安裝檔
 
 ```bash
-npm run package-mac                 # dist 下的 dmg（arm64 與 x64）
+npm run package-mac                 # dist 下的 dmg（arm64）
 npm run package-win                 # dist 下的 Windows 安裝檔（64 位元）
 ```
 

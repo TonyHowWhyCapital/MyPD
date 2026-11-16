@@ -9,6 +9,7 @@ import {getPrefix} from '../../lib/prefixUtil';
 import { getColumnWidth, def2Id, id2Def} from '../../lib/datasource_util';
 import {ConfigContent} from '../../lib/context';
 import {id2DefSplit} from '../../lib/utils';
+import { localText } from '../../lib/locale/text';
 
 
 export default React.memo(forwardRef(({emptyRow,
@@ -293,24 +294,24 @@ export default React.memo(forwardRef(({emptyRow,
                 data: false, // 数据验证
                 cellFormat: false, // 设置单元格格式
                 customs: [{
-                    title: '冻结首行',
+                    title: localText('冻结首行'),
                     onClick:  () => {
                         luckysheet.setHorizontalFrozen(false);
                     },
                     },{
-                    title: '冻结行至选区',
+                    title: localText('冻结行至选区'),
                     onClick:  (clickEvent, event, params) => {
                         luckysheet.setHorizontalFrozen(true, {
                             range: {row_focus:params.rowIndex, column_focus:params.columnIndex},
                         });
                     },
                 },{
-                    title: '冻结首列',
+                    title: localText('冻结首列'),
                     onClick:  () => {
                         luckysheet.setVerticalFrozen(false);
                     },
                 },{
-                    title: '冻结列至选区',
+                    title: localText('冻结列至选区'),
                     onClick:  (clickEvent, event, params) => {
                         luckysheet.setVerticalFrozen(true, {
                             range: {row_focus:params.rowIndex, column_focus:params.columnIndex},
@@ -318,13 +319,13 @@ export default React.memo(forwardRef(({emptyRow,
                     },
                 },
                     {
-                        title: '冻结首行首列',
+                        title: localText('冻结首行首列'),
                         onClick:  () => {
                             luckysheet.setBothFrozen(false);
                         },
                     },
                     {
-                        title: '冻结行列至选区',
+                        title: localText('冻结行列至选区'),
                         onClick:  (clickEvent, event, params) => {
                             luckysheet.setBothFrozen(true, {
                                 range: {row_focus:params.rowIndex, column_focus:params.columnIndex},
@@ -332,7 +333,7 @@ export default React.memo(forwardRef(({emptyRow,
                         },
                     },
                     {
-                        title: '取消冻结',
+                        title: localText('取消冻结'),
                         onClick:  () => {
                             luckysheet.cancelFrozen();
                         },

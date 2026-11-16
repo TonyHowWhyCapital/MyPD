@@ -66,6 +66,7 @@ import {
   toggleCaseDataSource,
   toggleCaseEntityOrView, getUnGroup, getEmptyEntity, transformFieldType,
 } from '../../lib/datasource_util';
+import {localizeProject} from '../../lib/locale/project';
 import {
   clearAllTabData,
   getAllTabData,
@@ -1628,23 +1629,8 @@ const Index = React.memo(({getUserData, mode, isChildWindow,
           }
         } else if (name === 'config') {
           if ('lang' in tempData && tempData.lang !== lang) {
-            // 需要更新一些默认的数据
-            const needUpdates = [
-              {
-                key: 'profile.default.entityInitFields',
-                langName: 'entityInitFields',
-              },
-            ];
-            needUpdates.forEach(({key, langName}) => {
-              tempDataSource = _.set(tempDataSource, key,
-                  _.get(tempDataSource, key).map((f) => {
-                    return {
-                      ...f,
-                      defName: FormatMessage.string({id: `projectTemplate.${langName}.${f.defKey}`})
-                          || f.defName,
-                    };
-                  }));
-            });
+            // the built-in names of the project follow the language
+            tempDataSource = localizeProject(tempDataSource, tempData.lang);
           }
           const userData = _.pick(tempData, filterData);
           if (Object.keys(userData).length > 0) {

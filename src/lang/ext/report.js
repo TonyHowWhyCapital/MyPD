@@ -263,7 +263,7 @@ export default {
       alignTip: '點選切換內容對齊：靠左、置中、靠右',
       currentModel: '目前專案',
       previewTip: '拖曳抬頭分隔線：調整欄寬',
-      previewReset: '恢復自動欄寬',
+      previewReset: '還原自動欄寬',
       previewRows: '預覽只顯示前 {count} 筆，共 {total} 筆',
       error: {
         'kind.invalid': '報告種類無效',

@@ -8,6 +8,7 @@ import { separator } from '../../profile';
 import {getDefaultTemplate, transform} from './datasource_util';
 import {platform} from './middle';
 import {remarkSetting} from './remark';
+import {sampleText} from './locale/text';
 import {domainDdl, wrapDomainDdl} from './column_domain';
 import {
   _camel, _getAllDataSQLByFilter,
@@ -716,7 +717,8 @@ export const getDemoTemplateData = (templateShow) => {
       data = JSON.stringify({...demoTable, separator: ';'}, null, 2);
       break;
   }
-  return data;
+  // the sample follows the language of the interface
+  return sampleText(data);
 };
 // 传入模板内容和数据 返回代码信息
 export const getDataByTemplate = (data, template, isDemo, dataSource, code, isAppCode) => {

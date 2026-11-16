@@ -1,25 +1,28 @@
 import _object from 'lodash/object';
+import { lazyText, localText } from '../locale/text';
+
+// the labels follow the language of the interface each time a document is written
 import {transform} from '../datasource_util';
 
-const relation = '关联关系';
-const relationList = '关联关系清单';
-const table = '数据表';
-const tableList = '表清单';
-const tableColumnList = '表列清单';
-const view = '视图';
-const viewList = '视图清单';
-const viewColumnList = '视图列清单';
-const dict = '字典';
-const dictList = '字典清单';
-const dictItemList = '字典条目清单';
+const relation = lazyText('关联关系');
+const relationList = lazyText('关联关系清单');
+const table = lazyText('数据表');
+const tableList = lazyText('表清单');
+const tableColumnList = lazyText('表列清单');
+const view = lazyText('视图');
+const viewList = lazyText('视图清单');
+const viewColumnList = lazyText('视图列清单');
+const dict = lazyText('字典');
+const dictList = lazyText('字典清单');
+const dictItemList = lazyText('字典条目清单');
 
-const name = '名称';
-const code = '代码';
-const dataType = '数据类型';
-const length = '长度';
-const main = '主键';
-const defaultValue = '默认值';
-const remark = '备注';
+const name = lazyText('名称');
+const code = lazyText('代码');
+const dataType = lazyText('数据类型');
+const length = lazyText('长度');
+const main = lazyText('主键');
+const defaultValue = lazyText('默认值');
+const remark = lazyText('备注');
 
 const generateHeader = (dataSource) => {
   let GroupsString = `<ul>\n`;
@@ -115,10 +118,10 @@ const generateRelation = (group, images) => {
   const img = images.filter(i => group.refDiagrams?.includes(i.fileName));
   if (img.length > 0) {
     return img
-      .map((i, index) => `<img style="width: 98%;margin-top: 10px" src="${i.data}" title="${group.defName}-关系图-${index + 1}"/>`)
+      .map((i, index) => `<img style="width: 98%;margin-top: 10px" src="${i.data}" title="${group.defName}-${localText('关系图')}-${index + 1}"/>`)
       .join('\n');
   }
-  return `<span>该模块未配置关系图</span>`;
+  return `<span>${localText('该模块未配置关系图')}</span>`;
 };
 
 const generateModuleBody = (dataSource, images = []) => {
@@ -276,7 +279,7 @@ export const html = (dataSource, images, projectName, callBack) => {
     </style>
 </head>
 <body>`;
-  const index = '<center class="index">目录</center>\n';
+  const index = `<center class="index">${localText('目录')}</center>\n`;
   const header = generateHeader(dataSource);
   const body = generateModuleBody(dataSource, images);
   const endTag = "</body>\n" +

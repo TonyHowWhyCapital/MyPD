@@ -18,6 +18,7 @@ import { projectSuffix } from '../../../profile';
 import emptyProject from '../../lib/template/empty';
 import schemaVersion from '../../lib/schemaVersion';
 import {reduceProject, transformationData, getEmptyEntity} from '../../lib/datasource_util';
+import {localizeProject, getEmptyProject} from '../../lib/locale/project';
 import {setMemoryCache} from '../../lib/cache';
 import * as template from '../../lib/template';
 import {compareVersion} from '../../lib/update';
@@ -256,7 +257,8 @@ export const readProject = (path, title, getState, type, isDemoProject, mode = E
           dispatch(readProjectFail(err));
           dispatch(closeLoading(STATUS[2], err));
         } else if (!isDemoProject && mode !== READING) {
-          const newData = transformationData(data);
+          // built-in names, and for Traditional Chinese the texts of the model, follow the language
+          const newData = localizeProject(transformationData(data), config.lang);
           // 将打开的项目记录存储到用户信息中
           addHistory({
             describe: newData.describe || '',
@@ -274,7 +276,8 @@ export const readProject = (path, title, getState, type, isDemoProject, mode = E
             }
           })(dispatch, getState);
         } else {
-          const newData = transformationData(data);
+          // built-in names, and for Traditional Chinese the texts of the model, follow the language
+          const newData = localizeProject(transformationData(data), config.lang);
           setMemoryCache('data', newData);
           dispatch(readProjectSuccess(newData, path, isDemoProject, mode));
           dispatch(closeLoading(STATUS[1], null, '', type));
@@ -295,8 +298,11 @@ export const openDemoProject = (h, t, title, type) => {
     if (!tempH) {
       tempH = template[isDemoProject];
     }
-    const data = transformationData(compareVersion('3.5.0', tempH.version.split('.'))
-      ? reduceProject(tempH, 'defKey') : tempH);
+    // a sample project is the program's own: all of it follows the language
+    const data = localizeProject(
+      transformationData(compareVersion('3.5.0', tempH.version.split('.'))
+        ? reduceProject(tempH, 'defKey') : tempH),
+      getState()?.config?.data[0]?.lang, { known: true });
     setMemoryCache('data', data);
     dispatch(readProjectSuccess(data, '', isDemoProject, EDIT));
     dispatch(closeLoading(STATUS[1], null, '', type));
@@ -342,7 +348,7 @@ export const createProject = (data, path, title, type) => {
       } else {
         const time = moment().format('YYYY-M-D HH:mm:ss');
         const newData = {
-          ...emptyProject,
+          ...getEmptyProject(config.lang),
           ...data,
           version,
           createdTime: time,

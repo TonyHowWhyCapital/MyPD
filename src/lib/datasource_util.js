@@ -4,6 +4,8 @@ import moment from 'moment';
 import {FormatMessage} from 'components';
 import {getAllTabData, getMemoryCache, replaceDataByTabId} from './cache';
 import emptyProjectTemplate from '../lib/template/empty.json';
+import { localText, currentLang } from './locale/text';
+import { getEmptyProject } from './locale/project';
 import {separator} from '../../profile';
 import {diagramCorrelations, mergeCorrelations, cellsOfDiagrams} from './correlations';
 import {firstUp} from './string';
@@ -294,7 +296,7 @@ const updateAllEntity = (dataSource, before) => {
 export const importFields = (entities, fields, data, useDefaultFields, onlyEntityFields) => {
   const allFields = [...(data?.fields || [])].filter(f => !f.refEntity); // 过滤掉从实体中获取的
   if (useDefaultFields) {
-    allFields.push(...emptyProjectTemplate.profile.default.entityInitFields
+    allFields.push(...getEmptyProject(currentLang()).profile.default.entityInitFields
       .map(f => ({...f, id: Math.uuid()})));
   }
   const allFieldKeys = allFields.map(f => f.defKey);
@@ -905,8 +907,8 @@ export const pdman2sino = (data, projectName) => {
   moment().local();
   const entities = _.get(data, 'modules', []).reduce((a, b) => a.concat(b.entities), [])
   const defaultDb = _.get(data, 'profile.dbs', []).filter(d => d.defaultDB)[0] || {};
-  const mappings = _.get(emptyProjectTemplate, 'dataTypeMapping.mappings', []); // 使用默认的mappings
-  const defaultDomains = _.get(emptyProjectTemplate, 'domains', []); // 使用默认的domains
+  const mappings = _.get(getEmptyProject(currentLang()), 'dataTypeMapping.mappings', []); // 使用默认的mappings
+  const defaultDomains = _.get(getEmptyProject(currentLang()), 'domains', []); // 使用默认的domains
   const domains = defaultDomains.concat(_.get(data, 'dataTypeDomains.datatype', []).map(d => {
     // 从已知的数据域中寻找包含数字的数据类型（为了保证最大的兼容性）
     // 判断是否存在反之则需要创建新的
@@ -1698,7 +1700,7 @@ export const transformationData = (oldDataSource) => {
       ...tempDataSource,
       profile: {
         ...tempDataSource.profile,
-        uiHint: tempDataSource.profile?.uiHint || emptyProjectTemplate.profile.uiHint,
+        uiHint: tempDataSource.profile?.uiHint || getEmptyProject(currentLang()).profile.uiHint,
       },
       entities: (tempDataSource.entities || []).map(e => refactor(e)),
       views: (tempDataSource.views || []).map(v => refactor(v)),
@@ -1715,7 +1717,7 @@ export const transformationData = (oldDataSource) => {
         profile: {
           ...tempDataSource.profile,
           codeTemplates: _.get(oldDataSource, 'profile.codeTemplates', [])
-            .concat(emptyProjectTemplate.profile.codeTemplates.filter(t => t.applyFor === 'dictSQLTemplate'))
+            .concat(getEmptyProject(currentLang()).profile.codeTemplates.filter(t => t.applyFor === 'dictSQLTemplate'))
         },
       };
     }
@@ -1965,7 +1967,7 @@ export const transformationData = (oldDataSource) => {
     // 调整nameTemplate位置
     tempDataSource = {
       ...tempDataSource,
-      namingRules: tempDataSource.namingRules || emptyProjectTemplate.namingRules,
+      namingRules: tempDataSource.namingRules || getEmptyProject(currentLang()).namingRules,
     }
   }
     return ensureTestDataHeader(tempDataSource);
@@ -2654,27 +2656,27 @@ export const checkDemoData = () => {
 
 export const checkItems = () => {
   return [{
-    name: '逻辑模型-逻辑实体',
+    name: localText('逻辑模型-逻辑实体'),
     applyObjectType: 'L',
     applyFieldType: 'entity',
   },
     {
-      name: '逻辑模型-逻辑实体属性',
+      name: localText('逻辑模型-逻辑实体属性'),
       applyObjectType: 'L',
       applyFieldType: 'field',
     },
     {
-      name: '数据表-数据表',
+      name: localText('数据表-数据表'),
       applyObjectType: 'P',
       applyFieldType: 'entity',
     },
     {
-      name: '数据表-数据表字段',
+      name: localText('数据表-数据表字段'),
       applyObjectType: 'P',
       applyFieldType: 'field',
     },
     {
-      name: '数据表-索引',
+      name: localText('数据表-索引'),
       applyObjectType: 'P',
       applyFieldType: 'index',
     }];
@@ -2682,27 +2684,27 @@ export const checkItems = () => {
 
 export const checkResultItems = () => {
   return [{
-    name: '逻辑模型-规范检查',
+    name: localText('逻辑模型-规范检查'),
     applyObjectType: 'L',
     applyFieldType: 'entity',
   },
     {
-      name: '字段-规范检查',
+      name: localText('字段-规范检查'),
       applyObjectType: 'L',
       applyFieldType: 'field',
     },
     {
-      name: '表-规范检查',
+      name: localText('表-规范检查'),
       applyObjectType: 'P',
       applyFieldType: 'entity',
     },
     {
-      name: '字段-规范检查',
+      name: localText('字段-规范检查'),
       applyObjectType: 'P',
       applyFieldType: 'field',
     },
     {
-      name: '索引-规范检查',
+      name: localText('索引-规范检查'),
       applyObjectType: 'P',
       applyFieldType: 'index',
     }];

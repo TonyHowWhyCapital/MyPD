@@ -1,16 +1,19 @@
 /* eslint-disable */
 import _object from 'lodash/object';
+import { lazyText, localText } from '../locale/text';
 
-const groupList = '分组清单';
-const relation = '关联关系';
-const tableList = '表清单';
-const tableColumnList = '表列清单';
+// the labels follow the language of the interface each time a document is written
 
-const name = '名称';
-const code = '代码';
-const dataType = '数据类型';
-const main = '主键';
-const remark = '备注';
+const groupList = lazyText('分组清单');
+const relation = lazyText('关联关系');
+const tableList = lazyText('表清单');
+const tableColumnList = lazyText('表列清单');
+
+const name = lazyText('名称');
+const code = lazyText('代码');
+const dataType = lazyText('数据类型');
+const main = lazyText('主键');
+const remark = lazyText('备注');
 
 const getFieldType = (datatypes, type, code) => {
   const data = (datatypes || []).filter(dt => dt.defKey === type)[0];
@@ -122,7 +125,7 @@ const generateRelation = (groupKey, images) => {
       .map((i) => `\n![image](${i})\n`)
       .join('\n');
   }
-  return `\n该模块未配置关系图\n`;
+  return `\n${localText('该模块未配置关系图')}\n`;
 };
 
 const generateModuleBody = (dataSource, images = []) => {
@@ -190,7 +193,7 @@ const generateModuleBody = (dataSource, images = []) => {
 };
 
 export const markdown = (dataSource, images, projectName, callBack) => {
-  const index = '## <center>目录</center>\n';
+  const index = `## <center>${localText('目录')}</center>\n`;
   const header = generateHeader(dataSource);
   const body = generateModuleBody(dataSource, images);
   callBack && callBack(`${index}${header}${body}`);

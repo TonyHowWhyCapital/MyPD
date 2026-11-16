@@ -898,7 +898,7 @@ export default {
         remarkSplitLabel: '拆解备注栏',
         remarkSplitTip: '从数据库逆向时，将备注依分隔符拆成名称与说明',
         remarkSeparatorLabel: '备注分隔符',
-        remarkSeparatorTip: '例如 ; | , ，逆向拆解与生成DDL合并备注时共用',
+        remarkSeparatorTip: '可填多个字符，每个字符都是分隔符，例如 ,| 与空格；生成DDL合并备注时使用第一个',
         DocTemplatePlaceholder: '默认为系统自带的模板，如需修改，请先下载文档模版，再指定模板文件',
         DocTemplateSaveAs: '下载文档模版',
         PreviewModal: '数据模型',

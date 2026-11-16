@@ -9,6 +9,7 @@ import Welcome from './app/welcome';
 import reducers from './reducers';
 import './style/detault.less';
 import { writeLog, showErrorLogFolder } from './lib/middle';
+import { localText } from './lib/locale/text';
 //import { sendMessage } from './lib/electron-window-opt';
 
 const store = createStore(reducers,
@@ -32,9 +33,9 @@ class Container extends React.Component{
   componentDidCatch(error) {
     writeLog(error).then((file) => {
       Modal.error({
-        title: '出错了',
+        title: localText('出错了'),
         message: <span>
-          程序出现异常，请前往日志文件查看出错日志：<a onClick={() => showErrorLogFolder(file)}>{file}</a>
+          {localText('程序出现异常，请前往日志文件查看出错日志：')}<a onClick={() => showErrorLogFolder(file)}>{file}</a>
         </span>,
       });
     });

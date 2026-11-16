@@ -11,6 +11,7 @@ import {defaultJVM, transform} from './datasource_util';
 import { FormatMessage } from 'components';
 import {postWorkerFuc} from './event_tool';
 import {compareVersion} from './update';
+import {engineText} from './locale/text';
 const { execFile } = require('child_process');
 
 const { ipcRenderer, shell } = require('electron');
@@ -481,7 +482,12 @@ export const execFileCmd = (cmd, params, cb) => {
     });
 };
 
-export const connectDB = (dataSource, config, params = {}, cmd, cb) => {
+export const connectDB = (dataSource, config, params = {}, cmd, callback) => {
+  // the engine answers in Simplified Chinese; a message is shown in the language in use
+  const cb = callback && ((result) => {
+    callback(result && typeof result.body === 'string'
+      ? { ...result, body: engineText(result.body) } : result);
+  });
   // 创建临时文件
   const tempParams = {...params};
   const outFile = `${execJarOut}${moment().unix()}.json`;
@@ -617,7 +623,7 @@ const runJavaTool = (main, dataSource, config, params = {}) => {
     }
     execFile(javaHome ? path.join(javaHome, 'bin', 'java') : 'java', args, (error, stdout, stderr) => {
       readJsonPromise(outFile).then((d) => {
-        d.status === 'SUCCESS' ? res(d.body) : rej(new Error(d.body));
+        d.status === 'SUCCESS' ? res(d.body) : rej(new Error(engineText(d.body)));
       }).catch(() => {
         rej(new Error(`${stderr || error?.message || stdout}`.trim()));
       }).finally(() => deleteFile(outFile));

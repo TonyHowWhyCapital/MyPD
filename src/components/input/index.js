@@ -5,7 +5,7 @@ import {getPrefix} from '../../lib/prefixUtil';
 import FormatMessage from '../formatmessage';
 
 const Input = React.memo(forwardRef(({ prefix ,defaultValue, suffix, placeholder, readOnly,
-                                       onClick, type = 'text', style, trim, accept, onKeyDown, maxLength, disable, toggleCase,
+                                       onClick, type = 'text', style, trim, keepSpaces, accept, onKeyDown, maxLength, disable, toggleCase,
                                        ...restProps }, ref) => {
   const [stateValue, setDefaultValue]  = useState(defaultValue);
   const composition = useRef(false);
@@ -47,7 +47,10 @@ const Input = React.memo(forwardRef(({ prefix ,defaultValue, suffix, placeholder
     const { onBlur, onChange } = restProps;
     const blurValue = e.target.value;
     // 去除空格
-    e.target.value = trim ? blurValue.replace(/\s/g, '') : blurValue.trim();
+    // keepSpaces: the value is taken as typed, a space at either end means something
+    if (!keepSpaces) {
+      e.target.value = trim ? blurValue.replace(/\s/g, '') : blurValue.trim();
+    }
     onBlur && onBlur(e);
     if (e.target.value !== tempValue) {
       onChange && onChange(e);

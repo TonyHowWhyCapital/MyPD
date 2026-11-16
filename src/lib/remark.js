@@ -1,6 +1,9 @@
 // A database keeps one remark per table or column, the model keeps a display name and a
 // comment. This file is the single rule for going both ways. No dom or react imports,
 // utils.js runs it inside the worker.
+//
+// The separator setting is a set of characters: each one of them separates the name from
+// the comment (",| " is a comma, a bar and a space). Remarks are joined with the first one.
 export const DEFAULT_SEPARATOR = ';';
 
 export const remarkSetting = (dataSource) => {
@@ -11,15 +14,22 @@ export const remarkSetting = (dataSource) => {
   };
 };
 
-// Only the first separator splits, so the comment may contain it.
+// Only the first separator splits, so the comment may contain the others. Separators that
+// follow it at once ("name, comment", "name -- comment") belong to the split.
 export const splitRemark = (remark, setting) => {
-  const text = remark || '';
+  const text = (remark || '').trim();
   const { split, separator } = setting || remarkSetting();
-  const at = split ? text.indexOf(separator) : -1;
+  const separators = Array.from(separator || DEFAULT_SEPARATOR);
+  const at = split ? Array.from(text).findIndex(c => separators.includes(c)) : -1;
   if (at < 0) {
     return { defName: text, comment: '' };
   }
-  return { defName: text.slice(0, at).trim(), comment: text.slice(at + separator.length).trim() };
+  const chars = Array.from(text);
+  let rest = at + 1;
+  while (rest < chars.length && (separators.includes(chars[rest]) || /\s/.test(chars[rest]))) {
+    rest += 1;
+  }
+  return { defName: chars.slice(0, at).join('').trim(), comment: chars.slice(rest).join('').trim() };
 };
 
 // The reverse engine returns the whole remark as defName. An explicit comment wins.
@@ -34,5 +44,6 @@ export const joinRemark = (defName, comment, separator = DEFAULT_SEPARATOR) => {
   if (blank(comment) || comment === defName) {
     return blank(defName) ? '' : defName;
   }
-  return blank(defName) ? comment : `${defName}${separator}${comment}`;
+  // of several separators the first one is written
+  return blank(defName) ? comment : `${defName}${Array.from(separator || DEFAULT_SEPARATOR)[0]}${comment}`;
 };

@@ -37,6 +37,7 @@ export default React.memo(({ prefix, dataSource, dataChange }) => {
       </span>
       <span className={`${currentPrefix}-form-item-component`}>
         <Input
+          keepSpaces
           onChange={onSeparator}
           defaultValue={setting.separator}
           placeholder={FormatMessage.string({id: 'config.remarkSeparatorTip'})}

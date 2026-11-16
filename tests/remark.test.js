@@ -20,6 +20,25 @@ describe('database remark to name and comment', () => {
     expect(splitRemark('a|b|c', pipe)).toEqual({ defName: 'a', comment: 'b|c' });
   });
 
+  test('every character of the setting is a separator', () => {
+    const many = { split: true, separator: ',| ' };
+    expect(splitRemark('案件編號,說明', many)).toEqual({ defName: '案件編號', comment: '說明' });
+    expect(splitRemark('案件編號|說明', many)).toEqual({ defName: '案件編號', comment: '說明' });
+    expect(splitRemark('案件編號 說明', many)).toEqual({ defName: '案件編號', comment: '說明' });
+    expect(splitRemark('案件編號, 說明|其他', many)).toEqual({ defName: '案件編號', comment: '說明|其他' });
+    expect(splitRemark('  案件編號  ', many)).toEqual({ defName: '案件編號', comment: '' });
+    expect(splitRemark('案件編號;說明', many)).toEqual({ defName: '案件編號;說明', comment: '' });
+  });
+
+  test('a separator of several characters written before still splits where it did', () => {
+    expect(splitRemark('案件編號--說明', { split: true, separator: '--' }))
+      .toEqual({ defName: '案件編號', comment: '說明' });
+  });
+
+  test('remarks are joined with the first separator', () => {
+    expect(joinRemark('案件編號', '說明', ',| ')).toBe('案件編號,說明');
+  });
+
   test('keeps the whole remark as the name without a separator or with split off', () => {
     expect(splitRemark('案件編號', pipe)).toEqual({ defName: '案件編號', comment: '' });
     expect(splitRemark('案件編號|說明', { split: false, separator: '|' }))

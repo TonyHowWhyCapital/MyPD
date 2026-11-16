@@ -18,7 +18,7 @@ body[theme='themeNigh'] {
   .@{prefix}-tdgen-field-label, .@{prefix}-tdgen-confirm-lead, .@{prefix}-tdgen-confirm-effect, .@{prefix}-tdgen-outputs-intro, .@{prefix}-tdgen-fixed, .@{prefix}-tdgen-fixed > .fa,
   .@{prefix}-tdgen-target i, .@{prefix}-tdgen-confirm-where i, .@{prefix}-tdgen-icon-button, .@{prefix}-tdgen-icon-button > .fa, .@{prefix}-tdgen-link-off,
   .@{prefix}-tdgen-settings-label > .fa, .@{prefix}-tdgen-grid th > span > .fa, .@{prefix}-tdgen-columns-off > td,
-  .@{prefix}-tdgen-picker-group-head > .fa, .@{prefix}-tdgen-output-head > .fa, .@{prefix}-tdgen-step, .@{prefix}-tdgen-step > span,
+  .@{prefix}-tdgen-picker-group-head > .fa, .@{prefix}-tdgen-output-head > .fa,
   .@{prefix}-tdgen-output-off .@{prefix}-tdgen-output-title, .@{prefix}-tdgen-tables-title, .@{prefix}-tdgen-grid-external > td {
     color: @n-dim !important;
   }
@@ -107,31 +107,15 @@ body[theme='themeNigh'] {
     background-color: @n-bad !important;
   }
   // rows that answer to the pointer
-  .@{prefix}-tdgen-picker-item:hover, .@{prefix}-tdgen-picker-item:hover *, .@{prefix}-tdgen-tables-item:hover, .@{prefix}-tdgen-tables-item:hover *,
-  .@{prefix}-tdgen-step:hover, .@{prefix}-tdgen-step:hover * {
+  .@{prefix}-tdgen-picker-item:hover, .@{prefix}-tdgen-picker-item:hover *, .@{prefix}-tdgen-tables-item:hover, .@{prefix}-tdgen-tables-item:hover * {
     background-color: @n-hover !important;
   }
   .@{prefix}-tdgen-tables-item-active, .@{prefix}-tdgen-tables-item-active *, .@{prefix}-tdgen-tables-item-active:hover,
-  .@{prefix}-tdgen-tables-item-active:hover *, .@{prefix}-tdgen-step-active, .@{prefix}-tdgen-step-active > span, .@{prefix}-tdgen-step-active:hover,
-  .@{prefix}-tdgen-step-active:hover > span {
+  .@{prefix}-tdgen-tables-item-active:hover * {
     background-color: @n-selected !important;
   }
   .@{prefix}-tdgen-tables-item .@{prefix}-tdgen-dot-bad, .@{prefix}-tdgen-tables-item:hover .@{prefix}-tdgen-dot-bad {
     background-color: @n-bad !important;
-  }
-  .@{prefix}-tdgen-step-active, .@{prefix}-tdgen-step-active > span {
-    color: #fff !important;
-  }
-  .@{prefix}-tdgen-step > i {
-    color: @n-text !important;
-    background-color: #3a4558 !important;
-  }
-  .@{prefix}-tdgen-step-done > i {
-    color: @n-accent !important;
-  }
-  .@{prefix}-tdgen-step-active > i, .@{prefix}-tdgen-step-active:hover > i {
-    color: #fff !important;
-    background-color: @primary-color !important;
   }
   // bars
   .@{prefix}-tdgen-bar {

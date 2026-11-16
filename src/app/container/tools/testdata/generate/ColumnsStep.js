@@ -1,5 +1,5 @@
 // Step 2: the tables of the run on the left; the columns of the chosen one with their
-// rules, and a preview of its rows, on the right.
+// rules, and a preview of its rows, on the right. The bars between the three can be dragged.
 import React from 'react';
 import { Icon } from 'components';
 import { tr } from './i18n';
@@ -7,6 +7,7 @@ import { count } from './format';
 import { plannedRows } from './planView';
 import ColumnGrid from './ColumnGrid';
 import Preview from './Preview';
+import Splitter from './Splitter';
 
 const rowsText = (plan, table) => {
   const planned = plannedRows(plan, table);
@@ -24,7 +25,7 @@ const rowsText = (plan, table) => {
 
 export default React.memo(({
   base, project, plan, active, focusField, problemsOf, seed, now, loader, connKey,
-  errorText, loadErrorText, onActive, onTable,
+  errorText, loadErrorText, layout, setSize, onActive, onTable,
 }) => {
   const { view } = project;
   const table = plan.tables.find(t => t.entityId === active) || plan.tables[0];
@@ -36,7 +37,7 @@ export default React.memo(({
     </div>;
   }
   return <div className={`${base}-split`}>
-    <div className={`${base}-tables`}>
+    <div className={`${base}-tables`} style={layout.tables ? { width: layout.tables } : undefined}>
       <div className={`${base}-tables-title`}>{tr('columns.tables')}</div>
       <div className={`${base}-tables-list`}>
         {plan.tables.map((t) => {
@@ -60,6 +61,14 @@ export default React.memo(({
         })}
       </div>
     </div>
+    <Splitter
+      base={base}
+      axis='x'
+      side='before'
+      min={140}
+      keep={420}
+      onSize={size => setSize('tables', size)}
+    />
     <div className={`${base}-detail`}>
       <div className={`${base}-detail-head`}>
         <span className={`${base}-detail-title`}>{table.defKey}</span>
@@ -82,8 +91,17 @@ export default React.memo(({
         setFieldValue={project.setFieldValue}
         onTable={onTable}
       />
+      <Splitter
+        base={base}
+        axis='y'
+        side='after'
+        min={90}
+        keep={150}
+        onSize={size => setSize('preview', size)}
+      />
       <Preview
         base={base}
+        height={layout.preview}
         view={view}
         plan={plan}
         entityId={table.entityId}

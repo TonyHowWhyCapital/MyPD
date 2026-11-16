@@ -1,5 +1,5 @@
 import React, {useState, useMemo, useRef} from 'react';
-import {Step, Button, FormatMessage, openModal, Message} from 'components';
+import {StepBar, Button, FormatMessage, openModal, Message} from 'components';
 import {pickNewGroups} from '../../../../components/listgroupselect/newGroup';
 
 import DbSelect, {connProperties} from './DbSelect';
@@ -91,58 +91,72 @@ export default React.memo(({prefix, dataSource, dataChange, config, onClose, onO
       title: FormatMessage.string({id: 'toolbar.exportWord'}),
     });
   };
-  const currentPrefix = getPrefix(prefix);
-  return <div className={`${currentPrefix}-dbreverseparse-db`}>
-    <Step
-      currentKey={currentKey}
-      options={[
-        {
-          title: FormatMessage.string({id: 'dbReverseParse.dbSelectTitle'}),
-          content: <DbSelect
-            prefix={prefix}
-            dataSource={dataSource}
-            config={config}
-            dbChange={dbChange}
-          />,
-          key: 1,
-        },
-        {
-          title: FormatMessage.string({id: 'dbReverseParse.parseDbTitle'}),
-          content: <ParseDb
-            config={config}
-            ref={parseDbRef}
-            parseError={parseError}
-            getDbData={getDbData}
-            prefix={prefix}
-            dataSource={dataSource}
-            parseFinish={parseFinish}
-          />,
-          key: 2,
-        },
-        {title: FormatMessage.string({id: 'dbReverseParse.selectEntity'}),
-          content: <DealData
-            ref={dealDataRef}
-            dataChange={dataChange}
-            getData={getData}
-            prefix={prefix}
-            dataSource={dataSource}
-          />,
-          key: 3,
-        },
-        ]}
-    />
-    <div className={`${currentPrefix}-dbreverseparse-db-opt`}>
-      <Button key='onClose' onClick={onClose}>
-        <FormatMessage id='button.close'/>
-      </Button>
-      <Button onClick={next} style={{display: currentKey === 1 ? '' : 'none'}}>
-        <FormatMessage id='dbReverseParse.next'/>
-      </Button>
-      <Button onClick={pre} style={{display: currentKey === 3 ? '' : 'none'}}>
+  const base = `${getPrefix(prefix)}-dbreverseparse-db`;
+  // a step is built when it is first reached and then kept, so going back loses nothing
+  const reached = useRef([]);
+  if (!reached.current.includes(currentKey)) {
+    reached.current.push(currentKey);
+  }
+  const steps = [
+    {
+      key: 1,
+      title: FormatMessage.string({id: 'dbReverseParse.dbSelectTitle'}),
+      content: <DbSelect
+        prefix={prefix}
+        dataSource={dataSource}
+        config={config}
+        dbChange={dbChange}
+      />,
+    },
+    {
+      key: 2,
+      title: FormatMessage.string({id: 'dbReverseParse.parseDbTitle'}),
+      content: <ParseDb
+        config={config}
+        ref={parseDbRef}
+        parseError={parseError}
+        getDbData={getDbData}
+        prefix={prefix}
+        dataSource={dataSource}
+        parseFinish={parseFinish}
+      />,
+    },
+    {
+      key: 3,
+      title: FormatMessage.string({id: 'dbReverseParse.selectEntity'}),
+      content: <DealData
+        ref={dealDataRef}
+        dataChange={dataChange}
+        getData={getData}
+        prefix={prefix}
+        dataSource={dataSource}
+      />,
+    },
+  ];
+  return <div className={base}>
+    <StepBar steps={steps} current={currentKey}/>
+    <div className={`${base}-content`}>
+      {steps.filter(s => reached.current.includes(s.key)).map(s => (
+        <div
+          key={s.key}
+          className={`${base}-pane`}
+          style={{display: s.key === currentKey ? '' : 'none'}}
+        >
+          {s.content}
+        </div>))}
+    </div>
+    <div className={`${base}-footer`}>
+      {currentKey === 3 && <Button onClick={pre}>
         <FormatMessage id='dbReverseParse.pre'/>
-      </Button>
-      <Button type='primary' onClick={onOK} style={{display: currentKey === 3 ? '' : 'none'}}>
+      </Button>}
+      {currentKey === 1 && <Button type='primary' onClick={next}>
+        <FormatMessage id='dbReverseParse.next'/>
+      </Button>}
+      {currentKey === 3 && <Button type='primary' onClick={onOK}>
         <FormatMessage id='button.ok'/>
+      </Button>}
+      <Button onClick={onClose}>
+        <FormatMessage id='button.close'/>
       </Button>
     </div>
   </div>;

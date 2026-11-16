@@ -13,7 +13,9 @@
 import React, {
   useEffect, useMemo, useRef, useState,
 } from 'react';
-import { Button, Icon, Modal } from 'components';
+import {
+  Button, Icon, Modal, StepBar,
+} from 'components';
 import { getPrefix } from '../../../../../lib/prefixUtil';
 import { getUiState, setUiState } from '../../../../../lib/middle';
 import { buildPlan } from '../../../../../lib/testdata/plan';
@@ -38,6 +40,7 @@ import { defaultTargets } from './io';
 import useProject from './useProject';
 import useRun from './useRun';
 import TablePicker from './TablePicker';
+import Splitter from './Splitter';
 import TableGrid from './TableGrid';
 import SettingsBar from './SettingsBar';
 import ProblemPanel from './ProblemPanel';
@@ -49,6 +52,7 @@ import './style/index.less';
 
 const STEPS = ['tables', 'columns', 'output'];
 const OUTPUT_KEY = 'testDataOutput';
+const LAYOUT_KEY = 'testDataLayout';
 
 const dialectName = dialect => tr(`dialect.${dialect}`) || dialect;
 
@@ -107,6 +111,14 @@ export default React.memo(({
     setUiState(OUTPUT_KEY, {
       sql: next.sql, csv: next.csv, xlsx: next.xlsx, multiRow: next.multiRow, go: next.go,
     });
+  };
+  // sizes the blocks were dragged to: {picker, tables, preview} in px, absent as laid out
+  const [layout, setLayoutState] = useState(() => getUiState(LAYOUT_KEY, {}) || {});
+  const setSize = (name, size) => {
+    const { [name]: dropped, ...rest } = layout;
+    const next = size === null ? rest : { ...rest, [name]: size };
+    setLayoutState(next);
+    setUiState(LAYOUT_KEY, next);
   };
   const runner = useRun();
   const { run } = runner;
@@ -306,18 +318,11 @@ export default React.memo(({
   }
   const working = run && run.status !== 'finished';
   return <div className={`${base}`}>
-    {!run && <div className={`${base}-steps`}>
-      {STEPS.map((s, i) => (
-        <div
-          key={s}
-          className={`${base}-step${s === step ? ` ${base}-step-active` : ''}${i < at
-            ? ` ${base}-step-done` : ''}`}
-          onClick={() => setStep(s)}
-        >
-          <i>{i + 1}</i>
-          <span>{tr(`step.${s}`)}</span>
-        </div>))}
-    </div>}
+    {!run && <StepBar
+      steps={STEPS.map(s => ({ key: s, title: tr(`step.${s}`) }))}
+      current={step}
+      onChange={setStep}
+    />}
     {!run && step !== 'output' && <ProblemPanel base={base} items={items}/>}
     <div className={`${base}-content`}>
       {run && <RunView
@@ -333,7 +338,16 @@ export default React.memo(({
           base={base}
           dataSource={view}
           selected={selected}
+          width={layout.picker}
           onChange={ids => choose(ids, external)}
+        />
+        <Splitter
+          base={base}
+          axis='x'
+          side='before'
+          min={180}
+          keep={420}
+          onSize={size => setSize('picker', size)}
         />
         <div className={`${base}-main`}>
           <SettingsBar
@@ -383,6 +397,8 @@ export default React.memo(({
         connKey={conn ? conn.defKey : ''}
         errorText={errorText}
         loadErrorText={loadErrorText}
+        layout={layout}
+        setSize={setSize}
         onActive={(id) => {
           setActive(id);
           setFocusField('');

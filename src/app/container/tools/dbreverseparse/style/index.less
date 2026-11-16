@@ -1,13 +1,33 @@
 @import "~style";
 
+// The window that reads the tables of a database: steps, the step shown, the way on.
 .@{prefix}-dbreverseparse-db {
-  height: 80vh;
-  & > div {
-    height: calc(100% - 48px);
+  display: flex;
+  flex-direction: column;
+  // as tall as the window allows: the list of tables needs the room
+  height: calc(100vh - 150px);
+  min-height: 300px;
+  max-height: 880px;
+  &-content {
+    flex: 1;
+    min-height: 0;
+    padding: 0 12px;
   }
-  &-opt {
-    padding: 10px;
-    text-align: center;
+  &-pane {
+    height: 100%;
+  }
+  &-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: none;
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-top: 1px solid @primary-border-color;
+    .@{prefix}-button {
+      margin: 0 0 0 8px;
+      white-space: nowrap;
+    }
   }
 }
 .@{prefix}-dbreverseparse-db-deal-data {
@@ -22,36 +42,46 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 10px;
+  overflow: auto;
   &-item {
-    margin-top: 5px;
-    padding: 5px;
     display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
+    align-items: flex-start;
+    width: 560px;
+    max-width: 100%;
+    margin-top: 10px;
     &-label {
+      flex: none;
+      width: 200px;
+      padding-right: 12px;
+      line-height: 28px;
       text-align: right;
-      padding-right: 5px;
-      width: 50%;
+      color: @second-font-color;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     &-component {
-      width: 50%;
-      &-message {
-        color: @success-color;
-        padding-left: 5px;
+      flex: 1;
+      min-width: 0;
+      .@{prefix}-multiple-select {
+        width: 100%;
+        height: 28px;
+        > .@{prefix}-multiple-select-data {
+          width: 100%;
+        }
       }
     }
     &-tip {
-      max-width: 320px;
       margin-top: 3px;
       font-size: 12px;
-      opacity: 0.75;
+      color: @third-font-color;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       a {
         margin-left: 8px;
+        cursor: pointer;
+        color: @primary-color;
       }
     }
     &-error {
@@ -60,7 +90,11 @@
   }
 }
 .@{prefix}-dbreverseparse-db-parse {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: @second-font-color;
   i {
     margin-right: 10px;
     animation: remote-change 1s infinite linear;

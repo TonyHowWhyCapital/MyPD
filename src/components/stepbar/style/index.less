@@ -1,0 +1,98 @@
+@import "~style";
+// the tones of the night theme (only the variables are taken, no rule is repeated)
+@import (reference) "../../../style/night.less";
+
+.@{prefix}-stepbar {
+  display: flex;
+  flex: none;
+  margin: 10px 12px;
+  border: 1px solid @primary-border-color;
+  border-radius: 4px;
+  overflow: hidden;
+  &-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+    padding: 7px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    color: @second-font-color;
+    border-right: 1px solid @primary-border-color;
+    &:last-child {
+      border-right: none;
+    }
+    > i {
+      flex: none;
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+      border-radius: 50%;
+      font-style: normal;
+      font-size: 12px;
+      line-height: 20px;
+      text-align: center;
+      color: @second-font-color;
+      background: @fourth-primary-color;
+    }
+    > span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    &:hover {
+      background: @tr-background;
+    }
+    &-done > i {
+      color: @primary-color;
+      background: @third-primary-color;
+    }
+    &-active, &-active:hover {
+      font-weight: bold;
+      color: @primary-color;
+      background: @third-primary-color;
+      > i {
+        color: #fff;
+        background: @primary-color;
+      }
+    }
+    // steps that only show where things stand do not answer to the pointer
+    &-fixed {
+      cursor: default;
+      &:hover {
+        background: none;
+      }
+    }
+    &-fixed&-active:hover {
+      background: @third-primary-color;
+    }
+  }
+}
+
+// Night mode. The theme turns every element dark with rules of no weight but with
+// !important; the current step and the numbers are given back here with real selectors.
+body[theme='themeNigh'] {
+  .@{prefix}-stepbar-item, .@{prefix}-stepbar-item > span {
+    color: @n-dim !important;
+  }
+  .@{prefix}-stepbar-item:not(.@{prefix}-stepbar-item-fixed):hover,
+  .@{prefix}-stepbar-item:not(.@{prefix}-stepbar-item-fixed):hover * {
+    background-color: @n-hover !important;
+  }
+  .@{prefix}-stepbar-item-active, .@{prefix}-stepbar-item-active > span,
+  .@{prefix}-stepbar-item-active:hover, .@{prefix}-stepbar-item-active:hover > span {
+    color: #fff !important;
+    background-color: @n-selected !important;
+  }
+  .@{prefix}-stepbar-item > i {
+    color: @n-text !important;
+    background-color: #3a4558 !important;
+  }
+  .@{prefix}-stepbar-item-done > i {
+    color: @n-accent !important;
+  }
+  .@{prefix}-stepbar-item-active > i, .@{prefix}-stepbar-item-active:hover > i {
+    color: #fff !important;
+    background-color: @primary-color !important;
+  }
+}

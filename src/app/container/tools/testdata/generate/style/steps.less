@@ -1,63 +1,7 @@
-// The steps at the top, the output step and the confirmation before writing a database.
+// The output step and the confirmation before writing a database.
 @import "~style";
 
 .@{prefix}-tdgen {
-  &-steps {
-    display: flex;
-    flex: none;
-    margin: 10px 12px;
-    border: 1px solid @primary-border-color;
-    border-radius: 4px;
-    overflow: hidden;
-  }
-  &-step {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    min-width: 0;
-    padding: 7px 12px;
-    cursor: pointer;
-    white-space: nowrap;
-    color: @second-font-color;
-    border-right: 1px solid @primary-border-color;
-    &:last-child {
-      border-right: none;
-    }
-    > i {
-      flex: none;
-      width: 20px;
-      height: 20px;
-      margin-right: 8px;
-      border-radius: 50%;
-      font-style: normal;
-      font-size: 12px;
-      line-height: 20px;
-      text-align: center;
-      color: @second-font-color;
-      background: @fourth-primary-color;
-    }
-    > span {
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    &:hover {
-      background: @tr-background;
-    }
-    &-done > i {
-      color: @primary-color;
-      background: @third-primary-color;
-    }
-    &-active, &-active:hover {
-      font-weight: bold;
-      color: @primary-color;
-      background: @third-primary-color;
-      > i {
-        color: #fff;
-        background: @primary-color;
-      }
-    }
-  }
   // ---- step 3
   &-outputs {
     flex: 1;

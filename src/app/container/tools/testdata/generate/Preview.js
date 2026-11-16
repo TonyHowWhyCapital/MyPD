@@ -65,7 +65,7 @@ const usePreview = ({
 };
 
 export default React.memo(({
-  base, view, plan, entityId, seed, now, loader, connKey, errorText, loadErrorText,
+  base, view, plan, entityId, seed, now, loader, connKey, errorText, loadErrorText, height,
 }) => {
   const [version, setVersion] = useState(0);
   const state = usePreview({
@@ -78,7 +78,7 @@ export default React.memo(({
     loader.clear();
     setVersion(v => v + 1);
   };
-  return <div className={`${base}-preview`}>
+  return <div className={`${base}-preview`} style={height ? { flex: 'none', height } : undefined}>
     <div className={`${base}-preview-head`}>
       <span className={`${base}-preview-title`}>
         {tr('preview.title', { rows: PREVIEW_ROWS })}

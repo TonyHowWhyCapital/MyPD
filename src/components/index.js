@@ -30,6 +30,7 @@ export { default as CodeEditor } from './codeeditor';
 export { default as CodeHighlight } from './codehighlight';
 export { default as ErCanvas } from './ercanvas';
 export { default as Step } from './step';
+export { default as StepBar } from './stepbar';
 export { default as ModalInput } from './modalinput';
 export { default as ToolBar } from './toolbar';
 export { default as MultipleSelect } from './multipleselect';

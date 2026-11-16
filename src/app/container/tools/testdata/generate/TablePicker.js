@@ -5,7 +5,7 @@ import { tr } from './i18n';
 import { groupedEntities, matchesKeyword } from './planView';
 
 export default React.memo(({
-  base, dataSource, selected, onChange,
+  base, dataSource, selected, width, onChange,
 }) => {
   const [keyword, setKeyword] = useState('');
   const [closed, setClosed] = useState([]);
@@ -33,7 +33,7 @@ export default React.memo(({
   const toggleGroup = id => setClosed(list => (list.includes(id)
     ? list.filter(g => g !== id) : list.concat(id)));
   const all = stateOf(visibleIds);
-  return <div className={`${base}-picker`}>
+  return <div className={`${base}-picker`} style={width ? { width } : undefined}>
     <div className={`${base}-picker-search`}>
       <SearchInput
         placeholder={tr('picker.search')}

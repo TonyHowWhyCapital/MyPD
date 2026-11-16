@@ -43,6 +43,45 @@
     min-width: 0;
     min-height: 0;
   }
+  // ---- the bar between two blocks: a line, and room around it to take hold of
+  &-splitter {
+    position: relative;
+    flex: none;
+    &:after {
+      content: "";
+      position: absolute;
+      background: @primary-border-color;
+      transition: background-color @motion-fast;
+    }
+    &:hover:after, &-active:after {
+      background: @primary-color;
+    }
+    &-x {
+      width: 25px;
+      cursor: col-resize;
+      &:after {
+        top: 0;
+        bottom: 0;
+        left: 12px;
+        width: 1px;
+      }
+      &:hover:after, &.@{prefix}-tdgen-splitter-active:after {
+        left: 11px;
+        width: 3px;
+      }
+    }
+    &-y {
+      height: 11px;
+      cursor: row-resize;
+      &:after {
+        top: 4px;
+        left: calc(50% - 18px);
+        width: 36px;
+        height: 3px;
+        border-radius: 2px;
+      }
+    }
+  }
   // in a low window the columns and the preview keep a usable height and scroll together
   &-detail {
     overflow-y: auto;
@@ -144,12 +183,8 @@
     display: flex;
     flex-direction: column;
     flex: none;
-    width: 22%;
-    min-width: 258px;
-    max-width: 380px;
-    margin-right: 12px;
-    padding-right: 12px;
-    border-right: 1px solid @primary-border-color;
+    width: clamp(258px, 22%, 380px);
+    max-width: calc(100% - 300px);
     &-search {
       flex: none;
       margin-bottom: 6px;
@@ -328,7 +363,6 @@
   .@{prefix}-tdgen {
     &-picker {
       width: 200px;
-      min-width: 200px;
     }
     &-tables {
       width: 170px;

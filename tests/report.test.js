@@ -82,7 +82,7 @@ describe('multi-model', () => {
     const tpl = getDefaultReportTemplates().find(t => t.kind === 'document');
     const doc = buildReport(tpl, [a, b], { now: NOW });
     const h = headings(doc);
-    expect(h.filter(x => x.level === 1).map(x => x.text)).toEqual(['A', 'B']);
+    expect(h.filter(x => x.level === 1).map(x => x.text)).toEqual(['1 A', '2 B']);
     expect(h.filter(x => x.level === 2).length).toBeGreaterThan(2);
     expect(doc.blocks.filter(x => x.type === 'toc')).toHaveLength(1);
   });

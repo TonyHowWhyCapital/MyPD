@@ -149,7 +149,7 @@ export default forwardRef(({prefix, dataSource, updateDataSource, projectInfo,
     Message.success({title: FormatMessage.string({id: 'optSuccess'})});
   };
   const exportStandardExcelFieldsLibTpl = () => {
-    saveAsTemplate('PDManer-excel-standard-field', 'xlsx');
+    saveAsTemplate('MyPD-excel-standard-field', 'xlsx');
   };
   const exportStandardFields = () => {
     const standardFields = _.get(dataSource, 'standardFields', []);

@@ -17,6 +17,10 @@ import {
 import {
   emptyHistory, record, undo, redo,
 } from './history';
+import {
+  PAGE_NUMBERS, COVER_FIELDS, layoutOf, setLayout, numberHeadings, coverOf,
+} from './layout';
+import { IMAGE_FIELDS, MAX_IMAGE_BYTES, imageOf } from './image';
 import { renderMarkdown } from './markdown';
 import { renderHtml } from './html';
 import { renderDocx } from './docx';
@@ -29,6 +33,7 @@ export {
   columnLabel, originalLabel, setColumnLabel,
   FONT_SIZES, styleOf, lookOf, setColumnStyle, cssOf, styleStore, alignStore, spreadStyle,
   emptyHistory, record, undo, redo,
+  PAGE_NUMBERS, COVER_FIELDS, layoutOf, setLayout, IMAGE_FIELDS, MAX_IMAGE_BYTES, imageOf,
 };
 
 const KINDS = ['document', 'list'];
@@ -162,7 +167,11 @@ export const buildReport = (template, dataSources, options = {}) => {
   const multi = list.length > 1;
   const now = options.now ? new Date(options.now) : new Date();
   const title = options.title || (multi ? template.defName : `${list[0].name || ''} ${template.defName}`.trim());
-  const doc = { title, generatedTime: formatTime(now), lang, blocks: [] };
+  const layout = layoutOf(template);
+  const generatedTime = formatTime(now);
+  const doc = {
+    title, generatedTime, lang, blocks: [], layout, cover: coverOf(layout, generatedTime, lang),
+  };
   if (template.kind === 'list') {
     doc.blocks = buildListTable(template, list, lang);
     return doc;
@@ -178,6 +187,7 @@ export const buildReport = (template, dataSources, options = {}) => {
       doc.blocks.push(...buildSection(ds, s, ctx));
     });
   });
+  if (layout.numbering) doc.blocks = numberHeadings(doc.blocks);
   return doc;
 };
 

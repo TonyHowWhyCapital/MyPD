@@ -1,4 +1,4 @@
-package cn.com.chiner.entity;
+package com.example.entity;
 $blankline
 import javax.persistence.*;
 import java.io.Serializable;
@@ -11,7 +11,7 @@ $blankline
     var days=today.getDate();
 }}
  /**
- * @author : http://www.chiner.pro
+ * @author : MyPD
  * @date : {{=fullYear}}-{{=month}}-{{=days}}
  * @desc : {{=it.func.join(it.entity.defName,it.entity.comment,'-')}}
  */

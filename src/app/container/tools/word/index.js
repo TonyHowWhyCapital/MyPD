@@ -110,7 +110,7 @@ export default React.memo(({prefix, dataSource, onOk, save, projectInfo}) => {
           <div><DocTemplate dataSource={dataSource} dataChange={dataChange} onOk={_onOk}/></div>
           <div>
             <Icon type='fa-file-word-o'/>
-            <a onClick={() => saveAsTemplate('PDManer-docx-tpl', 'docx')}><FormatMessage id='word.download'/></a>
+            <a onClick={() => saveAsTemplate('MyPD-docx-tpl', 'docx')}><FormatMessage id='word.download'/></a>
           </div>
         </div>
       </div>

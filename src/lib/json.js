@@ -721,7 +721,7 @@ export const selectDir = (name, type) => {
 
 export const selectWordFile = (dataSource, template) => {
   const name = _.get(dataSource, 'name');
-  let defaultPath = template || getDefaultTemplate('docx', 'PDManer-docx-tpl');
+  let defaultPath = template || getDefaultTemplate('docx', 'MyPD-docx-tpl');
   return new Promise((res, rej) => {
     openFileOrDirPath([], ['openDirectory']).then((dir) => {
       res([`${dir}${path.sep}${name}-${moment().format('YYYYMDHHmmss')}.docx`, defaultPath]);

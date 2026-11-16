@@ -23,11 +23,11 @@ export default React.memo(({prefix, onPicker}) => {
         <div className={`${currentPrefix}-import-excel-template-list`}>
           <span>
             <Icon type='fa-file-excel-o'/>
-            <a onClick={() => saveAsTemplate('PDManer-excel-tpl', 'xlsx')}>{FormatMessage.string({id: 'excel.downloadSimple'})}</a>
+            <a onClick={() => saveAsTemplate('MyPD-excel-tpl', 'xlsx')}>{FormatMessage.string({id: 'excel.downloadSimple'})}</a>
           </span>
           <span>
             <Icon type='fa-file-excel-o'/>
-            <a onClick={() => saveAsTemplate('PDManer-excel-group-tpl', 'xlsx')}>{FormatMessage.string({id: 'excel.downloadGroup'})}</a>
+            <a onClick={() => saveAsTemplate('MyPD-excel-group-tpl', 'xlsx')}>{FormatMessage.string({id: 'excel.downloadGroup'})}</a>
           </span>
         </div>
       </div>

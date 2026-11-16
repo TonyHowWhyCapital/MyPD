@@ -15,6 +15,14 @@ th{background:#f0f2f5;text-align:center}
 td.center{text-align:center}td.right{text-align:right}
 table.sized{table-layout:fixed}table.sized th,table.sized td{word-break:break-all}
 nav.toc ul{list-style:none;padding-left:0}
+section.cover{min-height:90vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;page-break-after:always}
+section.cover{background-size:cover;background-position:center;-webkit-print-color-adjust:exact}
+section.cover img{max-width:240px;max-height:140px;margin-bottom:32px}
+section.cover h1{font-size:40px;border-bottom:3px solid #444;padding:0 24px 16px;margin-bottom:16px}
+section.cover .sub{font-size:22px;color:#555;margin:0 0 96px}
+section.cover dl{margin:0;font-size:16px}section.cover dl div{margin:6px 0}
+section.cover dt,section.cover dd{display:inline;margin:0}
+@media print{body{max-width:none;margin:0}thead{display:table-header-group}tr{page-break-inside:avoid}h2,h3,h4,h5,h6{page-break-after:avoid}}
 nav.toc li.l2{margin-left:16px}nav.toc li.l3{margin-left:32px}nav.toc li.l4{margin-left:48px}`;
 
 export const renderHtml = (doc) => {
@@ -47,10 +55,17 @@ export const renderHtml = (doc) => {
     }
     return '';
   }).join('\n');
+  const bg = doc.cover && doc.cover.background ? ` style="background-image:url(${doc.cover.background.data})"` : '';
+  const logo = doc.cover && doc.cover.logo ? `<img alt="" src="${doc.cover.logo.data}">` : '';
+  const cover = doc.cover && `<section class="cover"${bg}>${logo}<h1>${escapeHtml(doc.title)}</h1>
+${doc.cover.subtitle ? `<p class="sub">${escapeHtml(doc.cover.subtitle)}</p>` : ''}
+<dl>${doc.cover.rows.map(([k, v]) => `<div><dt>${escapeHtml(k)}：</dt><dd>${escapeHtml(v)}</dd></div>`).join('')}</dl></section>`;
+  const top = cover || `<h1 class="title">${escapeHtml(doc.title)}</h1>
+<p class="meta">${escapeHtml(labelOf('generatedTime', lang))}: ${escapeHtml(doc.generatedTime)}</p>`;
+  const page = doc.layout && doc.layout.landscape ? '@page{size:A4 landscape}' : '';
   return `<!DOCTYPE html>
-<html lang="${lang}"><head><meta charset="utf-8"><title>${escapeHtml(doc.title)}</title><style>${CSS}</style></head>
-<body><h1 class="title">${escapeHtml(doc.title)}</h1>
-<p class="meta">${escapeHtml(labelOf('generatedTime', lang))}: ${escapeHtml(doc.generatedTime)}</p>
+<html lang="${lang}"><head><meta charset="utf-8"><title>${escapeHtml(doc.title)}</title><style>${CSS}${page}</style></head>
+<body>${top}
 ${body}
 </body></html>`;
 };

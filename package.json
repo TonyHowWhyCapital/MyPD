@@ -19,12 +19,9 @@
     "type": "git",
     "url": "empty"
   },
-  "author": {
-    "name": "qliu",
-    "email": "qliu@405go.cn"
-  },
+  "author": "MyPD",
   "homepage": "empty",
-  "license": "ISC",
+  "license": "MulanPubL-2.0",
   "dependencies": {
     "@antv/hierarchy": "0.6.8",
     "@antv/x6": "1.18.3",

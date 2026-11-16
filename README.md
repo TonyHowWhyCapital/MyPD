@@ -86,7 +86,7 @@ npm run package-win                 # dist 下的 Windows 安裝檔（64 位元�
 
 ### Java 引擎
 
-資料庫連線、逆向、Excel 匯入匯出與「匯出為WORD文件」透過 Java 引擎 `pdmaner-java.jar` 執行。這個檔案不在版本庫中，建置前請放到 `public/jar/`，再執行 `npm run build`。沒有這個檔案時，其他功能仍可使用。
+資料庫連線、逆向、Excel 匯入匯出與「匯出為WORD文件」透過 Java 引擎 `pdmaner-java.jar` 執行。這個檔案不在版本庫中，建置前請放到 `public/jar/`，再執行 `npm run build`。沒有這個檔案時，其他功能仍可使用。放入後請執行一次 `python3 scripts/rebrand_java_engine.py public/jar/pdmaner-java.jar`，把引擎內建 Excel 範本的標誌與標題改為 MyPD。
 
 `scripts/java/mypd` 是 MyPD 自己的 Java 小工具，修改後請重新編譯：
 

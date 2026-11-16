@@ -6,6 +6,7 @@ import { sectionTypes, labelOf } from '../../../../lib/report';
 import { getPrefix } from '../../../../lib/prefixUtil';
 import SectionPreview from './SectionPreview';
 import ColumnDesigner from './ColumnDesigner';
+import LayoutPanel from './LayoutPanel';
 
 const Option = Select.Option;
 
@@ -96,6 +97,7 @@ export default React.memo(({
           <FormatMessage id={isList ? 'report.kindList' : 'report.kindDocument'}/>
         </span>
       </div>
+      <LayoutPanel cls={`${currentPrefix}-report`} draft={draft} onChange={onChange}/>
       <div className={`${currentPrefix}-report-row`}>
         <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.sections'/></span>
         <Select notAllowEmpty value={newType} onChange={e => setNewType(e.target.value)}>

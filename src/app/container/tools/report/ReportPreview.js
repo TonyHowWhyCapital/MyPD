@@ -50,16 +50,22 @@ const Table = ({ cls, block, onDrag, onAlign }) => {
 
 const Blocks = ({ cls, doc, onDrag, onAlign }) => {
   const headings = doc.blocks.filter(b => b.type === 'heading');
+  const goTo = (e, i) => {
+    const target = e.currentTarget.closest(`.${cls}-paper`).querySelector(`[data-chapter="${i}"]`);
+    target && target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   return doc.blocks.map((b, n) => {
     if (b.type === 'heading') {
       const Tag = `h${Math.min(b.level + 1, 6)}`;
-      return <Tag key={n}>{b.text}</Tag>;
+      return <Tag key={n} data-chapter={headings.indexOf(b)}>{b.text}</Tag>;
     }
     if (b.type === 'paragraph') return <p key={n}>{b.text}</p>;
     if (b.type === 'toc') {
       return <ul key={n} className={`${cls}-toc`}>
         <li><strong>{labelOf('contents', doc.lang)}</strong></li>
-        {headings.map((h, i) => <li key={i} style={{ marginLeft: (h.level - 1) * 16 }}>{h.text}</li>)}
+        {headings.map((h, i) => <li key={i} style={{ marginLeft: (h.level - 1) * 16 }}>
+          <a onClick={e => goTo(e, i)}>{h.text}</a>
+        </li>)}
       </ul>;
     }
     return b.type === 'table' ? <Table key={n} cls={cls} block={b} onDrag={onDrag} onAlign={onAlign}/> : null;
@@ -128,8 +134,18 @@ export default ({
     </div>
     <div className={`${cls}-scroll`}>
       <div className={`${cls}-paper`} ref={paper}>
-        <h1>{doc.title}</h1>
-        <div className={`${cls}-more`}>{labelOf('generatedTime', lang)}: {doc.generatedTime}</div>
+        {doc.cover ? <div
+          className={`${cls}-cover`}
+          style={doc.cover.background ? { backgroundImage: `url(${doc.cover.background.data})` } : undefined}
+        >
+          {doc.cover.logo && <img alt='' src={doc.cover.logo.data}/>}
+          <h1>{doc.title}</h1>
+          {doc.cover.subtitle && <p>{doc.cover.subtitle}</p>}
+          {doc.cover.rows.map(([k, v]) => <div key={k}>{k}：{v}</div>)}
+        </div> : <React.Fragment>
+          <h1>{doc.title}</h1>
+          <div className={`${cls}-more`}>{labelOf('generatedTime', lang)}: {doc.generatedTime}</div>
+        </React.Fragment>}
         <Blocks cls={cls} doc={doc} onDrag={onDrag} onAlign={onAlign}/>
       </div>
     </div>

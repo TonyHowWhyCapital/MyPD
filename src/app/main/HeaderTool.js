@@ -264,7 +264,7 @@ export default React.memo(forwardRef(({currentPrefix, close, iconClick, openModa
           icon={<Icon type='icon-daoru'/>}
           dropMenu={[
                     {
-                      key: 'PDManer-history',
+                      key: 'import-history',
                       name: FormatMessage.string({id: 'toolbar.importPDManHistory'}),
                       children: [
                         { key: 'pdman', name: FormatMessage.string({id: 'toolbar.importPDMan'}) },

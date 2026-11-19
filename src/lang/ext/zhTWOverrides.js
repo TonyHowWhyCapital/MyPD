@@ -23,6 +23,8 @@ export default {
     },
     modelCompare: {
       before: '目標現況',
+      applyTransactional: '此資料庫的 DDL 支援交易：全部成功才提交，任一條失敗就全部還原。',
+      applyUnknown: '無法確定哪些陳述式已生效，請重新比較以確認資料庫現況。',
     },
     testDataRule: {
       param: {

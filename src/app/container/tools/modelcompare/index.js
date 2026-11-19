@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useRef, useState} from 'react';
 import {
   Button, Checkbox, CodeEditor, FormatMessage, Message, Modal, Terminal, openModal,
 } from 'components';
@@ -12,6 +12,7 @@ import {getPrefix} from '../../../../lib/prefixUtil';
 import DiffTree, {leafKeys} from './DiffTree';
 import SourcePicker from './SourcePicker';
 import {loadDbSnapshot} from './dbSnapshot';
+import {applyScript} from './applyDdl';
 
 import './style/index.less';
 
@@ -38,6 +39,7 @@ export default React.memo(({prefix, dataSource, getDataSource, updateDataSource,
   const [loaded, setLoaded] = useState(null);
   const [result, setResult] = useState(null);
   const [selected, setSelected] = useState(new Set());
+  const scriptText = useRef('');
 
   const pickFile = (side) => {
     openProjectFilePath().then((filePath) => {
@@ -93,15 +95,42 @@ export default React.memo(({prefix, dataSource, getDataSource, updateDataSource,
     }
     return true;
   };
+  const targetConn = sides[targetSide].kind === 'db'
+    ? dbConn.find(d => d.defKey === sides[targetSide].dbKey) : null;
   const showScript = () => {
     if (!guard()) return;
     const script = generateAlterScript(result, [...selected], targetDs);
+    scriptText.current = script;
     let modal;
-    modal = openModal(<CodeEditor mode='sql' value={script} width='auto' height='calc(100vh - 135px)'/>, {
+    const close = () => modal && modal.close();
+    const apply = () => applyScript({
+      cls: `${currentPrefix}-modelcompare`,
+      dataSource: fresh(),
+      config,
+      conn: targetConn,
+      text: scriptText.current,
+      openLoading,
+      closeLoading,
+      onApplied: () => {
+        close();
+        compare();
+      },
+      onFailed: compare,
+    });
+    modal = openModal(<CodeEditor
+      mode='sql'
+      value={script}
+      onChange={(e) => { scriptText.current = e.target.value; }}
+      width='auto'
+      height='calc(100vh - 135px)'
+    />, {
       bodyStyle: {width: '80%'},
       title: FormatMessage.string({id: 'modelCompare.scriptTitle'}),
-      buttons: [<Button key='close' onClick={() => modal && modal.close()}>
-        <FormatMessage id='button.cancel'/></Button>],
+      buttons: [
+        ...(targetConn ? [<Button key='apply' type='primary' onClick={apply}>
+          <FormatMessage id='modelCompare.applyToDb'/></Button>] : []),
+        <Button key='close' onClick={close}><FormatMessage id='button.cancel'/></Button>,
+      ],
     });
   };
   const merge = () => {

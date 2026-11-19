@@ -40,6 +40,8 @@ export default React.memo(({prefix, dataSource, getDataSource, updateDataSource,
   const [result, setResult] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const scriptText = useRef('');
+  // the sides the shown result was loaded from: the script runs on that connection, not on one picked since
+  const comparedSides = useRef(null);
 
   const pickFile = (side) => {
     openProjectFilePath().then((filePath) => {
@@ -65,10 +67,13 @@ export default React.memo(({prefix, dataSource, getDataSource, updateDataSource,
     setResult(next);
     setSelected(new Set());
   };
-  const compare = () => {
+  const compare = (picked = sides) => {
     openLoading(FormatMessage.string({id: 'modelCompare.scanning'}));
-    Promise.all([loadSide(sides.A), loadSide(sides.B)])
-      .then(([a, b]) => run(a, b, targetSide))
+    Promise.all([loadSide(picked.A), loadSide(picked.B)])
+      .then(([a, b]) => {
+        comparedSides.current = picked;
+        run(a, b, targetSide);
+      })
       .catch(errorModal)
       .finally(closeLoading);
   };
@@ -95,8 +100,9 @@ export default React.memo(({prefix, dataSource, getDataSource, updateDataSource,
     }
     return true;
   };
-  const targetConn = sides[targetSide].kind === 'db'
-    ? dbConn.find(d => d.defKey === sides[targetSide].dbKey) : null;
+  const comparedTarget = comparedSides.current?.[targetSide];
+  const targetConn = comparedTarget?.kind === 'db'
+    ? dbConn.find(d => d.defKey === comparedTarget.dbKey) : null;
   const showScript = () => {
     if (!guard()) return;
     const script = generateAlterScript(result, [...selected], targetDs);
@@ -113,9 +119,9 @@ export default React.memo(({prefix, dataSource, getDataSource, updateDataSource,
       closeLoading,
       onApplied: () => {
         close();
-        compare();
+        compare(comparedSides.current);
       },
-      onFailed: compare,
+      onFailed: () => compare(comparedSides.current),
     });
     modal = openModal(<CodeEditor
       mode='sql'
@@ -176,7 +182,7 @@ export default React.memo(({prefix, dataSource, getDataSource, updateDataSource,
         <Button type={targetSide === 'B' ? 'primary' : undefined} onClick={() => changeTarget('B')}>
           <FormatMessage id='modelCompare.targetB'/>
         </Button>
-        <Button type='primary' onClick={compare}><FormatMessage id='modelCompare.compare'/></Button>
+        <Button type='primary' onClick={() => compare()}><FormatMessage id='modelCompare.compare'/></Button>
       </div>
       {result && <div>
         <div className={`${currentPrefix}-modelcompare-bar`}>

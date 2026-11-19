@@ -9,6 +9,7 @@ import Button from '../button';
 import { openModal } from '../modal';
 import {getPrefix} from '../../lib/prefixUtil';
 import {addBodyClick, removeBodyClick} from '../../lib/listener';
+import {highlightHtml} from '../../lib/string';
 import './style/index.less';
 import MoreList from './MoreList';
 import {postWorkerFuc} from '../../lib/event_tool';
@@ -62,9 +63,7 @@ export default React.memo(({placeholder, prefix, dataSource,
   }, [dataSource.entities, dataSource.views,
     dataSource.dicts, dataSource.viewGroups, dataSource.standardFields]);
   const calcSuggest = (suggest, search) => {
-    const reg = new RegExp((search || '').replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'ig');
-    const str = `<span class=${currentPrefix}-search-suggest-list-search>$&</span>`;
-    const finalData = `<span>${suggest.replace(reg, str)}</span>`;
+    const finalData = highlightHtml(suggest, search, `${currentPrefix}-search-suggest-list-search`);
     // eslint-disable-next-line react/no-danger,react/no-danger-with-children
     return <span dangerouslySetInnerHTML={{ __html: finalData }}
     >{}</span>;

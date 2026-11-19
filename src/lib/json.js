@@ -105,25 +105,16 @@ export const deleteFile = (filePath) => {
 };
 
 export const saveNormalFile = (file, dataBuffer) => {
-  // 通用的文件保方法
-  return new Promise((res, rej) => {
-    // fs.writeFile(file, dataBuffer, (err) => {
-    //   if(err){
-    //     rej(err);
-    //   }else{
-    //     res(dataBuffer);
-    //   }
-    // });
-    const writer = fs.createWriteStream(file);
-    writer.on('error', (err) => {
-      rej(err);
-    });
-    writer.on('close', () => {
-      res(dataBuffer);
-    })
-    writer.write(dataBuffer);
-    writer.end();
-  });
+  // 通用的文件保存方法：先写同目录临时文件并落盘，再替换原文件，避免写入中断损坏原文件
+  const temp = `${file}.${process.pid}.${Date.now()}.saving`;
+  return fs.promises.open(temp, 'w').then(handle => handle.writeFile(dataBuffer)
+    .then(() => handle.sync())
+    .finally(() => handle.close()))
+    .then(() => fs.promises.rename(temp, file))
+    .then(() => dataBuffer)
+    .catch(err => fs.promises.unlink(temp).catch(() => {}).then(() => {
+      throw err;
+    }));
 };
 
 export const readNormalFile = (filePath) => {
@@ -166,7 +157,7 @@ export const saveJsonPromise = (filePath, data, closeSpace = false) => {
           rej(err);
         });
       }
-    })
+    }).catch(rej);
   });
 };
 
@@ -276,8 +267,16 @@ export const getUserConfig = () => {
             ...defaultData,
             ...data,
           });
-        }).catch(() => {
-          // 如果用户信息报错 则需要使用默认数据进行覆盖
+        }).catch((readErr) => {
+          // 如果用户信息报错 则需要使用默认数据进行覆盖；文件存在但已损坏时先保留一份，避免设置被静默清空
+          const tempFilePath = path.endsWith('.json') ? path : `${path}.json`;
+          if (readErr?.code !== 'ENOENT' && fs.existsSync(tempFilePath)) {
+            try {
+              fs.renameSync(tempFilePath, `${tempFilePath}.corrupt-${Date.now()}`);
+            } catch (e) {
+              // 无法保留损坏文件时仍继续使用默认数据
+            }
+          }
           saveJsonPromise(path, defaultData).then(() => {
             r(defaultData);
           }).catch((err) => {
@@ -294,9 +293,7 @@ export const getUserConfig = () => {
           langSetting: user.lang,
           lang: resolveLang(user.lang, app.getLocale()),
         }, project];
-        setTimeout(() => {
-          res(result);
-        }, 1000);
+        res(result);
     }).catch((err) => {
       rej(err);
     });
@@ -311,9 +308,7 @@ export const saveUserConfig = (data = []) => {
       lang: user.langSetting || user.lang,
     }, true),
       saveJsonPromise(projectConfigPath, data[1] || {}, true)]).then((result) => {
-      setTimeout(() => {
-        res(result);
-      }, 100);
+      res(result);
     }).catch((err) => {
       rej(err);
     });
@@ -776,8 +771,10 @@ export const getBackupAllFile = ({info, data}, callback) => {
               }
             }
             const fileName = `T${moment().format('YYYYMMDDHHmmss')}.pdma.json`;
-            fs.writeFileSync(path.join(dir, fileName), JSON.stringify(data));
-            callback && callback();
+            // 非同步写入，避免在主线程阻塞 UI
+            fs.writeFile(path.join(dir, fileName), JSON.stringify(data), (err) => {
+              callback && callback(err || undefined);
+            });
           } catch (e) {
             callback && callback(e);
           }

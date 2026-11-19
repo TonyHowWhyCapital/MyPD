@@ -1139,61 +1139,54 @@ export const generatorKey = (newKey, data) => {
     return generatorKey(`${newKey}_1`, data);
   }
 }
-// 缓存文本宽度 减少dom计算渲染
-let textWidthCache = {};
-export  const getTextWidth = (text, font, weight = 'normal') => {
-  if(text in textWidthCache) {
-    return textWidthCache[text]
-  }
-  let dom = document.getElementById('calcTextWidth');
+// 缓存文本尺寸 减少dom计算渲染；用 Map 计数，避免每次未命中都 Object.keys 全量扫描
+const MAX_TEXT_CACHE = 200000;
+const textWidthCache = new Map();
+const textHeightCache = new Map();
+const cleanText = text => (typeof text === 'string' ? text.replace(/\r|\n|\r\n/g, '') : text);
+const getMeasureDom = (id) => {
+  let dom = document.getElementById(id);
   if (!dom) {
     dom = document.createElement('div');
-    dom.setAttribute('id', 'calcTextWidth');
+    dom.setAttribute('id', id);
     dom.style.display = 'inline-block';
-    dom.style.fontWeight = weight;
-    dom.style.fontSize = `${font}px`;
     document.body.appendChild(dom);
   }
-  dom.innerText = typeof text === 'string' ?
-    text.replace(/\r|\n|\r\n/g, '')
-    : text;
-  const width =  dom.getBoundingClientRect().width;
-  if(Object.keys(textWidthCache).length > 1000000) {
-    // 如果缓存数量超过百万 则清除数据 释放内存
-    textWidthCache = {}
-  }
-  const realWidth = Math.ceil(width);
-  textWidthCache[text] = realWidth;
-  return realWidth;
+  return dom;
 };
-// 缓存文本宽度 减少dom计算渲染
-let textHeightCache = {};
+const setTextCache = (cache, key, value) => {
+  if (cache.size >= MAX_TEXT_CACHE) {
+    // 缓存数量过多时清除数据 释放内存
+    cache.clear();
+  }
+  cache.set(key, value);
+  return value;
+};
+export  const getTextWidth = (text, font, weight = 'normal') => {
+  const key = `${weight}|${font}|${text}`;
+  const cached = textWidthCache.get(key);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const dom = getMeasureDom('calcTextWidth');
+  dom.style.fontWeight = weight;
+  dom.style.fontSize = `${font}px`;
+  dom.innerText = cleanText(text);
+  return setTextCache(textWidthCache, key, Math.ceil(dom.getBoundingClientRect().width));
+};
 export  const getTextHeight = (text, font, width, weight = 'normal') => {
-  const textKey = `${text}${width}`;
-  if(textKey in textHeightCache) {
-    return textHeightCache[textKey]
+  const key = `${weight}|${font}|${width}|${text}`;
+  const cached = textHeightCache.get(key);
+  if (cached !== undefined) {
+    return cached;
   }
-  let dom = document.getElementById('calcTextHeight');
-  if (!dom) {
-    dom = document.createElement('div');
-    dom.setAttribute('id', 'calcTextHeight');
-    dom.style.display = 'inline-block';
-    dom.style.fontWeight = weight;
-    dom.style.fontSize = `${font}px`;
-    dom.style.width = `${width}px`;
-    dom.style.wordBreak = 'break-all';
-    document.body.appendChild(dom);
-  }
-  dom.innerText = typeof text === 'string' ?
-      text.replace(/\r|\n|\r\n/g, '')
-      : text;
-  const height =  dom.getBoundingClientRect().height;
-  if(Object.keys(textHeightCache).length > 1000000) {
-    // 如果缓存数量超过百万 则清除数据 释放内存
-    textHeightCache = {}
-  }
-  textHeightCache[textKey] = Math.ceil(height);
-  return textHeightCache[textKey];
+  const dom = getMeasureDom('calcTextHeight');
+  dom.style.fontWeight = weight;
+  dom.style.fontSize = `${font}px`;
+  dom.style.width = `${width}px`;
+  dom.style.wordBreak = 'break-all';
+  dom.innerText = cleanText(text);
+  return setTextCache(textHeightCache, key, Math.ceil(dom.getBoundingClientRect().height));
 };
 
 export const reset = (f, dataSource, [key, id]) => {

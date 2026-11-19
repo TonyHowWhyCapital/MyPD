@@ -2,6 +2,7 @@ import React from 'react';
 import {Checkbox, FormatMessage, Icon, Tooltip} from 'components';
 import Child from './CompareItemField';
 import {getPrefix} from '../../lib/prefixUtil';
+import {highlightHtml} from '../../lib/string';
 
 export default React.memo(({data: { isLeaf, sourceEntity,
     i, parent, dataKey, metaEntityData, metaFieldsData }, onRemove, searchValue,
@@ -27,9 +28,7 @@ export default React.memo(({data: { isLeaf, sourceEntity,
             return '';
         };
         const calcSearchValue = (value = '') => {
-            const reg = new RegExp((searchValue || '').replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'ig');
-            const str = `<span class=${currentPrefix}-compare-list-container-content-list-item-search>$&</span>`;
-            const finalData = `<span>${(value || '').replace(reg, str)}</span>`;
+            const finalData = highlightHtml(value, searchValue, `${currentPrefix}-compare-list-container-content-list-item-search`);
             // eslint-disable-next-line react/no-danger,react/no-danger-with-children
             return <span dangerouslySetInnerHTML={{ __html: finalData }}
             >{}</span>;

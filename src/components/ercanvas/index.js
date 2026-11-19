@@ -362,7 +362,6 @@ export default ({data, dataSource, renderReady, updateDataSource, validateTableS
       });
       graph.on('cell:added', () => {
         dataChange && dataChange(graph.toJSON({diff: true}));
-        console.log(graph.toJSON({diff: true}));
       });
       graph.on('cell:click', ({cell, e}) => {
         eR.cellClick(cell, graph, id);

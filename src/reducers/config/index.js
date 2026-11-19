@@ -26,9 +26,7 @@ const config = (state = { lang: langType[0] }, action) => {
         data: action.data,
         result: fail,
       };
-    default: return {
-      ...state,
-    }
+    default: return state;
   }
 };
 

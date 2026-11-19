@@ -3,6 +3,7 @@ import React, {useState, useEffect, useRef, useMemo, forwardRef, useImperativeHa
 import SearchInput from '../searchinput';
 import FormatMessage from '../formatmessage';
 import {addBodyClick, removeBodyClick} from '../../lib/listener';
+import {highlightHtml} from '../../lib/string';
 
 export default React.memo(forwardRef(({prefix, getGraph, dataSource}, ref) => {
   const id = useMemo(() => Math.uuid(), []);
@@ -10,7 +11,7 @@ export default React.memo(forwardRef(({prefix, getGraph, dataSource}, ref) => {
   const [searchValue, setSearchValue] = useState('');
   const searchRef = useRef(null);
   const listRef = useRef(null);
-  const str = `<span class=${prefix}-search-suggest-list-search>$&</span>`;
+  const highlightClass = `${prefix}-search-suggest-list-search`;
   useImperativeHandle(ref, () => {
     return {
       focus: () => {
@@ -31,13 +32,13 @@ export default React.memo(forwardRef(({prefix, getGraph, dataSource}, ref) => {
   }, []);
   useEffect(() => {
     if (searchValue) {
-      const reg = new RegExp((searchValue)?.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'ig');
+      const reg = new RegExp((searchValue)?.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+      const entityMap = new Map((dataSource?.entities || [])
+          .concat(dataSource?.logicEntities || []).map(e => [e.id, e]));
       setCells((getGraph()?.toJSON({diff: true}).cells || [])
         .map((c) => {
           if (c.originKey) {
-            const entity = (dataSource?.entities || [])
-                .concat(dataSource?.logicEntities || [])
-                .filter(e => e.id === c.originKey)[0];
+            const entity = entityMap.get(c.originKey);
             if (entity) {
               const tempDisplayMode = entity.nameTemplate || '{defKey}[{defName}]';
               const finalName = tempDisplayMode.replace(/\{(\w+)\}/g, (match, word) => {
@@ -45,7 +46,7 @@ export default React.memo(forwardRef(({prefix, getGraph, dataSource}, ref) => {
               });
               if (reg.test(finalName)) {
                 return {
-                  name: finalName.replace(reg, str),
+                  name: highlightHtml(finalName, searchValue, highlightClass),
                   value: c.id,
                 };
               }
@@ -56,7 +57,7 @@ export default React.memo(forwardRef(({prefix, getGraph, dataSource}, ref) => {
             const finalLabel = c.label?.replace(/[-\/\\^$*+?.()|[\]{}#]|<[^>]*>|\r|\r\n/g, '');
             if (reg.test(finalLabel)) {
               return {
-                name: finalLabel?.replace(reg, str),
+                name: highlightHtml(finalLabel, searchValue, highlightClass),
                 value: c.id,
               };
             }

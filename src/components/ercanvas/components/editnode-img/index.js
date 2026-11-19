@@ -1,17 +1,14 @@
 import React, { forwardRef } from 'react';
 import { Graph, Markup } from '@antv/x6';
 import '@antv/x6-react-shape';
-import marked from 'marked';
-import { renderer } from '../util';
+import { markdownToHtml } from '../util';
 
 const EditNode = forwardRef(({node}, ref) => {
   const label = node.getProp('label');
   const getLabel = () => {
-    marked.use({ renderer });
-    const reg = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
-    return marked(label, {
+    return markdownToHtml(label, {
         breaks: true,
-    }).replace(reg, '');
+    });
   };
   return <div
     ref={ref}

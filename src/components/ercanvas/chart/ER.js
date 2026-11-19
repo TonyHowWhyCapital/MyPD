@@ -7,9 +7,8 @@ import {
     getChildrenCell,
     getChildrenId,
     refactorCopyData,
-    renderer,
+    markdownToHtml,
 } from 'components/ercanvas/components/util';
-import marked from 'marked';
 import {
     calcCellData,
     calcNodeData,
@@ -1306,9 +1305,7 @@ export default class ER {
             if (e.target.tagName === 'image') {
                 clearDom();
                 const getNote = () => {
-                    marked.use({ renderer });
-                    const reg = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
-                    return marked(node.getProp('note') || '').replace(reg, '');
+                    return markdownToHtml(node.getProp('note'));
                 };
                 const dom = document.createElement('div');
                 dom.setAttribute('class', 'chiner-tooltip-container');

@@ -1,3 +1,5 @@
+import marked from 'marked';
+import DOMPurify from 'dompurify';
 import {hex2Rgba} from '../../../lib/color';
 
 export const renderer = {
@@ -28,6 +30,12 @@ export const renderer = {
       startatt = (ordered && start !== 1) ? (` start="${start}"`) : '';
     return `<${type}${startatt} style="text-align: left;margin: 0px 0px 0px 20px;padding: 0px;line-height: 10px;${ordered ? '' : 'list-style: circle'}">\n${body}</${type}>\n`;
   },
+};
+
+// 渲染便签/注释的 Markdown：内容来自项目文件或数据库，必须消毒，否则可借 nodeIntegration 执行任意代码
+export const markdownToHtml = (str, options) => {
+  marked.use({ renderer });
+  return DOMPurify.sanitize(marked(str || '', options));
 };
 
 // 创建右键菜单

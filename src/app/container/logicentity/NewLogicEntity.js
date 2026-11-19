@@ -352,7 +352,7 @@ export default React.memo(({prefix, dataSource, data, dataChange, getDataSource,
             <FormatMessage id='tableBase.nameTemplate'/>
           </span>
           <span className={`${currentPrefix}-form-item-component`}>
-            <Input defaultValue={currentData.sysProps?.nameTemplate || '{defKey}[{defName}]'} onChange={e => onChange(e, 'sysProps.nameTemplate')}/>
+            <Input defaultValue={currentData.sysProps?.nameTemplate || '{defKey}[{defName}]'} onChange={e => _dataChange(e.target.value, 'sysProps.nameTemplate')}/>
           </span>
         </div>
         <div className={`${currentPrefix}-form-item`}>
@@ -363,7 +363,7 @@ export default React.memo(({prefix, dataSource, data, dataChange, getDataSource,
             <FormatMessage id='tableBase.comment'/>
           </span>
           <span className={`${currentPrefix}-form-item-component`}>
-            <Text rows={3} defaultValue={currentData.comment} onChange={e => onChange(e, 'comment')}/>
+            <Text rows={3} defaultValue={currentData.comment} onChange={e => _dataChange(e.target.value, 'comment')}/>
           </span>
         </div>
         </FieldSet>}

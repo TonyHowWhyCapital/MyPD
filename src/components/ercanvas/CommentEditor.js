@@ -2,8 +2,7 @@ import React, {useRef, useState} from 'react';
 import {Button, FormatMessage, Icon, openDrawer, Text, Tooltip} from 'components';
 
 import './style/index.less';
-import marked from 'marked';
-import {renderer} from 'components/ercanvas/components/util';
+import {markdownToHtml} from 'components/ercanvas/components/util';
 import {getPrefix} from '../../lib/prefixUtil';
 
 const Edit = React.memo(({ prefix, data, onOK, onCancel }) => {
@@ -13,9 +12,7 @@ const Edit = React.memo(({ prefix, data, onOK, onCancel }) => {
         valueRef.current = e.target.value;
     };
     const getHtml = (str) => {
-        marked.use({ renderer });
-        const reg = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
-        return marked(str).replace(reg, '');
+        return markdownToHtml(str);
     };
     const currentPrefix = getPrefix(prefix);
     return <div className={`${currentPrefix}-comment-editor`}>

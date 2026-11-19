@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom';
 import { createStore, applyMiddleware } from 'redux';
 import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
-import { logger } from 'redux-logger';
 import { Modal } from 'components';
 import Welcome from './app/welcome';
 import reducers from './reducers';
@@ -16,7 +15,8 @@ const store = createStore(reducers,
   {},
   applyMiddleware(
     thunkMiddleware,
-    logger,
+    // redux-logger 仅用于开发环境：生产环境打印完整 state 会泄露连接密码并持续占用内存
+    ...(process.env.NODE_ENV === 'production' ? [] : [require('redux-logger').logger]),
 () => {
       return next => (action) => {
         // 发送上一次的数据

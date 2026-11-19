@@ -1,11 +1,10 @@
 import React, { forwardRef, useRef, useEffect } from 'react';
 import { Graph, Markup } from '@antv/x6';
 import {Icon, Tooltip} from 'components';
-import marked from 'marked';
 import FormatMessage from '../../../formatmessage';
 import '@antv/x6-react-shape';
 import './style/index.less';
-import { renderer } from '../util';
+import { markdownToHtml } from '../util';
 // eslint-disable-next-line import/named
 import { platform } from '../../../../lib/middle';
 import info from './style/info.png';
@@ -88,11 +87,9 @@ const EditNode = forwardRef(({node}, ref) => {
     return  {};
   };
   const getHtml = (str) => {
-    marked.use({ renderer });
-    const reg = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
-    return marked(str, {
+    return markdownToHtml(str, {
       breaks: true,
-    }).replace(reg, '');
+    });
   };
   return <div
     ref={ref}

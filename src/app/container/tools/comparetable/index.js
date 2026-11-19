@@ -11,6 +11,7 @@ import {
     Modal, Message, Loading,
 } from 'components';
 import moment from 'moment';
+import _ from 'lodash/object';
 import CompareList from 'components/compare/CompareList';
 import {calcUnGroupDefKey, mergeDataSource} from '../../../../lib/datasource_util';
 

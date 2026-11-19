@@ -454,13 +454,13 @@ export const packageChanges = (currentDataSource, preDataSource, db) => {
             })),
             propModified: setNull(propsChange.filter(c => c.opt === 'update').map(c => {
               return {
-               before: {
-                 key: c.data,
-                 value: cData.properties[c.data],
-               },
-                after: {
+                before: {
                   key: c.data,
                   value: pData.properties[c.data],
+                },
+                after: {
+                  key: c.data,
+                  value: cData.properties[c.data],
                 }
               };
             })),
@@ -486,55 +486,8 @@ export const packageChanges = (currentDataSource, preDataSource, db) => {
           return compareArray(c, p, type);
         });
         if (indexChange.length > 0) {
-          const calcIndexField = (fields) => {
-            const allFields = cData.fields?.concat(preData.fields || []) || [];
-            return fields.map(c => {
-              if (c.opt !== 'update') {
-                return {
-                  ...c.data,
-                  fields: allFields.map(a => {
-                    const fI = c.data?.fields?.findIndex(f => a.id === f.fieldDefKey);
-                    if(fI > -1) {
-                      return {
-                        ...c.data.fields[fI],
-                        fieldDefKey: a.defKey
-                      }
-                    }
-                    return null;
-                  }).filter((f) => !!f)
-                }
-              }
-              return {
-                ...c.data,
-                after: {
-                  ...c.data.after,
-                  fields: allFields.map(a => {
-                    const fI = c.data?.after?.fields?.findIndex(f => a.id === f.fieldDefKey);
-                    if(fI > -1) {
-                      return {
-                        ...c.data.after.fields[fI],
-                        fieldDefKey: a.defKey
-                      }
-                    }
-                    return null;
-                  }).filter((f) => !!f)
-                },
-                before: {
-                  ...c.data.before,
-                  fields: allFields.map(a => {
-                    const fI = c.data?.before?.fields?.findIndex(f => a.id === f.fieldDefKey);
-                    if(fI > -1) {
-                      return {
-                        ...c.data.before.fields[fI],
-                        fieldDefKey: a.defKey
-                      }
-                    }
-                    return null;
-                  }).filter((f) => !!f)
-                },
-              }
-            })
-          }
+          // fieldDefKey 已由 id2FieldDefKey 转为字段代码
+          const calcIndexField = changes => changes.map(c => c.data);
           indexChanged = {
             indexAdded: setNull(calcIndexField(indexChange.filter(c => c.opt === 'add'))),
             indexRemoved: setNull(calcIndexField(indexChange.filter(c => c.opt === 'delete'))),

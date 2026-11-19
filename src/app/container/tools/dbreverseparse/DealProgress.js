@@ -5,6 +5,7 @@ import { FixedSizeList as List } from 'react-window';
 import {getPrefix} from '../../../../lib/prefixUtil';
 import {connectDB,  getLogPath, showItemInFolder} from '../../../../lib/middle';
 import {remarkSetting, namedByRemark} from '../../../../lib/remark';
+import {cleanReverseDefaults} from '../../../../lib/reverse_default';
 
 const oneLine = {whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'};
 
@@ -34,7 +35,7 @@ export default React.memo(({prefix, dataSource, config, selectedTable,
         if (data.status === 'FAILED') {
           reject(data.body || '');
         } else {
-          resolve(data.body.map((d) => {
+          resolve(cleanReverseDefaults(data.body, currentDb.properties?.url).map((d) => {
             const currentTable = tables.filter(t => t.originDefKey === d.defKey)[0];
             const group = currentTable?.group;
             if (dbData.flag === 'LOWCASE') {

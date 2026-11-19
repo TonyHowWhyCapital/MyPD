@@ -1,5 +1,6 @@
 import {connectDB} from '../../../../lib/middle';
 import {remarkSetting, namedByRemark} from '../../../../lib/remark';
+import {cleanReverseDefaults} from '../../../../lib/reverse_default';
 
 const CHUNK = 15;
 const request = (dataSource, config, properties, command) => new Promise((resolve, reject) => {
@@ -23,7 +24,7 @@ export const loadDbSnapshot = async (dataSource, config, conn, onProgress) => {
       ...conn.properties,
       tables: tables.slice(i, i + CHUNK).map(t => t.defKey).join(','),
     }, 'DBReverseGetTableDDL');
-    body.forEach((d) => {
+    cleanReverseDefaults(body, conn.properties.url).forEach((d) => {
       const meta = tables.find(t => t.defKey === d.defKey) || {};
       const fields = (d.fields || []).map(f => ({...f, id: Math.uuid(), ...splitName(f)}));
       entities.push({

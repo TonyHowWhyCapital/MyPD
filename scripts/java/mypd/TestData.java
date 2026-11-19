@@ -13,11 +13,11 @@ import java.util.Map;
 
 /**
  * Database side of test data: counts rows, reads existing keys, runs a read-only query and
- * writes a bundle of generated rows.
+ * writes a bundle of generated rows. Also runs the DDL of the model compare (ddl mode).
  *
  * The only argument is params=<file>: a JSON file (owner-only, deleted here once read unless
  * "keepParams" is true) so that neither the password nor the url shows in the process list:
- *   {"mode":"count|keys|keyrows|query|check|write", "driver_class_name":..., "url":..., "username":...,
+ *   {"mode":"count|keys|keyrows|query|check|write|ddl", "driver_class_name":..., "url":..., "username":...,
  *    "password":..., "out":<result file>, "dialect":<optional override>,
  *    count: "tables":[names]
  *    keys:  "table":..., "column":..., "limit":n
@@ -25,6 +25,7 @@ import java.util.Map;
  *    query: "sql":..., "limit":n, "timeout":seconds
  *    write: "dir":<bundle>, "existing":"append|clear", "onError":"rollback|skip",
  *           "progress":<file>, "batchSize":n}
+ *    ddl:   "statements":[sql], "progress":<file>  (see ApplyDdl; never through TestDataSqlCheck)
  * The result file holds {"status":"SUCCESS","body":...} or {"status":"FAILED","body":{code,message,...}}.
  */
 public class TestData {
@@ -90,6 +91,9 @@ public class TestData {
       }
       if ("write".equals(mode)) {
         return new TestDataWrite(db, p).run();
+      }
+      if ("ddl".equals(mode)) {
+        return ApplyDdl.run(db, p);
       }
       throw new TestDataFailure("BAD_PARAMS", "Unknown mode: " + mode);
     }

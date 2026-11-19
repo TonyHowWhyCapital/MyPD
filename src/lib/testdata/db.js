@@ -1,8 +1,8 @@
 // Test data against a real database: row counts, existing keys, a read-only query and writing a
-// bundle of generated rows. The work is done by the Java tool mypd.TestData (scripts/java/mypd),
-// started the same way as runJavaTool in ../json.js, except that the connection and the options
-// travel in an owner-only temporary file instead of the command line, where the password would
-// show in the process list.
+// bundle of generated rows; also the DDL of the model compare. The work is done by the Java tool
+// mypd.TestData (scripts/java/mypd), started the same way as runJavaTool in ../json.js, except
+// that the connection and the options travel in an owner-only temporary file instead of the
+// command line, where the password would show in the process list.
 
 import fs from 'fs';
 import os from 'os';
@@ -384,4 +384,16 @@ export const writeBundle = (dataSource, config, conn, dir, options = {}) => {
     promise: run.promise.then(body => ({ tables: body.tables })),
     cancel: run.cancel,
   };
+};
+
+// Runs DDL statements (see splitStatements in ../ddl_statements.js) in their order. Returns
+// {promise, cancel}. PostgreSQL, SQL Server and SQLite run them in one transaction that a
+// failure rolls back; the other databases commit each statement and stop at the first failure.
+// promise -> {executed, transactional}
+// A failure rejects with the usual {code, message, sqlState, dbCode} plus index (the failing
+// statement, from 0), executed (statements that took effect and stay; 0 after a rollback) and
+// rolledBack. onProgress({done, total}) after each statement.
+// cancel() ends the Java process; what was not committed is rolled back by the database.
+export const executeDdl = (dataSource, config, conn, statements, onProgress) => {
+  return runTool(dataSource, config, conn, 'ddl', { statements: statements || [] }, onProgress);
 };

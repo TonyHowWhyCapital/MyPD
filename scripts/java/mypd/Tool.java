@@ -1,10 +1,13 @@
 package mypd;
 
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,6 +45,25 @@ final class Tool {
     try (Writer w = new OutputStreamWriter(
         Files.newOutputStream(Paths.get(out)), StandardCharsets.UTF_8)) {
       w.write("{\"status\":" + json(status) + ",\"body\":" + body + "}");
+    }
+  }
+
+  /** Replaces a progress file; written beside and renamed so that a reader never sees half a file. */
+  static void progress(String file, String json) {
+    if (file.isEmpty()) {
+      return;
+    }
+    try {
+      Path target = Paths.get(file);
+      Path temp = Paths.get(file + ".tmp");
+      Files.write(temp, json.getBytes(StandardCharsets.UTF_8));
+      try {
+        Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+      } catch (IOException e) {
+        Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
+      }
+    } catch (IOException e) {
+      // progress is a courtesy; the work goes on
     }
   }
 

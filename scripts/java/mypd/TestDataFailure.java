@@ -21,6 +21,12 @@ final class TestDataFailure extends Exception {
   String phase;
   /** JSON array of per-table results reached so far (write mode), or null. */
   String tables;
+  /** ddl mode: the statement that failed (from 0), -1 = none. */
+  int index = -1;
+  /** ddl mode: statements that took effect and stay; -1 = not a ddl run. */
+  long executed = -1;
+  /** ddl mode: the statements before the failing one were undone. */
+  boolean rolledBack;
 
   TestDataFailure(String code, String message) {
     super(message == null ? code : message);
@@ -65,6 +71,12 @@ final class TestDataFailure extends Exception {
     }
     if (tables != null) {
       sb.append(",\"tables\":").append(tables);
+    }
+    if (index >= 0) {
+      sb.append(",\"index\":").append(index);
+    }
+    if (executed >= 0) {
+      sb.append(",\"executed\":").append(executed).append(",\"rolledBack\":").append(rolledBack);
     }
     return sb.append('}').toString();
   }

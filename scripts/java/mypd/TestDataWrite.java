@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -451,19 +450,7 @@ final class TestDataWrite {
         + ",\"total\":" + t.rows + ",\"tableIndex\":" + index + ",\"tableCount\":" + targets.size()
         + ",\"phase\":" + Tool.json(phase) + ",\"written\":" + t.written
         + ",\"failed\":" + t.failed + "}";
-    try {
-      // written beside and renamed so that a reader never sees half a file
-      Path target = Paths.get(progressFile);
-      Path temp = Paths.get(progressFile + ".tmp");
-      Files.write(temp, json.getBytes(StandardCharsets.UTF_8));
-      try {
-        Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-      } catch (IOException e) {
-        Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
-      }
-    } catch (IOException e) {
-      // progress is a courtesy; the write goes on
-    }
+    Tool.progress(progressFile, json);
   }
 
   private String tablesJson() {

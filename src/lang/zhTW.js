@@ -1192,7 +1192,21 @@ export default {
       "invalidTableList": "無效的清單檔案",
       "tableListEmpty": "請先點選【新增列】或【載入比較清單】按鈕",
       "compareList": "比較清單",
-      "mergeToLeft": "合併增量至左邊"
+      "mergeToLeft": "合併增量至左邊",
+      "diffTableCol": "表",
+      "diffKind": "變更",
+      "diffTarget": "物件",
+      "diffAttr": "屬性",
+      "diffBefore": "調整前（資料庫）",
+      "diffAfter": "調整後（模型）",
+      "diffNone": "模型與資料庫一致",
+      "diffExtraNote": "資料庫多出的表，不產生DDL",
+      "diffKind_tableAdd": "新增表",
+      "diffKind_tableExtra": "資料庫多出的表",
+      "diffKind_tableBase": "修改表",
+      "diffKind_fieldAdd": "新增欄位",
+      "diffKind_fieldRemove": "刪除欄位",
+      "diffKind_fieldModify": "修改欄位"
     },
     "sheet": {
       "add": "附加",

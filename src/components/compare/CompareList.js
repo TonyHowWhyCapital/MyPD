@@ -27,6 +27,8 @@ import {
 } from '../../lib/datasource_util';
 import Node from './CompareItem';
 import Container from './CompareContainer';
+import DiffTable from './CompareDiffTable';
+import {diffRows} from '../../lib/compare_diff_rows';
 import {postWorkerFuc} from '../../lib/event_tool';
 
 export default React.memo(forwardRef(({prefix, style, dataSource, config, empty,
@@ -482,12 +484,16 @@ export default React.memo(forwardRef(({prefix, style, dataSource, config, empty,
                 const close = () => {
                     modal && modal.close();
                 };
-                modal = openModal(<CodeEditor
-                  mode='sql'
-                  value={value}
-                  width='auto'
-                  height='calc(100vh - 135px)'
-                />, {
+                const rows = diffRows(changes);
+                modal = openModal(<div className={`${currentPrefix}-compare-ddl`}>
+                  <DiffTable prefix={prefix} rows={rows}/>
+                  <CodeEditor
+                    mode='sql'
+                    value={value}
+                    width='auto'
+                    height='calc((100vh - 135px) * 0.6 - 12px)'
+                  />
+                </div>, {
                     bodyStyle: { width: '80%' },
                     title: FormatMessage.string({id: 'components.compare.ddl'}),
                     buttons: [

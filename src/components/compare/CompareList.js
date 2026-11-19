@@ -45,6 +45,8 @@ export default React.memo(forwardRef(({prefix, style, dataSource, config, empty,
     const entitiesKeyCheckedRef = useRef([]);
     entitiesKeyCheckedRef.current = [...entitiesKeyChecked];
     const [changes, setChanges] = useState([]);
+    const changesRef = useRef(changes);
+    changesRef.current = changes;
     const [metaDataFields, setMetaDataFields] = useState([]);
     const [isCustomerMeta, setCustomerMeta] = useState(false);
     const [customerDataSource, setCustomerDataSource] = useState({});
@@ -141,6 +143,7 @@ export default React.memo(forwardRef(({prefix, style, dataSource, config, empty,
             getTreeData: () => {
                 return treeDataRef.current;
             },
+            getChanges: () => changesRef.current,
             setEntitiesKeyChecked: (callback) => {
                 setEntitiesKeyChecked(callback);
             },

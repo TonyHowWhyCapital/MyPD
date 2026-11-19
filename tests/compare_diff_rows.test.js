@@ -1,6 +1,8 @@
 import demo from '../src/lib/template/教学管理系统.pdma.json';
-import {simplePackageChanges} from '../src/lib/datasource_version_util';
-import {diffRows, typeText, KIND_ORDER, KIND_LANG_KEY} from '../src/lib/compare_diff_rows';
+import {simplePackageChanges, packageChanges} from '../src/lib/datasource_version_util';
+import {diffRows, typeText, KIND_ORDER, KIND_LANG_KEY, ATTR_LANG_KEY} from '../src/lib/compare_diff_rows';
+import zh from '../src/lang/zh';
+import en from '../src/lang/en';
 
 const clone = () => JSON.parse(JSON.stringify(demo));
 const find = (ds, key) => ds.entities.find(e => e.defKey === key);
@@ -29,13 +31,13 @@ describe('diffRows', () => {
     expect(rows[0].after).toContain(`(${exam.fields.length})`);
   });
 
-  test('table only in the database is listed as extra with an empty after', () => {
+  test('table only in the database is listed as removed with an empty after', () => {
     const model = clone();
     const db = clone();
     model.entities = model.entities.filter(e => e.defKey !== 'SIMS_EXAM');
     const rows = rowsOf(model, db);
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({kind: 'tableExtra', after: ''});
+    expect(rows[0]).toMatchObject({kind: 'tableRemove', after: ''});
     expect(rows[0].before).toContain('SIMS_EXAM');
   });
 
@@ -116,9 +118,101 @@ describe('diffRows', () => {
   });
 });
 
+// current = this version, pre = the previous version
+const versionRows = (current, pre) => diffRows(packageChanges(current, pre, current.profile.default.db));
+
+describe('diffRows on version changes', () => {
+  test('identical versions yield no rows', () => {
+    expect(versionRows(clone(), clone())).toEqual([]);
+  });
+
+  test('field attributes beyond type and names are listed', () => {
+    const current = clone();
+    const pre = clone();
+    const field = find(current, 'SIMS_COLLEGE').fields[2];
+    field.notNull = !field.notNull;
+    field.defaultValue = 'N/A';
+    const rows = versionRows(current, pre);
+    expect(rows.map(r => [r.kind, r.target, r.attr])).toEqual([
+      ['fieldModify', field.defKey, 'notNull'],
+      ['fieldModify', field.defKey, 'defaultValue'],
+    ]);
+    expect(rows[1]).toMatchObject({before: '', after: 'N/A'});
+    expect(rows[0].after).toBe(field.notNull ? '✓' : '');
+  });
+
+  test('a renamed field shows the old and new code', () => {
+    const current = clone();
+    const pre = clone();
+    const oldKey = find(pre, 'SIMS_COLLEGE').fields[2].defKey;
+    find(current, 'SIMS_COLLEGE').fields[2].defKey = 'RENAMED';
+    const rows = versionRows(current, pre);
+    expect(rows).toEqual([expect.objectContaining({
+      kind: 'fieldModify', target: 'RENAMED', attr: 'defKey', before: oldKey, after: 'RENAMED',
+    })]);
+  });
+
+  test('a removed table is listed as removed', () => {
+    const current = clone();
+    const pre = clone();
+    current.entities = current.entities.filter(e => e.defKey !== 'SIMS_EXAM');
+    const rows = versionRows(current, pre);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({kind: 'tableRemove', after: ''});
+  });
+
+  test('index changes show the index columns before and after', () => {
+    const current = clone();
+    const pre = clone();
+    const student = find(current, 'SIMS_STUDENT');
+    const index = student.indexes[0];
+    index.unique = true;
+    const rows = versionRows(current, pre).filter(r => r.kind === 'indexModify');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].target).toBe(index.defKey);
+    expect(rows[0].before.startsWith('(')).toBe(true);
+    expect(rows[0].after.startsWith('UNIQUE (')).toBe(true);
+    const keys = index.fields.map(f => student.fields.find(x => x.id === f.fieldDefKey).defKey);
+    keys.forEach(k => expect(rows[0].after).toContain(k));
+  });
+
+  test('a changed property shows the previous value before', () => {
+    const current = clone();
+    const pre = clone();
+    find(pre, 'SIMS_COLLEGE').properties = {partitionBy: 'old'};
+    find(current, 'SIMS_COLLEGE').properties = {partitionBy: 'new', engine: 'InnoDB'};
+    const rows = versionRows(current, pre);
+    expect(rows.map(r => [r.kind, r.target, r.before, r.after])).toEqual([
+      ['propAdd', 'engine', '', 'InnoDB'],
+      ['propModify', 'partitionBy', 'old', 'new'],
+    ]);
+  });
+
+  test('a removed view is listed with the view kind', () => {
+    const current = clone();
+    const pre = clone();
+    current.views = current.views.slice(1);
+    const rows = versionRows(current, pre);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].kind).toBe('viewRemove');
+  });
+});
+
+const has = (lang, id) => id.split('.').reduce((p, k) => (p == null ? p : p[k]), lang) !== undefined;
+
 describe('kind table', () => {
   test('every kind has a language key', () => {
     expect(Object.keys(KIND_LANG_KEY).sort()).toEqual([...KIND_ORDER].sort());
+  });
+  test('every kind, attribute and column label exists in both languages', () => {
+    const scene = ['diffBefore', 'diffAfter', 'diffNone', 'diffBeforeVersion', 'diffAfterVersion',
+      'diffNoneVersion', 'diffBeforeTable', 'diffAfterTable', 'diffNoneTable', 'diffKind_tableExtra',
+      'diffKind_onlyCheck', 'diffKind_onlyDiff', 'diffExtraNote', 'diffList', 'diffListTitle']
+      .map(k => `components.compare.${k}`);
+    const ids = [...Object.values(KIND_LANG_KEY), ...Object.values(ATTR_LANG_KEY), ...scene];
+    [zh, en].forEach((lang) => {
+      expect(ids.filter(id => !has(lang, id))).toEqual([]);
+    });
   });
   test('typeText formats type, length and scale', () => {
     expect(typeText({type: 'INT', len: '', scale: ''})).toBe('INT');

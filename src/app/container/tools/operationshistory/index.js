@@ -29,6 +29,7 @@ export default React.memo(({prefix, info, data, openLoading, closeLoading,
               <Button key='cancel' onClick={onCancel}>
                 <FormatMessage id='button.close'/>
               </Button>],
+            bodyStyle: {width: '70%'},
             title: FormatMessage.string({id: 'operationsHistory.log'}),
         });
     };

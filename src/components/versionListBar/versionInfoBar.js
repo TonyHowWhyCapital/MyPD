@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle, useState, useRef } from 'react';
+import React, { forwardRef, useImperativeHandle, useState, useRef, useMemo } from 'react';
 import moment from 'moment';
 
 import './style/index.less';
@@ -11,6 +11,8 @@ import { Download } from '../download';
 import {getMemoryCache} from '../../lib/cache';
 import {getDefaultDb} from '../../lib/datasource_util';
 import {postWorkerFuc} from '../../lib/event_tool';
+import {diffRows} from '../../lib/compare_diff_rows';
+import DiffTable from '../compare/CompareDiffTable';
 
 const VersionInfoBar = React.memo(forwardRef((props, ref) => {
   const { prefix, empty, dataSource } = props;
@@ -20,6 +22,7 @@ const VersionInfoBar = React.memo(forwardRef((props, ref) => {
   const [version, setVersion] = useState(null);
   const [value, setValue] = useState('');
   const currentPrefix = getPrefix(prefix);
+  const rows = useMemo(() => diffRows(version?.changes || []), [version]);
   useImperativeHandle(ref, () => {
       return {
           setVersion: (v, changes, message, sql) => {
@@ -115,11 +118,14 @@ const VersionInfoBar = React.memo(forwardRef((props, ref) => {
             <span>{getDefaultDb(dataSource)}</span>
           </div>
         </div>
+        <div className={`${currentPrefix}-version-info-diff`}>
+          <DiffTable rows={rows} mode='version'/>
+        </div>
         <CodeEditor
           mode='sql'
           value={value}
           width='auto'
-          height='calc(100vh - 135px)'
+          height='calc((100vh - 135px) * 0.6 - 12px)'
           onChange={e => _codeChange(e.target.value)}
           />
       </div>

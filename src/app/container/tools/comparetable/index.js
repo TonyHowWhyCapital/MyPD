@@ -19,6 +19,8 @@ import './style/index.less';
 import { separator } from '../../../../../profile';
 import {getPrefix} from '../../../../lib/prefixUtil';
 import {postWorkerFuc} from '../../../../lib/event_tool';
+import {diffRows} from '../../../../lib/compare_diff_rows';
+import DiffTable from '../../../../components/compare/CompareDiffTable';
 
 export default React.memo(({dataSource, prefix,
                                openLoading, closeLoading, updateProject}) => {
@@ -401,6 +403,19 @@ export default React.memo(({dataSource, prefix,
             title: FormatMessage.string({id: 'components.compare.entityPicker'}),
         });
     };
+    const showDiffList = () => {
+        let modal;
+        const rows = diffRows(compareListRef.current.getChanges());
+        modal = openModal(<div className={`${currentPrefix}-compare-table-diff`}>
+          <DiffTable prefix={prefix} rows={rows} mode='table'/>
+        </div>, {
+            bodyStyle: { width: '70%' },
+            title: FormatMessage.string({id: 'components.compare.diffListTitle'}),
+            buttons: [<Button key='close' onClick={() => modal.close()}>
+              <FormatMessage id='button.close'/>
+            </Button>],
+        });
+    };
     return <div className={`${currentPrefix}-compare-table`}>
       <Loading visible={loading} isFull={false}>
         <CompareList
@@ -421,6 +436,9 @@ export default React.memo(({dataSource, prefix,
                   onClick={() => scanTable(entitiesKeyChecked)}
                   disable={entitiesKeyChecked.length === 0}>
                   <FormatMessage id='components.compare.scanFieldDiff'/>
+                </Button>
+                <Button onClick={showDiffList}>
+                  <FormatMessage id='components.compare.diffList'/>
                 </Button>
                 <Button
                   onClick={loadList}

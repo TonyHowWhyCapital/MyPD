@@ -55,7 +55,7 @@ const text = (v) => {
 };
 
 export const typeText = (f) => {
-  const type = text(f?.type);
+  const type = text(f?.originType || f?.type);
   const len = text(f?.len);
   const scale = text(f?.scale);
   if (!len && !scale) {

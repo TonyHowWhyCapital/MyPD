@@ -2,6 +2,7 @@ import React from 'react';
 import {FormatMessage, Icon, Tooltip} from 'components';
 import {transform} from '../../lib/datasource_util';
 import {getPrefix} from '../../lib/prefixUtil';
+import {fieldReason} from '../../lib/compare_reason';
 
 export default React.memo(({parent: { sourceEntity, key, metaFieldsData }, metaDataFields,
                                changes, i, leftTitle, rightTitle, dataSource, customerDataSource,
@@ -21,7 +22,7 @@ export default React.memo(({parent: { sourceEntity, key, metaFieldsData }, metaD
         return  <div
           className={`${currentPrefix}-compare-list-container-content-list-item-field ${currentPrefix}-compare-list-container-content-list-item-field-second`}
         >
-          <span style={{width: columnFieldWidth.status}} />
+          <span style={{width: columnFieldWidth.status}}><FormatMessage id='components.compare.diffReasonCol'/></span>
           <span style={{width: columnFieldWidth.defKey}}><FormatMessage id='components.compare.fieldCode'/></span>
           <span style={{width: columnFieldWidth.defName}}><FormatMessage id='components.compare.name'/></span>
           <span style={{width: columnFieldWidth.type}}><FormatMessage id='components.compare.type'/></span>
@@ -83,6 +84,7 @@ export default React.memo(({parent: { sourceEntity, key, metaFieldsData }, metaD
         return false;
     };
     const isDiff = calcIsDiff();
+    const reason = isDiff ? fieldReason(change, dataKey, FormatMessage.string) : '';
     const currentField = (change?.data?.fieldModified || [])
         .find(f => f.defKey?.toLocaleLowerCase() === dataKey);
     const checkIsChange = (name) => {
@@ -93,11 +95,14 @@ export default React.memo(({parent: { sourceEntity, key, metaFieldsData }, metaD
     };
     return <div className={`${currentPrefix}-compare-list-container-content-list-item-field`}>
       <span style={{width: columnFieldWidth.status}}>
-        <span className={`${currentPrefix}-compare-list-container-content-list-item-${isDiff ? 'diff' : 'same'}`}>
-          {
-                  isDiff ?  <Icon type='fa-times-circle-o'/> : <Icon type='fa-check-circle-o'/>
-              }
-        </span>
+        <Tooltip placement='top' title={reason}>
+          <span className={`${currentPrefix}-compare-list-container-content-list-item-${isDiff ? 'diff' : 'same'}`}>
+            {
+                    isDiff ?  <Icon type='fa-times-circle-o'/> : <Icon type='fa-check-circle-o'/>
+                }
+            {reason && <span className={`${currentPrefix}-compare-list-container-content-list-item-reason`}>{reason}</span>}
+          </span>
+        </Tooltip>
       </span>
       <Tooltip placement='top' title={sourceField.defKey}>
         <span className={checkIsChange('defKey')} style={{textAlign: 'left', width: columnFieldWidth.defKey}}>

@@ -88,7 +88,7 @@ export default React.memo(forwardRef(({prefix, style, dataSource, config, empty,
     const columnWidth = {
       num: 20, // 动态计算
       view: 40,
-      diff: 70,
+      diff: 260,
       defKey: 200 * 2,
       defName: 200 * 2,
       comment: 200 * 2,
@@ -97,7 +97,7 @@ export default React.memo(forwardRef(({prefix, style, dataSource, config, empty,
     };
     // 子级列宽对象
     const columnFieldWidth = {
-        status: 30,
+        status: 220,
         defKey: 200,
         defName: 200,
         comment: 200,

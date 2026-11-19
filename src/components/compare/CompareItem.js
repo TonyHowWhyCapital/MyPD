@@ -3,6 +3,7 @@ import {Checkbox, FormatMessage, Icon, Tooltip} from 'components';
 import Child from './CompareItemField';
 import {getPrefix} from '../../lib/prefixUtil';
 import {highlightHtml} from '../../lib/string';
+import {findChange, tableReason} from '../../lib/compare_reason';
 
 export default React.memo(({data: { isLeaf, sourceEntity,
     i, parent, dataKey, metaEntityData, metaFieldsData }, onRemove, searchValue,
@@ -38,12 +39,16 @@ export default React.memo(({data: { isLeaf, sourceEntity,
                     c.data.baseInfo?.defKey)?.toLocaleLowerCase()
                 === dataKey) > -1 && (isCustomerMeta ? true :
                 (metaFieldsIndex > -1 || metaFieldsData || sourceEntity?.defKey))) {
-                return [<span className={`${currentPrefix}-compare-list-container-content-list-item-diff`}>
-                  <span>
-                    <Icon type='fa-times-circle-o'/>
+                const reason = tableReason(findChange(changes, dataKey), FormatMessage.string);
+                return [<Tooltip placement='top' title={reason}>
+                  <span className={`${currentPrefix}-compare-list-container-content-list-item-diff`}>
+                    <span>
+                      <Icon type='fa-times-circle-o'/>
+                    </span>
+                    <span><FormatMessage id='components.compare.diff'/></span>
+                    {reason && <span className={`${currentPrefix}-compare-list-container-content-list-item-reason`}>{reason}</span>}
                   </span>
-                  <span><FormatMessage id='components.compare.diff'/></span>
-                </span>, 'diff'];
+                </Tooltip>, 'diff'];
             } else if(metaFieldsIndex < 0 && !metaFieldsData) {
                 // 未获取到详细的字段信息 未扫描
                 return [<span className={`${currentPrefix}-compare-list-container-content-list-item-wait`}>

@@ -3,7 +3,8 @@ import { labelOf } from './labels';
 import { columnPercents } from './sections';
 import { pageNumberParts } from './layout';
 import { IMAGE_FIELDS, bytesOf, extensionOf } from './image';
-import { DRAWING_NS, mediaName, logoRun, backgroundRun } from './docx_image';
+import { DRAWING_NS, mediaName, logoAnchor, backgroundRun } from './docx_image';
+import { textBox, logoBox } from './cover';
 
 // Strip characters XML 1.0 forbids, then escape the markup characters.
 const esc = v => String(v)
@@ -103,24 +104,26 @@ export const buildFooterXml = (doc) => {
   return `${XML}<w:ftr ${NS}><w:p><w:pPr><w:jc w:val="center"/></w:pPr>${body}</w:p></w:ftr>`;
 };
 
-const centred = (text, rPr, { before = 0, after = 0, rule } = {}) => `<w:p><w:pPr>${rule ? '<w:pBdr><w:bottom w:val="single" w:sz="12" w:space="12" w:color="444444"/></w:pBdr>' : ''}<w:spacing w:before="${before}" w:after="${after}"/><w:jc w:val="center"/></w:pPr>${runs(text, rPr)}</w:p>`;
-
 const pageSize = landscape => `<w:pgSz w:w="${landscape ? PAGE.long : PAGE.short}" w:h="${landscape ? PAGE.short : PAGE.long}"${landscape ? ' w:orient="landscape"' : ''}/><w:pgMar w:top="${PAGE.margin}" w:right="${PAGE.margin}" w:bottom="${PAGE.margin}" w:left="${PAGE.margin}" w:header="567" w:footer="567" w:gutter="0"/>`;
 
-// The cover is a section of its own: centred on the page, no header, no page number.
+// A part of the cover in a frame of its own, held at its place on the page.
+const framed = (part, page) => {
+  const box = textBox(part, ...page);
+  const rPr = `${part.bold ? '<w:b/>' : ''}${part.color ? `<w:color w:val="${hex(part.color)}"/>` : ''}<w:sz w:val="${part.size * 2}"/>`;
+  return `<w:p><w:pPr><w:framePr w:w="${box.width}" w:wrap="around" w:hAnchor="page" w:vAnchor="page" w:x="${box.left}" w:y="${box.top}"/><w:spacing w:before="0" w:after="0"/><w:jc w:val="center"/></w:pPr>${runs(part.text, rPr)}</w:p>`;
+};
+
+// The cover is a section of its own, no header, no page number. Every part stands where
+// it was placed in the cover designer.
 const coverXml = (doc) => {
-  const {
-    subtitle, rows, logo, background,
-  } = doc.cover;
+  const { texts, logo, background } = doc.cover;
   const landscape = layoutOfDoc(doc).landscape;
   const page = landscape ? [PAGE.long, PAGE.short] : [PAGE.short, PAGE.long];
-  const pictures = `${background ? backgroundRun(background, ...page) : ''}${logo ? logoRun(logo) : ''}`;
+  const pictures = `${background ? backgroundRun(background, ...page) : ''}${logo ? logoAnchor(logo, logoBox(logo, ...page)) : ''}`;
   return [
-    pictures ? `<w:p><w:pPr><w:spacing w:after="${logo ? 480 : 0}"/><w:jc w:val="center"/></w:pPr>${pictures}</w:p>` : '',
-    centred(doc.title, '<w:b/><w:sz w:val="64"/>', { after: 240, rule: true }),
-    subtitle ? centred(subtitle, '<w:color w:val="555555"/><w:sz w:val="36"/>', { after: 240 }) : '',
-    ...rows.map(([label, value], i) => centred(`${label}：${value}`, '<w:sz w:val="26"/>', { before: i ? 0 : 2400, after: 120 })),
-    `<w:p><w:pPr><w:sectPr>${pageSize(landscape)}<w:vAlign w:val="center"/></w:sectPr></w:pPr></w:p>`,
+    pictures ? `<w:p>${pictures}</w:p>` : '',
+    ...texts.map(part => framed(part, page)),
+    `<w:p><w:pPr><w:sectPr>${pageSize(landscape)}</w:sectPr></w:pPr></w:p>`,
   ].join('');
 };
 

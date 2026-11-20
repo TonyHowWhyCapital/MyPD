@@ -8,7 +8,7 @@ export const collectHeadings = doc => doc.blocks.filter(b => b.type === 'heading
 export const renderMarkdown = (doc) => {
   const lang = doc.lang || 'zh';
   const out = doc.cover
-    ? [`# ${doc.title}`, '', ...(doc.cover.subtitle ? [`**${doc.cover.subtitle}**`, ''] : []),
+    ? [`# ${doc.cover.title || doc.title}`, '', ...(doc.cover.subtitle ? [`**${doc.cover.subtitle}**`, ''] : []),
       ...doc.cover.rows.map(([k, v]) => `- ${k}：${v}`), '', '---', '']
     : [`# ${doc.title}`, '', `> ${labelOf('generatedTime', lang)}: ${doc.generatedTime}`, ''];
   // Anchors are only written when there is a table of contents to lead to them.

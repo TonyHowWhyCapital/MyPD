@@ -2,9 +2,11 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Button, FormatMessage, Icon } from 'components';
 import {
   buildReport, labelOf, columnPercents, dragColumn, widthsOf, applyWidths, clearWidths, hasWidths,
-  nextAlign, setColumnAlign, cssOf,
+  nextAlign, setColumnAlign, cssOf, layoutOf, setLayout, setCoverItem,
 } from '../../../../lib/report';
 import { getPrefix } from '../../../../lib/prefixUtil';
+import CoverPage from './CoverPage';
+import './style/cover.less';
 
 // A long table adds nothing to judging the layout.
 const MAX_ROWS = 50;
@@ -113,6 +115,10 @@ export default ({
     document.addEventListener('mousemove', move);
     document.addEventListener('mouseup', up);
   };
+  const coverCls = `${getPrefix(prefix)}-report-cover`;
+  const moveCoverPart = (key, x, y) => update(setLayout(tpl, {
+    coverItems: setCoverItem(layoutOf(tpl).coverItems, key, { x, y }),
+  }));
   const onAlign = (block, i) => {
     const key = block.keys[i];
     update({
@@ -126,6 +132,7 @@ export default ({
       <span>
         <span><Icon type='fa-arrows-h'/><FormatMessage id='report.previewTip'/></span>
         <span><Icon type='fa-align-left'/><FormatMessage id='report.previewTipAlign'/></span>
+        {doc.cover && <span><Icon type='fa-arrows'/><FormatMessage id='report.previewTipCover'/></span>}
         <span><Icon type='fa-info-circle'/><FormatMessage id='report.previewTipKeep'/></span>
       </span>
       <Button disable={!hasWidths(tpl)} onClick={() => update(clearWidths(tpl))}>
@@ -134,14 +141,14 @@ export default ({
     </div>
     <div className={`${cls}-scroll`}>
       <div className={`${cls}-paper`} ref={paper}>
-        {doc.cover ? <div
-          className={`${cls}-cover`}
-          style={doc.cover.background ? { backgroundImage: `url(${doc.cover.background.data})` } : undefined}
-        >
-          {doc.cover.logo && <img alt='' src={doc.cover.logo.data}/>}
-          <h1>{doc.title}</h1>
-          {doc.cover.subtitle && <p>{doc.cover.subtitle}</p>}
-          {doc.cover.rows.map(([k, v]) => <div key={k}>{k}：{v}</div>)}
+        {doc.cover ? <div className={`${cls}-cover`}>
+          <CoverPage
+            cls={coverCls}
+            cover={doc.cover}
+            landscape={doc.layout.landscape}
+            width={680}
+            onMove={moveCoverPart}
+          />
         </div> : <React.Fragment>
           <h1>{doc.title}</h1>
           <div className={`${cls}-more`}>{labelOf('generatedTime', lang)}: {doc.generatedTime}</div>

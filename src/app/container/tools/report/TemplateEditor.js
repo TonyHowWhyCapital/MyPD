@@ -97,7 +97,14 @@ export default React.memo(({
           <FormatMessage id={isList ? 'report.kindList' : 'report.kindDocument'}/>
         </span>
       </div>
-      <LayoutPanel cls={`${currentPrefix}-report`} draft={draft} onChange={onChange}/>
+      <LayoutPanel
+        prefix={prefix}
+        cls={`${currentPrefix}-report`}
+        draft={draft}
+        modelName={dataSource.name || ''}
+        lang={lang}
+        onChange={onChange}
+      />
       <div className={`${currentPrefix}-report-row`}>
         <span className={`${currentPrefix}-report-label`}><FormatMessage id='report.sections'/></span>
         <Select notAllowEmpty value={newType} onChange={e => setNewType(e.target.value)}>

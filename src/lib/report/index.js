@@ -18,9 +18,12 @@ import {
   emptyHistory, record, undo, redo,
 } from './history';
 import {
-  PAGE_NUMBERS, COVER_FIELDS, layoutOf, setLayout, numberHeadings, coverOf,
+  PAGE_NUMBERS, COVER_FIELDS, layoutOf, setLayout, numberHeadings, coverOf, coverPartsOf,
 } from './layout';
 import { IMAGE_FIELDS, MAX_IMAGE_BYTES, imageOf } from './image';
+import {
+  COVER_TEXTS, COVER_ITEMS, COVER_SIZES, LOGO_SIZES, setCoverItem, resetCoverPlaces, textBox, logoBox,
+} from './cover';
 import { renderMarkdown } from './markdown';
 import { renderHtml } from './html';
 import { renderDocx } from './docx';
@@ -33,7 +36,8 @@ export {
   columnLabel, originalLabel, setColumnLabel,
   FONT_SIZES, styleOf, lookOf, setColumnStyle, cssOf, styleStore, alignStore, spreadStyle,
   emptyHistory, record, undo, redo,
-  PAGE_NUMBERS, COVER_FIELDS, layoutOf, setLayout, IMAGE_FIELDS, MAX_IMAGE_BYTES, imageOf,
+  PAGE_NUMBERS, COVER_FIELDS, layoutOf, setLayout, IMAGE_FIELDS, MAX_IMAGE_BYTES, imageOf, coverPartsOf,
+  COVER_TEXTS, COVER_ITEMS, COVER_SIZES, LOGO_SIZES, setCoverItem, resetCoverPlaces, textBox, logoBox,
 };
 
 const KINDS = ['document', 'list'];
@@ -166,11 +170,15 @@ export const buildReport = (template, dataSources, options = {}) => {
   const list = dataSources.length ? dataSources : [{}];
   const multi = list.length > 1;
   const now = options.now ? new Date(options.now) : new Date();
-  const title = options.title || (multi ? template.defName : `${list[0].name || ''} ${template.defName}`.trim());
   const layout = layoutOf(template);
+  // The name of the template says what kind of report it is, not what it is about, so the
+  // cover shows its own title or the names of the models.
+  const models = list.map(ds => ds.name).filter(Boolean).join('、');
+  const title = options.title || layout.coverTitle.trim()
+    || (multi ? template.defName : `${list[0].name || ''} ${template.defName}`.trim());
   const generatedTime = formatTime(now);
   const doc = {
-    title, generatedTime, lang, blocks: [], layout, cover: coverOf(layout, generatedTime, lang),
+    title, generatedTime, lang, blocks: [], layout, cover: coverOf(layout, generatedTime, lang, models || title),
   };
   if (template.kind === 'list') {
     doc.blocks = buildListTable(template, list, lang);

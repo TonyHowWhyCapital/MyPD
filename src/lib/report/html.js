@@ -15,15 +15,40 @@ th{background:#f0f2f5;text-align:center}
 td.center{text-align:center}td.right{text-align:right}
 table.sized{table-layout:fixed}table.sized th,table.sized td{word-break:break-all}
 nav.toc ul{list-style:none;padding-left:0}
-section.cover{min-height:90vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;page-break-after:always}
+section.cover{position:relative;width:210mm;height:296mm;margin:0 auto 24px;overflow:hidden;page-break-after:always;box-shadow:0 0 0 1px #ddd}
+section.cover.landscape{width:297mm;height:209mm}
 section.cover{background-size:cover;background-position:center;-webkit-print-color-adjust:exact}
-section.cover img{max-width:240px;max-height:140px;margin-bottom:32px}
-section.cover h1{font-size:40px;border-bottom:3px solid #444;padding:0 24px 16px;margin-bottom:16px}
-section.cover .sub{font-size:22px;color:#555;margin:0 0 96px}
-section.cover dl{margin:0;font-size:16px}section.cover dl div{margin:6px 0}
-section.cover dt,section.cover dd{display:inline;margin:0}
+section.cover>*{position:absolute;margin:0}
+section.cover>div{text-align:center;white-space:pre-wrap;line-height:1.3}
+@media print{section.cover{margin:0;box-shadow:none}}
 @media print{body{max-width:none;margin:0}thead{display:table-header-group}tr{page-break-inside:avoid}h2,h3,h4,h5,h6{page-break-after:avoid}}
 nav.toc li.l2{margin-left:16px}nav.toc li.l3{margin-left:32px}nav.toc li.l4{margin-left:48px}`;
+
+// Placed the way the cover designer shows it, in percent of an A4 page.
+export const coverStyle = (part) => {
+  const half = Math.min(part.x, 100 - part.x);
+  return {
+    left: `${part.x - half}%`,
+    width: `${half * 2}%`,
+    top: `${part.y}%`,
+    fontSize: `${part.size}pt`,
+    fontWeight: part.bold ? 'bold' : 'normal',
+    color: part.color || '#222222',
+  };
+};
+export const logoStyle = part => ({ left: `${part.x - part.size / 2}%`, top: `${part.y}%`, width: `${part.size}%` });
+
+const inline = style => Object.keys(style)
+  .map(k => `${k.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)}:${style[k]}`).join(';');
+
+const coverHtml = (doc) => {
+  const { background, logo, texts } = doc.cover;
+  const landscape = doc.layout && doc.layout.landscape ? ' landscape' : '';
+  const bg = background ? ` style="background-image:url(${background.data})"` : '';
+  const img = logo ? `<img alt="" src="${logo.data}" style="${inline(logoStyle(logo))}">` : '';
+  const parts = texts.map(t => `<div data-part="${t.key}" style="${inline(coverStyle(t))}">${escapeHtml(t.text)}</div>`);
+  return `<section class="cover${landscape}"${bg}>${img}${parts.join('')}</section>`;
+};
 
 export const renderHtml = (doc) => {
   const lang = doc.lang || 'zh';
@@ -55,14 +80,11 @@ export const renderHtml = (doc) => {
     }
     return '';
   }).join('\n');
-  const bg = doc.cover && doc.cover.background ? ` style="background-image:url(${doc.cover.background.data})"` : '';
-  const logo = doc.cover && doc.cover.logo ? `<img alt="" src="${doc.cover.logo.data}">` : '';
-  const cover = doc.cover && `<section class="cover"${bg}>${logo}<h1>${escapeHtml(doc.title)}</h1>
-${doc.cover.subtitle ? `<p class="sub">${escapeHtml(doc.cover.subtitle)}</p>` : ''}
-<dl>${doc.cover.rows.map(([k, v]) => `<div><dt>${escapeHtml(k)}：</dt><dd>${escapeHtml(v)}</dd></div>`).join('')}</dl></section>`;
+  const cover = doc.cover && coverHtml(doc);
   const top = cover || `<h1 class="title">${escapeHtml(doc.title)}</h1>
 <p class="meta">${escapeHtml(labelOf('generatedTime', lang))}: ${escapeHtml(doc.generatedTime)}</p>`;
-  const page = doc.layout && doc.layout.landscape ? '@page{size:A4 landscape}' : '';
+  // Word lays the report out on A4 too, and the cover is drawn to that size.
+  const page = `@page{size:A4${doc.layout && doc.layout.landscape ? ' landscape' : ''}}${cover ? '@page:first{margin:0}' : ''}`;
   return `<!DOCTYPE html>
 <html lang="${lang}"><head><meta charset="utf-8"><title>${escapeHtml(doc.title)}</title><style>${CSS}${page}</style></head>
 <body>${top}

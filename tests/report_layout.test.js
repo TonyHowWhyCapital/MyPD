@@ -1,5 +1,6 @@
 import {
-  buildReport, renderReport, getDefaultReportTemplates, layoutOf, setLayout,
+  buildReport, renderReport, getDefaultReportTemplates, layoutOf, setLayout, setCoverItem, resetCoverPlaces,
+  textBox, logoBox,
 } from '../src/lib/report';
 import { buildDocumentXml, buildFooterXml, buildHeaderXml } from '../src/lib/report/docx';
 import { bytesOf, fitInto, cropToFill } from '../src/lib/report/image';
@@ -43,15 +44,84 @@ describe('report layout', () => {
 
   test('the cover carries the title, the subtitle and the filled-in details', () => {
     const doc = build(documentTpl, { subtitle: 'Data dictionary', author: 'Tony', version: ' ' });
-    expect(doc.cover).toEqual({
-      subtitle: 'Data dictionary', logo: null, background: null, rows: [['Author', 'Tony'], ['Date', '2026-11-16']],
+    expect(doc.cover).toMatchObject({
+      title: 'Shop', subtitle: 'Data dictionary', logo: null, background: null, rows: [['Author', 'Tony'], ['Date', '2026-11-16']],
     });
+    expect(doc.cover.texts.map(t => t.key)).toEqual(['title', 'subtitle', 'author', 'date']);
     expect(build(documentTpl, { cover: false }).cover).toBeNull();
     const html = renderReport(doc, 'html').data;
     expect(html).toContain('<section class="cover">');
     expect(html).toContain('Data dictionary');
     expect(html).not.toContain('class="title"');
-    expect(renderReport(doc, 'markdown').data).toContain('- Author：Tony');
+    expect(html).toContain('@page:first{margin:0}');
+    expect(renderReport(build(documentTpl, { cover: false }), 'html').data).not.toContain('@page:first');
+    const md = renderReport(doc, 'markdown').data;
+    expect(md).toContain('- Author：Tony');
+    expect(md.startsWith('# Shop\n')).toBe(true);
+  });
+});
+
+describe('cover title and placement', () => {
+  test('the cover shows the model name, not the template name, unless a title is typed', () => {
+    const doc = build(documentTpl);
+    expect(doc.cover.title).toBe('Shop');
+    expect(doc.cover.title).not.toContain(documentTpl.defName);
+    const typed = build(documentTpl, { coverTitle: ' Order system ' });
+    expect(typed.cover.title).toBe('Order system');
+    expect(typed.title).toBe('Order system');
+    const two = buildReport(documentTpl, [model, { ...model, name: 'Hub' }], { now: NOW, lang: 'en' });
+    expect(two.cover.title).toBe('Shop、Hub');
+  });
+
+  test('only changed places, sizes and looks are stored, and invalid ones fall back', () => {
+    const items = layoutOf(documentTpl).coverItems;
+    expect(items.title).toEqual({
+      x: 50, y: 36, size: 32, hidden: false, bold: true, color: '',
+    });
+    const moved = setLayout(documentTpl, { coverItems: setCoverItem(items, 'author', { x: 20.04, y: 120, size: 18 }) });
+    expect(moved.layout).toEqual({ coverItems: { author: { x: 20, y: 97, size: 18 } } });
+    expect(layoutOf(moved).coverItems.author).toMatchObject({ x: 20, y: 97, size: 18 });
+    expect(setLayout(moved, { coverItems: resetCoverPlaces(layoutOf(moved).coverItems) }).layout)
+      .toEqual({ coverItems: { author: { size: 18 } } });
+    const reset = setLayout(moved, { coverItems: setCoverItem(layoutOf(moved).coverItems, 'author', { x: 50, y: 70, size: 13 }) });
+    expect(reset).not.toHaveProperty('layout');
+    expect(layoutOf({ kind: 'document', layout: { coverItems: { title: { x: 'a', size: 7, color: 'red', bold: 1 } } } }).coverItems.title)
+      .toEqual(items.title);
+  });
+
+  test('a hidden part is left off every format', () => {
+    const items = layoutOf(documentTpl).coverItems;
+    const doc = build(documentTpl, { author: 'Tony', coverItems: setCoverItem(items, 'date', { hidden: true }) });
+    expect(doc.cover.texts.map(t => t.key)).toEqual(['title', 'author']);
+    expect(doc.cover.rows).toEqual([['Author', 'Tony']]);
+    expect(buildDocumentXml(doc)).not.toContain('2026-11-16');
+  });
+
+  test('a text is centred on its place and may run to the nearer page edge', () => {
+    expect(textBox({ x: 50, y: 10 }, 1000, 2000)).toEqual({ left: 0, width: 1000, top: 200 });
+    expect(textBox({ x: 20, y: 0 }, 1000, 2000)).toEqual({ left: 0, width: 400, top: 0 });
+    expect(textBox({ x: 90, y: 50 }, 1000, 2000)).toEqual({ left: 800, width: 200, top: 1000 });
+    expect(logoBox({ x: 50, y: 10, size: 30 }, 1000, 2000)).toEqual({ left: 350, width: 300, top: 200 });
+  });
+
+  test('docx puts each part in a frame at its place, with its size, weight and colour', () => {
+    const items = layoutOf(documentTpl).coverItems;
+    const doc = build(documentTpl, {
+      subtitle: 'Dictionary',
+      coverItems: setCoverItem(setCoverItem(items, 'subtitle', { x: 25, y: 50, size: 20, color: '#c00000' }), 'title', { bold: false }),
+    });
+    const xml = buildDocumentXml(doc);
+    // A4 portrait is 11906 by 16838 twentieths of a point.
+    expect(xml).toContain('<w:framePr w:w="5953" w:wrap="around" w:hAnchor="page" w:vAnchor="page" w:x="0" w:y="8419"/>');
+    expect(xml).toMatch(/<w:color w:val="C00000"\/><w:sz w:val="40"\/><\/w:rPr><w:t xml:space="preserve">Dictionary/);
+    expect(xml).toMatch(/<w:rPr><w:sz w:val="64"\/><\/w:rPr><w:t xml:space="preserve">Shop</);
+  });
+
+  test('html places each part in percent of the page', () => {
+    const items = layoutOf(documentTpl).coverItems;
+    const html = renderReport(build(documentTpl, { coverItems: setCoverItem(items, 'title', { x: 30, y: 20, size: 40 }) }), 'html').data;
+    expect(html).toContain('<div data-part="title" style="left:0%;width:60%;top:20%;font-size:40pt;font-weight:bold;color:#222222">Shop</div>');
+    expect(renderReport(build(documentTpl, { landscape: true }), 'html').data).toContain('<section class="cover landscape">');
   });
 });
 
@@ -60,7 +130,7 @@ describe('report layout in docx', () => {
     const xml = buildDocumentXml(build(documentTpl));
     expect(xml.match(/<w:sectPr>/g)).toHaveLength(2);
     const [cover, rest] = xml.split('</w:sectPr></w:pPr></w:p>');
-    expect(cover).toContain('<w:vAlign w:val="center"/>');
+    expect(cover).toContain('w:hAnchor="page" w:vAnchor="page"');
     expect(cover).not.toContain('Reference');
     expect(rest).toContain('<w:headerReference w:type="default" r:id="header"/>');
     expect(rest).toContain('<w:footerReference w:type="default" r:id="footer"/>');
@@ -135,10 +205,11 @@ describe('cover pictures', () => {
     expect(cropToFill({ width: 100, height: 400 }, 100, 200)).toEqual({ x: 0, y: 0.25 });
   });
 
-  test('docx packs the pictures and places the logo in line and the background behind the text', () => {
+  test('docx packs the pictures and places the logo at its place and the background behind the text', () => {
     const doc = build(documentTpl, { logo: png, background: jpg });
     const xml = buildDocumentXml(doc);
-    expect(xml).toContain('<wp:inline');
+    // 30% of the page width, centred, 12% down; 400 by 100 pixels keeps its proportion.
+    expect(xml).toContain('<wp:positionH relativeFrom="page"><wp:posOffset>2646045</wp:posOffset></wp:positionH><wp:positionV relativeFrom="page"><wp:posOffset>1283335</wp:posOffset></wp:positionV><wp:extent cx="2268220" cy="567055"/>');
     expect(xml).toContain('r:embed="logo"');
     expect(xml).toContain('behindDoc="1"');
     expect(xml).toContain('r:embed="background"');
@@ -152,7 +223,7 @@ describe('cover pictures', () => {
     const packed = Buffer.from(renderReport(build(documentTpl, { logo: png, cover: false }), 'docx').data).toString('latin1');
     expect(packed).not.toContain('word/media');
     const html = renderReport(build(documentTpl, { logo: png, background: jpg }), 'html').data;
-    expect(html).toContain(`<img alt="" src="${png.data}">`);
+    expect(html).toContain(`<img alt="" src="${png.data}" style="left:35%;top:12%;width:30%">`);
     expect(html).toContain(`background-image:url(${jpg.data})`);
   });
 });

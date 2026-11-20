@@ -1,10 +1,11 @@
 import React from 'react';
 import {
-  FormatMessage, Input, Select, Checkbox, Button, Icon, Message, Upload,
+  FormatMessage, Input, Select, Checkbox, Button, Icon, Message, Upload, openModal,
 } from 'components';
 import {
   layoutOf, setLayout, PAGE_NUMBERS, COVER_FIELDS, IMAGE_FIELDS, MAX_IMAGE_BYTES,
 } from '../../../../lib/report';
+import CoverDesigner from './CoverDesigner';
 
 const Option = Select.Option;
 
@@ -23,7 +24,9 @@ const readImage = file => new Promise((resolve, reject) => {
 
 // Cover, header, page numbers: what makes the report a document. A list has no chapters,
 // so chapter numbers and the table of contents are left out for it.
-export default React.memo(({ cls, draft, onChange }) => {
+export default React.memo(({
+  prefix, cls, draft, modelName, lang, onChange,
+}) => {
   const layout = layoutOf(draft);
   const set = change => onChange(setLayout(draft, change));
   const text = id => FormatMessage.string({ id: `report.layout.${id}` });
@@ -37,6 +40,19 @@ export default React.memo(({ cls, draft, onChange }) => {
       readImage(file).then(image => set({ [field]: image }))
         .catch(() => Message.error({ title: text('imageInvalid') }));
     }, fits, false);
+  };
+  const design = () => {
+    const modal = openModal(<CoverDesigner
+      prefix={prefix}
+      template={draft}
+      modelName={modelName}
+      lang={lang}
+      onChange={onChange}
+    />, {
+      title: FormatMessage.string({ id: 'report.cover.title' }),
+      bodyStyle: { width: '92%' },
+      buttons: [<Button key='close' onClick={() => modal.close()}><FormatMessage id='report.close'/></Button>],
+    });
   };
   const flags = ['cover', 'header', 'numbering', 'tocPages', 'landscape']
     .filter(f => draft.kind !== 'list' || !['numbering', 'tocPages'].includes(f));
@@ -56,12 +72,15 @@ export default React.memo(({ cls, draft, onChange }) => {
         {PAGE_NUMBERS.map(p => <Option key={p} value={p}>{text(`pageNumbers.${p}`)}</Option>)}
       </Select>
     </div>
+    {layout.cover && <div className={`${cls}-row`}>
+      <Button type='primary' onClick={design}><Icon type='fa-arrows'/> {text('coverDesign')}</Button>
+    </div>}
     {layout.cover && <div className={`${cls}-layout-cover`}>
       {COVER_FIELDS.map(f => <div key={f} className={`${cls}-row`}>
         <span className={`${cls}-label`}>{text(f)}</span>
         <Input
           value={layout[f]}
-          placeholder={text(`${f}Hint`)}
+          placeholder={`${text(`${f}Hint`)}${f === 'coverTitle' && modelName ? `（${modelName}）` : ''}`}
           onChange={e => set({ [f]: e.target.value })}
         />
       </div>)}

@@ -1821,6 +1821,31 @@ export default {
       "markdown": "Markdown (.md)",
       "csv": "CSV (.csv)"
     },
+    "cover": {
+      "title": "封面版面設計",
+      "tip": "在右側頁面上拖曳各項目即可調整位置；位置是項目在頁面上的百分比，水平為中心點，垂直為上緣。",
+      "item": "項目",
+      "content": "內容",
+      "show": "顯示",
+      "size": "大小",
+      "bold": "粗體",
+      "color": "顏色",
+      "x": "水平 %",
+      "y": "垂直 %",
+      "reset": "還原預設位置",
+      "sizeLogo": "頁寬 {size}%",
+      "noLogo": "尚未選擇圖片",
+      "dateText": "產生報表的日期",
+      "parts": {
+        "title": "標題",
+        "subtitle": "副標題",
+        "organization": "單位",
+        "author": "作者",
+        "version": "版本",
+        "date": "日期",
+        "logo": "Logo"
+      }
+    },
     "layout": {
       "title": "文件版面",
       "cover": "封面",
@@ -1835,6 +1860,9 @@ export default {
         "slash": "1 / 10",
         "pageOfTotal": "第 1 頁，共 10 頁"
       },
+      "coverTitle": "封面標題",
+      "coverTitleHint": "留空則使用模型名稱，不使用範本名稱",
+      "coverDesign": "設計封面版面",
       "subtitle": "副標題",
       "organization": "單位",
       "author": "作者",
@@ -1893,6 +1921,7 @@ export default {
     "previewTitle": "報告預覽",
     "previewTip": "拖曳抬頭分隔線：調整欄寬",
     "previewTipAlign": "點選對齊圖示：切換對齊",
+    "previewTipCover": "拖曳封面上的項目可調整位置",
     "previewTipKeep": "同章節表格一起調整，儲存範本後保留",
     "previewReset": "還原自動欄寬",
     "previewRows": "預覽只顯示前 {count} 筆，共 {total} 筆",

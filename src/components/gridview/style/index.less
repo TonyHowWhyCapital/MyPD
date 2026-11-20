@@ -66,3 +66,14 @@
     }
   }
 }
+
+// A heading a column is dragged over, with a bar where the column will land
+th.drop-before {
+  box-shadow: inset 3px 0 0 @primary-color !important;
+}
+th.drop-after {
+  box-shadow: inset -3px 0 0 @primary-color !important;
+}
+th[draggable='true'] {
+  cursor: grab;
+}

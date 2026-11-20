@@ -1239,7 +1239,7 @@ fields}}
             {...dragHeader}
             {...sizes.headerProps(h?.refKey)}
             style={{
-                cursor: 'pointer',
+                cursor: dragHeader.draggable ? 'grab' : 'pointer',
                 // eslint-disable-next-line no-nested-ternary
                 width: sizes.customized ? (columnWidth[h?.refKey] || 150)
                   : (autoWidth ? 'auto' : columnWidth[h?.refKey]),

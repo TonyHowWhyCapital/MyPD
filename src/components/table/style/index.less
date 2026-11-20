@@ -109,6 +109,18 @@
     position: sticky;
     //top: 0;
   }
+  // The heading row stands apart from the rows under it. Only the last few pixels on the
+  // right of a heading are the grip for its width; the rest of it drags the column.
+  thead th {
+    background: @table-header-bg;
+    color: @main-font-color;
+    font-weight: bold;
+    border-bottom: 2px solid @table-header-border;
+  }
+  th > span.@{prefix}-gridview-resize {
+    display: block;
+    width: 7px;
+  }
   td, th {
     & > {
       .@{prefix}-multiple-select {

@@ -44,6 +44,9 @@ export const useGridView = (gridId, { defaultHidden = [] } = {}) => {
   };
   // Props that make a header cell a drag source and drop target. `allKeys` is
   // every column of the grid in its current order, hidden ones included.
+  // The heading a column would land on shows a bar on the side it goes to.
+  const DROP = ['drop-before', 'drop-after'];
+  const unmark = el => el && el.classList.remove(...DROP);
   const dragProps = (key, allKeys) => ({
     draggable: true,
     onDragStart: (e) => {
@@ -51,9 +54,23 @@ export const useGridView = (gridId, { defaultHidden = [] } = {}) => {
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', key);
     },
-    onDragOver: e => dragging.current && e.preventDefault(),
+    onDragOver: (e) => {
+      if (!dragging.current) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (dragging.current !== key) {
+        const after = allKeys.indexOf(dragging.current) < allKeys.indexOf(key);
+        e.currentTarget.classList.add(DROP[after ? 1 : 0]);
+        e.currentTarget.classList.remove(DROP[after ? 0 : 1]);
+      }
+    },
+    onDragLeave: e => !e.currentTarget.contains(e.relatedTarget) && unmark(e.currentTarget),
+    onDragEnd: () => {
+      dragging.current = '';
+    },
     onDrop: (e) => {
       e.preventDefault();
+      unmark(e.currentTarget);
       const next = moveColumn(allKeys, dragging.current, key);
       dragging.current = '';
       if (next !== allKeys) {

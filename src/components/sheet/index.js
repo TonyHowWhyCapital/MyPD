@@ -12,6 +12,10 @@ import {id2DefSplit} from '../../lib/utils';
 import { localText } from '../../lib/locale/text';
 
 
+// The languages luckysheet has, by the name the app gives them. Any other name leaves it
+// without its texts, and it fails before it draws anything.
+const SHEET_LANG = { zh: 'zh', zhTW: 'zh_tw', en: 'en' };
+
 export default React.memo(forwardRef(({emptyRow,
                                           prefix,data : { headers = [], fields = [] }, dataSource},
                                       ref) => {
@@ -175,7 +179,7 @@ export default React.memo(forwardRef(({emptyRow,
         const currentCellData = cellData.length === 0 ? getEmptyCells(10) : cellData;
         const options = {
             container,
-            lang,
+            lang: SHEET_LANG[lang] || 'en',
             dropDownSeparator,
             showtoolbar: false,
             showinfobar: false,
